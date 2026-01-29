@@ -1,0 +1,14 @@
+Django==4.2.7
+Pillow==10.1.0
+django-crispy-forms==2.0
+crispy-bootstrap5==0.7
+django-allauth==0.54.0
+stripe==5.5.0
+django-filter==22.1  # Updated to compatible version
+requests==2.31.0
+django-ckeditor==6.7.0
+django-countries==7.3.2
+celery==5.3.1  # For async tasks (notifications)
+django-celery-beat==2.5.0  # For scheduled tasks
+redis==4.6.0  # For Celery broker
+django-environ==0.10.0  # For environment variables

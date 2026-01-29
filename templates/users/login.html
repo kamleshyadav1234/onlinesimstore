@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">Login to TelecomPedia</h2>
+                    
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        Your username and password didn't match. Please try again.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username or Email</label>
+                            <input type="text" name="username" id="username" 
+                                   class="form-control {% if form.errors %}is-invalid{% endif %}" 
+                                   required autofocus>
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.username.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" name="password" id="password" 
+                                   class="form-control {% if form.errors %}is-invalid{% endif %}" 
+                                   required>
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.password.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" name="remember_me" id="remember_me" class="form-check-input">
+                            <label class="form-check-label" for="remember_me">Remember me</label>
+                        </div>
+                        
+                        <input type="hidden" name="next" value="{{ request.GET.next }}">
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <a href="{% url 'password_reset' %}" class="text-decoration-none">Forgot Password?</a>
+                            <hr class="my-4">
+                            <p class="text-muted">Don't have an account? 
+                                <a href="{% url 'register' %}" class="text-decoration-none fw-bold">Sign up</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Social Login (Optional) -->
+            <div class="card mt-3 shadow">
+                <div class="card-body p-4">
+                    <h6 class="text-center mb-3">Or login with</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-dark">
+                            <i class="fab fa-google me-2"></i>Google
+                        </button>
+                        <button class="btn btn-outline-primary">
+                            <i class="fab fa-facebook me-2"></i>Facebook
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus username field
+    document.getElementById('username').focus();
+    
+    // Show/hide password toggle (optional enhancement)
+    const passwordInput = document.getElementById('password');
+    const toggleButton = document.createElement('button');
+    toggleButton.type = 'button';
+    toggleButton.className = 'btn btn-outline-secondary btn-sm position-absolute end-0 top-0 mt-2 me-2';
+    toggleButton.innerHTML = '<i class="fas fa-eye"></i>';
+    toggleButton.style.zIndex = '5';
+    
+    const passwordWrapper = document.querySelector('.mb-3:has(#password)');
+    passwordWrapper.style.position = 'relative';
+    passwordWrapper.appendChild(toggleButton);
+    
+    toggleButton.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+    });
+});
+</script>
+{% endblock %}

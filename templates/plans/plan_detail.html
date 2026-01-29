@@ -1,0 +1,648 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ plan.name }} - {{ plan.operator.name }} - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'plan_list' %}">Plans</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'operator_detail' plan.operator.id %}">{{ plan.operator.name }}</a></li>
+            <li class="breadcrumb-item active">{{ plan.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Plan Header -->
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-start">
+                <!-- Operator Logo -->
+                <div class="me-4">
+                    {% if plan.operator.logo %}
+                        <img src="{{ plan.operator.logo.url }}" 
+                             alt="{{ plan.operator.name }}" 
+                             class="rounded-circle shadow-lg"
+                             style="width: 100px; height: 100px; object-fit: contain;">
+                    {% else %}
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center shadow-lg"
+                             style="width: 100px; height: 100px;">
+                            <i class="fas fa-tower-cell fa-3x text-primary"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Plan Info -->
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center mb-2">
+                        <h1 class="display-6 fw-bold mb-0 me-3">{{ plan.name }}</h1>
+                        {% if plan.is_popular %}
+                            <span class="badge bg-warning text-dark fs-6">
+                                <i class="fas fa-fire me-1"></i> Popular
+                            </span>
+                        {% endif %}
+                        {% if plan.is_featured %}
+                            <span class="badge bg-primary fs-6 ms-2">
+                                <i class="fas fa-star me-1"></i> Featured
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <h3 class="text-primary fw-bold mb-3">₹{{ plan.price|intcomma }}</h3>
+                    
+                    <div class="mb-3">
+                        <span class="badge bg-secondary fs-6 me-2">
+                            <i class="fas fa-calendar-alt me-1"></i> {{ plan.get_full_validity }}
+                        </span>
+                        {% if plan.category %}
+                        <span class="badge bg-info fs-6">
+                            <i class="{{ plan.category.icon|default:'fas fa-tag' }} me-1"></i>
+                            {{ plan.category.name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="lead text-muted mb-4">{{ plan.description }}</p>
+                    
+                    <!-- Quick Actions -->
+                    <div class="d-flex flex-wrap gap-3">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" 
+                           class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-shopping-cart me-2"></i> Buy Now
+                        </a>
+                        {% else %}
+                        <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" 
+                           class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-shopping-cart me-2"></i> Login to Buy
+                        </a>
+                        {% endif %}
+                        
+                        <button class="btn btn-outline-primary btn-lg" onclick="sharePlan()">
+                            <i class="fas fa-share-alt me-2"></i> Share
+                        </button>
+                        
+                        <button class="btn btn-outline-secondary btn-lg" onclick="printPlan()">
+                            <i class="fas fa-print me-2"></i> Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Price & Validity Card -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4">
+                        <i class="fas fa-tag me-2"></i> Plan Summary
+                    </h5>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Plan Price</span>
+                            <span class="fw-bold">₹{{ plan.price|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Validity</span>
+                            <span class="fw-bold">{{ plan.get_full_validity }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Price per Day</span>
+                            <span class="fw-bold">₹{{ plan.price_per_day|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Status</span>
+                            <span class="badge {% if plan.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if plan.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Operator Info -->
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-tower-cell me-2"></i> Operator
+                        </h6>
+                        <p class="mb-0">{{ plan.operator.name }}</p>
+                        <small class="text-muted">{{ plan.operator.get_operator_type_display }}</small>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <a href="{% url 'operator_detail' plan.operator.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-2"></i> View Operator Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Features Grid -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="fw-bold mb-4">
+                <i class="fas fa-list-alt me-2"></i> Plan Features
+            </h2>
+            
+            <div class="row g-4">
+                <!-- Data Benefits -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 70px; height: 70px;">
+                                    <i class="fas fa-database fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                            <h5 class="fw-bold mb-2">Data Allowance</h5>
+                            <div class="display-5 fw-bold text-primary mb-2">
+                                {{ plan.data_allowance|default:"Not specified" }}
+                            </div>
+                            <p class="text-muted small mb-0">
+                                High-speed data with fair usage policy
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Voice Calls -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 70px; height: 70px;">
+                                    <i class="fas fa-phone fa-2x text-success"></i>
+                                </div>
+                            </div>
+                            <h5 class="fw-bold mb-2">Voice Calls</h5>
+                            <div class="display-5 fw-bold text-success mb-2">
+                                {{ plan.voice_calls|default:"Not specified" }}
+                            </div>
+                            <p class="text-muted small mb-0">
+                                Unlimited calls to any network in India
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SMS -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 70px; height: 70px;">
+                                    <i class="fas fa-sms fa-2x text-info"></i>
+                                </div>
+                            </div>
+                            <h5 class="fw-bold mb-2">SMS</h5>
+                            <div class="display-5 fw-bold text-info mb-2">
+                                {{ plan.sms|default:"Not specified" }}
+                            </div>
+                            <p class="text-muted small mb-0">
+                                Daily SMS limit for messaging
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Validity -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 70px; height: 70px;">
+                                    <i class="fas fa-calendar-alt fa-2x text-warning"></i>
+                                </div>
+                            </div>
+                            <h5 class="fw-bold mb-2">Validity</h5>
+                            <div class="display-5 fw-bold text-warning mb-2">
+                                {{ plan.validity }} days
+                            </div>
+                            <p class="text-muted small mb-0">
+                                Plan validity from activation date
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Information -->
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <!-- Plan Description -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="fw-bold mb-0">
+                        <i class="fas fa-info-circle me-2"></i> Plan Description
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ plan.description|linebreaks }}</p>
+                </div>
+            </div>
+            
+            <!-- OTT Benefits -->
+            {% if plan.ott_benefits %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="fw-bold mb-0">
+                        <i class="fas fa-tv me-2"></i> OTT & Entertainment Benefits
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ plan.ott_benefits|linebreaks }}</p>
+                    
+                    <!-- OTT Platform Icons -->
+                    <div class="mt-4">
+                        <h6 class="fw-bold mb-3">Included Platforms:</h6>
+                        <div class="row g-3">
+                            {% if 'hotstar' in plan.ott_benefits|lower %}
+                            <div class="col-auto">
+                                <div class="bg-light rounded p-3 text-center" style="width: 100px;">
+                                    <i class="fas fa-play-circle fa-2x text-danger mb-2"></i>
+                                    <div class="small fw-bold">Disney+ Hotstar</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'netflix' in plan.ott_benefits|lower %}
+                            <div class="col-auto">
+                                <div class="bg-light rounded p-3 text-center" style="width: 100px;">
+                                    <i class="fas fa-film fa-2x text-danger mb-2"></i>
+                                    <div class="small fw-bold">Netflix</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'prime' in plan.ott_benefits|lower %}
+                            <div class="col-auto">
+                                <div class="bg-light rounded p-3 text-center" style="width: 100px;">
+                                    <i class="fas fa-shopping-bag fa-2x text-primary mb-2"></i>
+                                    <div class="small fw-bold">Amazon Prime</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'sonyliv' in plan.ott_benefits|lower or 'sony' in plan.ott_benefits|lower %}
+                            <div class="col-auto">
+                                <div class="bg-light rounded p-3 text-center" style="width: 100px;">
+                                    <i class="fas fa-broadcast-tower fa-2x text-info mb-2"></i>
+                                    <div class="small fw-bold">SonyLIV</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if 'zee5' in plan.ott_benefits|lower %}
+                            <div class="col-auto">
+                                <div class="bg-light rounded p-3 text-center" style="width: 100px;">
+                                    <i class="fas fa-tv fa-2x text-purple mb-2"></i>
+                                    <div class="small fw-bold">ZEE5</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Other Benefits -->
+            {% if plan.other_benefits %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="fw-bold mb-0">
+                        <i class="fas fa-gift me-2"></i> Additional Benefits
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ plan.other_benefits|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Similar Plans -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i> Similar Plans
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for similar_plan in similar_plans|slice:":5" %}
+                        <a href="{% url 'plan_detail' similar_plan.id %}" 
+                           class="list-group-item list-group-item-action border-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="fw-bold mb-1">{{ similar_plan.name }}</h6>
+                                    <small class="text-muted">{{ similar_plan.get_full_validity }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-primary">₹{{ similar_plan.price|intcomma }}</div>
+                                    <small class="text-muted">{{ similar_plan.data_allowance|truncatechars:15 }}</small>
+                                </div>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <div class="text-center py-3 text-muted">
+                            No similar plans found
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="d-grid mt-3">
+                        <a href="{% url 'plan_list' %}?operator={{ plan.operator.id }}" 
+                           class="btn btn-outline-primary">
+                            View All {{ plan.operator.name }} Plans
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Plan Comparison -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="fas fa-balance-scale me-2"></i> Compare With
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="compareForm" method="GET" action="{% url 'compare_plans' %}">
+                        <input type="hidden" name="plans" id="comparePlans" value="{{ plan.id }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select plans to compare:</label>
+                            <select class="form-select" id="planSelect" multiple size="3">
+                                {% for comp_plan in comparable_plans %}
+                                {% if comp_plan.id != plan.id %}
+                                <option value="{{ comp_plan.id }}">{{ comp_plan.name }} - ₹{{ comp_plan.price }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" onclick="updateCompareForm()">
+                                <i class="fas fa-balance-scale me-2"></i> Compare Plans
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help & Support -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="fas fa-headset me-2"></i> Need Help?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Customer Support</h6>
+                        <p class="mb-2">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            {{ plan.operator.customer_care }}
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-globe text-primary me-2"></i>
+                            <a href="{{ plan.operator.website }}" target="_blank">
+                                {{ plan.operator.website }}
+                            </a>
+                        </p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6 class="fw-bold">Plan Activation</h6>
+                        <ul class="small text-muted mb-0">
+                            <li>Plan activates within 15 minutes of payment</li>
+                            <li>Keep your phone switched on during activation</li>
+                            <li>Contact operator for any activation issues</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="fw-bold mb-4">
+                <i class="fas fa-question-circle me-2"></i> Frequently Asked Questions
+            </h2>
+            
+            <div class="accordion" id="planFAQ">
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How do I activate this plan?
+                        </button>
+                    </h3>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#planFAQ">
+                        <div class="accordion-body">
+                            After successful payment, the plan will be automatically activated on your mobile number within 15 minutes. Make sure your phone is switched on and has network coverage.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            Can I use this plan for data tethering/hotspot?
+                        </button>
+                    </h3>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#planFAQ">
+                        <div class="accordion-body">
+                            Yes, most plans allow tethering/hotspot usage unless specifically mentioned in the terms. The data usage will be counted from your main data allowance.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            What happens to unused data?
+                        </button>
+                    </h3>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#planFAQ">
+                        <div class="accordion-body">
+                            Daily data is valid only for that day and does not carry forward. However, some monthly plans may offer data rollover - check with your operator for specific details.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Is GST included in the price?
+                        </button>
+                    </h3>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#planFAQ">
+                        <div class="accordion-body">
+                            Yes, all prices shown include applicable GST (Goods and Services Tax) as per Indian government regulations.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center p-4">
+                    <h4 class="fw-bold mb-4">Ready to Get This Plan?</h4>
+                    
+                    <div class="d-flex flex-wrap justify-content-center gap-3">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" 
+                           class="btn btn-primary btn-lg px-5">
+                            <i class="fas fa-shopping-cart me-2"></i> Buy Now - ₹{{ plan.price|intcomma }}
+                        </a>
+                        {% else %}
+                        <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" 
+                           class="btn btn-primary btn-lg px-5">
+                            <i class="fas fa-shopping-cart me-2"></i> Login to Buy - ₹{{ plan.price|intcomma }}
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'operator_detail' plan.operator.id %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i> Back to {{ plan.operator.name }}
+                        </a>
+                        
+                        <a href="{% url 'plan_list' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-list me-2"></i> Browse All Plans
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Update comparison form
+    function updateCompareForm() {
+        const selectedPlans = Array.from(document.getElementById('planSelect').selectedOptions)
+            .map(option => option.value);
+        
+        // Add current plan to comparison
+        const allPlans = [{{ plan.id }}, ...selectedPlans];
+        document.getElementById('comparePlans').value = allPlans.join(',');
+        
+        // Submit form if at least one other plan is selected
+        if (selectedPlans.length > 0) {
+            document.getElementById('compareForm').submit();
+        } else {
+            alert('Please select at least one plan to compare with.');
+        }
+    }
+    
+    // Share plan
+    function sharePlan() {
+        const shareUrl = window.location.href;
+        const shareText = `Check out {{ plan.name }} from {{ plan.operator.name }} for ₹{{ plan.price }}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: '{{ plan.name }} - TelecomPedia',
+                text: shareText,
+                url: shareUrl,
+            });
+        } else {
+            // Copy to clipboard
+            navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+            alert('Plan link copied to clipboard!');
+        }
+    }
+    
+    // Print plan
+    function printPlan() {
+        window.print();
+    }
+    
+    // Calculate price per day
+    document.addEventListener('DOMContentLoaded', function() {
+        const price = {{ plan.price }};
+        const validity = {{ plan.validity }};
+        const pricePerDay = price / validity;
+        
+        // Update price per day in the template if needed
+        const pricePerDayElement = document.querySelector('.price-per-day-value');
+        if (pricePerDayElement) {
+            pricePerDayElement.textContent = `₹${pricePerDay.toFixed(2)}`;
+        }
+    });
+</script>
+
+<style>
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0;
+    }
+    
+    .breadcrumb-item a {
+        text-decoration: none;
+        color: var(--bs-primary);
+    }
+    
+    .breadcrumb-item.active {
+        color: var(--bs-secondary);
+    }
+    
+    .list-group-item:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        border-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background-color: rgba(13, 110, 253, 0.1);
+        color: var(--bs-primary);
+    }
+    
+    @media print {
+        .btn, .breadcrumb, .card-header, .accordion-button {
+            display: none !important;
+        }
+        
+        .container-fluid {
+            padding: 0 !important;
+        }
+        
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: none !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .display-6 {
+            font-size: 1.8rem;
+        }
+        
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+{% endblock %}

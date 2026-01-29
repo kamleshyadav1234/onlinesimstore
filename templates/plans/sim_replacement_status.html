@@ -1,0 +1,310 @@
+<!-- templates/plans/sim_replacement_status.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SIM Replacement Status | TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-primary">SIM Replacement Status</h1>
+        <p class="lead text-muted">Track your SIM replacement request</p>
+    </div>
+
+    {% if sim_request %}
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Status Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-tasks me-2"></i>Request Details</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Request ID</h6>
+                            <h4 class="text-primary">{{ sim_request.request_id }}</h4>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <h6 class="text-muted">Status</h6>
+                            <span class="badge bg-{% if sim_request.status == 'delivered' %}success{% elif sim_request.status == 'approved' or sim_request.status == 'dispatched' %}info{% elif sim_request.status == 'processing' %}warning{% elif sim_request.status == 'rejected' %}danger{% else %}secondary{% endif %} fs-6">
+                                {{ sim_request.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-5">
+                        <h6 class="mb-3">Request Progress</h6>
+                        <div class="progress" style="height: 10px;">
+                            {% if sim_request.status == 'pending' %}
+                            <div class="progress-bar bg-warning" style="width: 25%;"></div>
+                            {% elif sim_request.status == 'processing' %}
+                            <div class="progress-bar bg-info" style="width: 50%;"></div>
+                            {% elif sim_request.status == 'approved' %}
+                            <div class="progress-bar bg-primary" style="width: 75%;"></div>
+                            {% elif sim_request.status == 'dispatched' or sim_request.status == 'delivered' %}
+                            <div class="progress-bar bg-success" style="width: 100%;"></div>
+                            {% elif sim_request.status == 'rejected' %}
+                            <div class="progress-bar bg-danger" style="width: 100%;"></div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">Submitted</small>
+                            <small class="text-muted">Processing</small>
+                            <small class="text-muted">Approved</small>
+                            <small class="text-muted">Completed</small>
+                        </div>
+                    </div>
+
+                    <!-- Request Details -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary"><i class="fas fa-mobile-alt me-2"></i>Connection Details</h6>
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td><strong>Mobile Number:</strong></td>
+                                            <td>{{ sim_request.mobile_number }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Operator:</strong></td>
+                                            <td>{{ sim_request.get_operator_display }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Reason:</strong></td>
+                                            <td>{{ sim_request.get_reason_display }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Service Type:</strong></td>
+                                            <td>
+                                                {% if sim_request.service_type == 'fast' %}
+                                                Fast Track (₹199)
+                                                {% else %}
+                                                Standard (₹99)
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary"><i class="fas fa-user me-2"></i>Customer Details</h6>
+                                    <table class="table table-sm mb-0">
+                                        <tr>
+                                            <td><strong>Name:</strong></td>
+                                            <td>{{ sim_request.full_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Email:</strong></td>
+                                            <td>{{ sim_request.email }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Alternate Contact:</strong></td>
+                                            <td>{{ sim_request.alternate_contact }}</td>
+                                        </tr>
+                                        {% if sim_request.date_of_birth %}
+                                        <tr>
+                                            <td><strong>Date of Birth:</strong></td>
+                                            <td>{{ sim_request.date_of_birth|date:"d M Y" }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Details -->
+                    <div class="card border-0 bg-light mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary"><i class="fas fa-truck me-2"></i>Delivery Details</h6>
+                            <table class="table table-sm mb-0">
+                                <tr>
+                                    <td><strong>Address:</strong></td>
+                                    <td>
+                                        {{ sim_request.address_line1 }}<br>
+                                        {% if sim_request.address_line2 %}{{ sim_request.address_line2 }}<br>{% endif %}
+                                        {{ sim_request.city }}, {{ sim_request.state }} - {{ sim_request.pincode }}
+                                    </td>
+                                </tr>
+                                {% if sim_request.estimated_delivery %}
+                                <tr>
+                                    <td><strong>Estimated Delivery:</strong></td>
+                                    <td>{{ sim_request.estimated_delivery|date:"d M Y, h:i A" }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if sim_request.tracking_number %}
+                                <tr>
+                                    <td><strong>Tracking Number:</strong></td>
+                                    <td>{{ sim_request.tracking_number }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if sim_request.courier_partner %}
+                                <tr>
+                                    <td><strong>Courier Partner:</strong></td>
+                                    <td>{{ sim_request.courier_partner }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Payment Details -->
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary"><i class="fas fa-credit-card me-2"></i>Payment Details</h6>
+                            <table class="table table-sm mb-0">
+                                <tr>
+                                    <td><strong>Amount Paid:</strong></td>
+                                    <td class="text-success">₹{{ sim_request.amount_paid }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Payment Status:</strong></td>
+                                    <td><span class="badge bg-success">Paid</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Payment Date:</strong></td>
+                                    <td>{{ sim_request.created_at|date:"d M Y, h:i A" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Next Steps & Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">What to Expect:</h6>
+                            <ul class="small">
+                                {% if sim_request.status == 'pending' %}
+                                <li>Your request is under review</li>
+                                <li>We'll verify your documents within 2 hours</li>
+                                <li>You'll receive SMS confirmation once approved</li>
+                                {% elif sim_request.status == 'processing' %}
+                                <li>Documents verified successfully</li>
+                                <li>New SIM is being processed</li>
+                                <li>Delivery will be scheduled soon</li>
+                                {% elif sim_request.status == 'approved' %}
+                                <li>SIM has been approved for dispatch</li>
+                                <li>You'll receive tracking details shortly</li>
+                                <li>Keep your ID proof ready for delivery</li>
+                                {% elif sim_request.status == 'dispatched' %}
+                                <li>SIM has been dispatched</li>
+                                <li>Track delivery using: <strong>{{ sim_request.tracking_number }}</strong></li>
+                                <li>Be available to receive the delivery</li>
+                                {% elif sim_request.status == 'delivered' %}
+                                <li>SIM has been delivered successfully</li>
+                                <li>Activation usually happens within 1-4 hours</li>
+                                <li>Insert new SIM in your phone when instructed</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Contact Support:</h6>
+                            <ul class="small">
+                                <li><strong>Email:</strong> support@telecompedia.com</li>
+                                <li><strong>Phone:</strong> 1800-123-4567</li>
+                                <li><strong>Reference ID:</strong> {{ sim_request.request_id }}</li>
+                                <li><strong>Expected Resolution:</strong> 
+                                    {% if sim_request.estimated_delivery %}
+                                    {{ sim_request.estimated_delivery|date:"d M Y" }}
+                                    {% else %}
+                                    24-48 hours
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'sim_replacement_list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-2"></i>View All Requests
+                        </a>
+                        <div>
+                            <a href="{% url 'sim_replacement_create' %}" class="btn btn-primary me-2">
+                                <i class="fas fa-plus me-2"></i>New Request
+                            </a>
+                            {% if sim_request.tracking_number %}
+                            <button class="btn btn-warning" onclick="alert('Tracking link would open here in real implementation. Tracking: {{ sim_request.tracking_number }}')">
+                                <i class="fas fa-shipping-fast me-2"></i>Track Delivery
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- No request found -->
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-exclamation-triangle fa-4x text-warning"></i>
+        </div>
+        <h3 class="text-muted">No SIM Replacement Request Found</h3>
+        <p class="text-muted mb-4">We couldn't find any SIM replacement request associated with your account.</p>
+        <a href="{% url 'sim_replacement_create' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus me-2"></i>Create New Request
+        </a>
+        <a href="{% url 'sim_replacement_list' %}" class="btn btn-outline-primary btn-lg ms-2">
+            <i class="fas fa-history me-2"></i>View All Requests
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.progress {
+    border-radius: 10px;
+}
+.progress-bar {
+    border-radius: 10px;
+}
+.table-sm td {
+    padding: 0.5rem;
+    border-top: none;
+}
+.card.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh status every 30 seconds if not completed
+    const status = "{{ sim_request.status }}";
+    const completedStatuses = ['delivered', 'rejected'];
+    
+    if (!completedStatuses.includes(status)) {
+        setTimeout(function() {
+            window.location.reload();
+        }, 30000); // Refresh every 30 seconds
+        
+        // Show auto-refresh notification
+        const refreshMsg = document.createElement('div');
+        refreshMsg.className = 'alert alert-info alert-dismissible fade show';
+        refreshMsg.innerHTML = `
+            <i class="fas fa-sync-alt me-2"></i>
+            <strong>Auto-refresh enabled:</strong> This page will refresh every 30 seconds to show latest status.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.container.py-5').prepend(refreshMsg);
+    }
+});
+</script>
+{% endblock %}

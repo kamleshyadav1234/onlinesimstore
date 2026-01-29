@@ -1,0 +1,1182 @@
+<!-- templates/plans/port_number.html - FANCY SIMPLIFIED VERSION -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Port Your Number - TelecomPedia{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Fancy Gradient Background */
+    .fancy-gradient-bg {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 2rem;
+    }
+    
+    .fancy-gradient-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    
+    /* Fancy Header */
+    .fancy-header {
+        padding: 3rem 2rem;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .fancy-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        border: 3px solid white;
+    }
+    
+    /* Fancy Progress Bar */
+    .fancy-progress {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        margin: 2rem auto;
+        max-width: 400px;
+        position: relative;
+    }
+    
+    .fancy-progress-bar {
+        height: 100%;
+        background: white;
+        border-radius: 4px;
+        width: 33%;
+        transition: width 0.5s ease;
+    }
+    
+    .fancy-progress-steps {
+        display: flex;
+        justify-content: space-between;
+        max-width: 400px;
+        margin: 0 auto;
+        position: relative;
+        top: -25px;
+        z-index: 2;
+    }
+    
+    .fancy-step {
+        width: 30px;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        border: 2px solid white;
+    }
+    
+    .fancy-step.active {
+        background: white;
+        color: #667eea;
+        transform: scale(1.1);
+        box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+    }
+    
+    /* Step Content Styles - FIXED */
+    .step-content {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    
+    .step-content.active {
+        display: block;
+        opacity: 1;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Glass Effect Card */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        position: relative;
+        z-index: 2;
+        min-height: 400px;
+    }
+    
+    /* Fancy Form Controls */
+    .fancy-form-control {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .fancy-form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .fancy-form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .fancy-form-label i {
+        margin-right: 8px;
+        color: #667eea;
+    }
+    
+    /* Operator Badge */
+    .operator-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .operator-logo-small {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        object-fit: contain;
+    }
+    
+    .operator-name-small {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    /* Fancy Plan Cards */
+    .fancy-plan-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 15px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .fancy-plan-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .fancy-plan-card:hover {
+        transform: translateY(-5px);
+        border-color: #667eea;
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.15);
+    }
+    
+    .fancy-plan-card:hover::before {
+        opacity: 1;
+    }
+    
+    .fancy-plan-card.selected {
+        border-color: #667eea;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.2);
+    }
+    
+    .fancy-plan-card.selected::before {
+        opacity: 1;
+    }
+    
+    .fancy-plan-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .fancy-plan-price {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+        line-height: 1;
+    }
+    
+    .fancy-plan-validity {
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .fancy-plan-features {
+        margin-top: 1rem;
+    }
+    
+    .fancy-feature-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .fancy-feature-item:last-child {
+        border-bottom: none;
+    }
+    
+    .fancy-feature-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .fancy-feature-value {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .fancy-bonus-badge {
+        background: linear-gradient(135deg, #ffd700, #ffb300);
+        color: #333;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        margin-top: 10px;
+    }
+    
+    .fancy-bonus-badge i {
+        margin-right: 5px;
+    }
+    
+    /* Fancy Summary Card */
+    .fancy-summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin: 2rem 0;
+        display: none;
+        animation: fadeInUp 0.5s ease;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .fancy-summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .fancy-summary-price {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    /* Fancy Buttons */
+    .fancy-btn {
+        padding: 14px 32px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .fancy-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .fancy-btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+    }
+    
+    .fancy-btn-primary:active {
+        transform: translateY(-1px);
+    }
+    
+    .fancy-btn-lg {
+        padding: 16px 40px;
+        font-size: 18px;
+    }
+    
+    .fancy-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Fancy Eligibility Check */
+    .fancy-eligibility-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin: 1rem 0;
+    }
+    
+    .fancy-check-icon {
+        width: 60px;
+        height: 60px;
+        background: #4CAF50;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin: 0 auto 1rem;
+    }
+    
+    /* Navigation Buttons */
+    .nav-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #eee;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .fancy-header {
+            padding: 2rem 1rem;
+        }
+        
+        .glass-card {
+            padding: 1.5rem;
+        }
+        
+        .fancy-plan-price {
+            font-size: 1.5rem;
+        }
+        
+        .fancy-btn {
+            padding: 12px 24px;
+        }
+        
+        .nav-buttons {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .nav-buttons .fancy-btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Fancy Header Section -->
+    <div class="fancy-gradient-bg">
+        <div class="fancy-header">
+            <div class="fancy-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <h1 class="display-5 fw-bold mb-3">Port Your Mobile Number</h1>
+            <p class="lead mb-0">Keep your number, switch to better operator with exclusive port-in offers</p>
+        </div>
+        
+        <!-- Fancy Progress Bar -->
+        <div class="fancy-progress">
+            <div class="fancy-progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="fancy-progress-steps">
+            <div class="fancy-step active" id="stepIndicator1">1</div>
+            <div class="fancy-step" id="stepIndicator2">2</div>
+            <div class="fancy-step" id="stepIndicator3">3</div>
+        </div>
+    </div>
+    
+    <!-- Main Form Card -->
+    <div class="glass-card">
+        <form method="post" action="{% url 'port_number' %}" id="portForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Hidden field for selected plan -->
+            <input type="hidden" name="selected_plan" id="selectedPlanId" value="">
+            
+            <!-- Step 1: Current Details -->
+            <div class="step-content active" id="step1">
+                <h3 class="mb-4 text-center">Step 1: Your Current Details</h3>
+                
+                <div class="fancy-eligibility-card">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fancy-form-label">
+                                    <i class="fas fa-mobile-alt"></i> Current Mobile Number *
+                                </label>
+                                <input type="tel" name="mobile_number" class="form-control fancy-form-control" 
+                                       pattern="[6-9][0-9]{9}" required
+                                       placeholder="98XXXXXX98" maxlength="10" id="mobileNumberInput">
+                                <div class="form-text mt-2">Enter 10-digit mobile number you want to port</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="fancy-form-label">
+                                    <i class="fas fa-tower-cell"></i> Current Operator *
+                                </label>
+                                <select name="current_operator" class="form-control fancy-form-control" required id="currentOperatorSelect">
+                                    <option value="">Select Current Operator</option>
+                                    {% for operator in operators %}
+                                    <option value="{{ operator.id }}">{{ operator.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text mt-2">Your current mobile service provider</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Eligibility Check Result -->
+                    <div id="eligibilityResult" class="mt-4" style="display: none;">
+                        <div class="alert" id="eligibilityAlert" style="border-radius: 12px;"></div>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <button type="button" class="btn fancy-btn fancy-btn-primary fancy-btn-lg" id="checkEligibilityBtn">
+                            <i class="fas fa-search me-2"></i>Check Eligibility & Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Choose Plan -->
+            <div class="step-content" id="step2">
+
+                <h3 class="mb-4 text-center">Step 2: Choose Your New Plan</h3>
+                
+                <!-- Current Selection Display -->
+                <div class="alert alert-info mb-4" style="border-radius: 12px;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-mobile-alt me-2"></i>Current Number:</strong> 
+                            <span id="displayMobileNumber" class="fw-bold">-</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong><i class="fas fa-tower-cell me-2"></i>Current Operator:</strong> 
+                            <span id="displayCurrentOperator" class="fw-bold">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- New Operator Selection -->
+                <div class="mb-4">
+                    <label class="fancy-form-label mb-3">
+                        <i class="fas fa-random"></i> Select New Operator (Optional)
+                    </label>
+                    <select name="new_operator" class="form-control fancy-form-control" id="newOperator">
+                        <option value="">All Operators</option>
+                        {% for operator in operators %}
+                        <option value="{{ operator.id }}" {% if selected_operator and selected_operator.id == operator.id %}selected{% endif %}>
+                            {{ operator.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text mt-2">Filter plans by operator</div>
+                </div>
+                
+                <!-- Available Port-in Plans -->
+                <div class="mb-4">
+                    <label class="fancy-form-label mb-3">
+                        <i class="fas fa-gift"></i> Available Port-in Plans *
+                        <span class="badge bg-primary ms-2">{{ port_plans|length }} plans</span>
+                    </label>
+                    
+                    {% if port_plans %}
+                        <div class="row g-3">
+                            {% for plan in port_plans %}
+                            <div class="col-xl-4 col-lg-6 col-md-6">
+                                <div class="fancy-plan-card" onclick="selectPortPlan(this, {{ plan.id }})" 
+                                     data-plan='{"id": {{ plan.id }}, "name": "{{ plan.name|escapejs }}", "operator": "{{ plan.operator.name|escapejs }}", "price": {{ plan.price }}, "validity": "{{ plan.validity }}", "validity_unit": "{{ plan.validity_unit }}", "data_allowance": "{{ plan.data_allowance|default:'-'|escapejs }}", "voice_calls": "{{ plan.voice_calls|default:'-'|escapejs }}", "sms": "{{ plan.sms|default:'-'|escapejs }}", "port_in_bonus": "{{ plan.port_in_bonus|default:''|escapejs }}" }'>
+                                    
+                                    <div class="fancy-plan-header">
+                                        <div class="fancy-plan-price">₹{{ plan.price }}</div>
+                                        <div class="fancy-plan-validity">{{ plan.validity }} {{ plan.get_validity_unit_display }}</div>
+                                    </div>
+                                    
+                                    <div class="operator-badge mb-2">
+                                        {% if plan.operator.logo %}
+                                        <img src="{{ plan.operator.logo.url }}" alt="{{ plan.operator.name }}" 
+                                             class="operator-logo-small">
+                                        {% endif %}
+                                        <span class="operator-name-small">{{ plan.operator.name }}</span>
+                                    </div>
+                                    
+                                    <div class="fancy-plan-features">
+                                        <div class="fancy-feature-item">
+                                            <span class="fancy-feature-label">Data</span>
+                                            <span class="fancy-feature-value">{{ plan.data_allowance|default:"Unlimited" }}</span>
+                                        </div>
+                                        <div class="fancy-feature-item">
+                                            <span class="fancy-feature-label">Calls</span>
+                                            <span class="fancy-feature-value">{{ plan.voice_calls|default:"Unlimited" }}</span>
+                                        </div>
+                                        <div class="fancy-feature-item">
+                                            <span class="fancy-feature-label">SMS</span>
+                                            <span class="fancy-feature-value">{{ plan.sms|default:"Unlimited" }}</span>
+                                        </div>
+                                        <div class="fancy-feature-item">
+                                            <span class="fancy-feature-label">Validity</span>
+                                            <span class="fancy-feature-value">{{ plan.validity }} {{ plan.get_validity_unit_display }}</span>
+                                        </div>
+                                        {% if plan.port_in_bonus %}
+                                        <div class="fancy-bonus-badge mt-2">
+                                            <i class="fas fa-gift me-1"></i> {{ plan.port_in_bonus }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="fancy-check-icon" style="background: #ff9800;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h4 class="text-muted mb-3">No port-in plans available</h4>
+                            <p class="text-muted">Please check back later or select a different operator</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Selected Plan Summary -->
+                <div class="fancy-summary-card" id="selectedPlanSummary" style="display: none;">
+                    <div class="fancy-summary-header">
+                        <div>
+                            <h4 class="mb-1">Selected Plan</h4>
+                            <p class="mb-0 opacity-75" id="summaryPlanName">-</p>
+                        </div>
+                        <div class="fancy-summary-price" id="summaryPlanPrice">₹0</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Operator:</strong> <span id="summaryPlanOperator">-</span></p>
+                            <p><strong>Validity:</strong> <span id="summaryPlanValidity">-</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Data:</strong> <span id="summaryPlanData">-</span></p>
+                            <p><strong>Calls:</strong> <span id="summaryPlanCalls">-</span></p>
+                            <p><strong>SMS:</strong> <span id="summaryPlanSMS">-</span></p>
+                            <p><strong>Bonus:</strong> <span id="summaryPlanBonus">-</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation Buttons -->
+                <div class="nav-buttons">
+                    <button type="button" class="btn fancy-btn" onclick="goToStep(1)">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Step 1
+                    </button>
+                    
+                    <button type="button" class="btn fancy-btn fancy-btn-primary" id="continueBtn" disabled onclick="goToStep(3)">
+                        Continue to Step 3 <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 3: Personal Details -->
+            <div class="step-content" id="step3">
+                <h3 class="mb-4 text-center">Step 3: Personal Information</h3>
+                
+                <!-- Plan Summary Display -->
+                <div class="alert alert-primary mb-4" style="border-radius: 12px;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">Plan Selected: <span id="finalPlanName">-</span></h5>
+                            <p class="mb-0">Operator: <span id="finalPlanOperator">-</span> | Price: <span id="finalPlanPrice">₹0</span></p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="goToStep(2)">
+                                <i class="fas fa-edit me-1"></i> Change Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="fancy-form-label">
+                                <i class="fas fa-user"></i> Full Name *
+                            </label>
+                            <input type="text" name="full_name" class="form-control fancy-form-control" required 
+                                   value="{{ request.user.get_full_name|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="fancy-form-label">
+                                <i class="fas fa-envelope"></i> Email Address *
+                            </label>
+                            <input type="email" name="email" class="form-control fancy-form-control" required 
+                                   value="{{ request.user.email|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-group">
+                            <label class="fancy-form-label">
+                                <i class="fas fa-home"></i> Current Address *
+                            </label>
+                            <textarea name="address" class="form-control fancy-form-control" rows="3" required></textarea>
+                            <div class="form-text mt-2">Should match your current operator's registered address</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="fancy-form-label">
+                                <i class="fas fa-map-pin"></i> Pincode *
+                            </label>
+                            <input type="text" name="pincode" class="form-control fancy-form-control" required maxlength="6" id="pincodeInput">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="fancy-form-label">
+                                <i class="fas fa-city"></i> City *
+                            </label>
+                            <input type="text" name="city" class="form-control fancy-form-control" required id="cityInput">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="fancy-form-label">
+                                <i class="fas fa-map"></i> State *
+                            </label>
+                            <input type="text" name="state" class="form-control fancy-form-control" required id="stateInput">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Terms and Conditions -->
+                <div class="form-check mt-4 mb-3">
+                    <input class="form-check-input" type="checkbox" id="terms" required style="width: 20px; height: 20px;">
+                    <label class="form-check-label ms-2" for="terms" style="font-size: 16px;">
+                        I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal" class="text-decoration-none">Terms and Conditions</a> 
+                        and confirm that all information provided is correct
+                    </label>
+                </div>
+                
+                <!-- Navigation Buttons -->
+                <div class="nav-buttons">
+                    <button type="button" class="btn fancy-btn" onclick="goToStep(2)">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Step 2
+                    </button>
+                    
+                    <button type="submit" class="btn fancy-btn fancy-btn-primary" id="submitBtn">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Port Request
+                    </button>
+                </div>
+                
+                <p class="text-muted mt-3 small text-center">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Documents will be verified by our delivery executive during SIM delivery
+                </p>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Featured Port-in Plans (Only show if not already showing plans) -->
+    {% if featured_port_plans and not port_plans %}
+    <div class="mt-5">
+        <h3 class="text-center mb-4">Popular Port-in Plans</h3>
+        <div class="row g-4">
+            {% for plan in featured_port_plans %}
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="fancy-plan-card">
+                    <div class="fancy-plan-header">
+                        <div class="fancy-plan-price">₹{{ plan.price }}</div>
+                        <div class="fancy-plan-validity">{{ plan.validity }} {{ plan.get_validity_unit_display }}</div>
+                    </div>
+                    
+                    <div class="operator-badge mb-3">
+                        {% if plan.operator.logo %}
+                        <img src="{{ plan.operator.logo.url }}" alt="{{ plan.operator.name }}" 
+                             class="operator-logo-small">
+                        {% endif %}
+                        <span class="operator-name-small">{{ plan.operator.name }}</span>
+                    </div>
+                    
+                    <div class="fancy-plan-features">
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">Data</span>
+                            <span class="fancy-feature-value">{{ plan.data_allowance|default:"Unlimited" }}</span>
+                        </div>
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">Calls</span>
+                            <span class="fancy-feature-value">{{ plan.voice_calls|default:"Unlimited" }}</span>
+                        </div>
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">SMS</span>
+                            <span class="fancy-feature-value">{{ plan.sms|default:"Unlimited" }}</span>
+                        </div>
+                        {% if plan.port_in_bonus %}
+                        <div class="fancy-bonus-badge mt-2">
+                            <i class="fas fa-gift me-1"></i> {{ plan.port_in_bonus }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: 20px; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Porting Terms & Conditions</h6>
+                <ol class="mb-3">
+                    <li>Your mobile number must be active for at least 90 days</li>
+                    <li>No outstanding dues with current operator</li>
+                    <li>Porting process takes 5-7 working days</li>
+                    <li>Service disruption of 2 hours during porting</li>
+                    <li>Documents must match current operator's records</li>
+                    <li>Document verification will be done during SIM delivery</li>
+                    <li>Delivery executive will collect required documents</li>
+                    <li>KYC verification is mandatory for porting</li>
+                </ol>
+                <h6>Privacy Policy</h6>
+                <p>We respect your privacy. Your information will only be used for porting purposes and will not be shared with third parties without your consent.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the form
+    initForm();
+    // Check Django context variable
+    {% if show_step_3 %}
+    goToStep(3);
+    {% endif %}
+    function initForm() {
+        // Show only step 1 initially
+          // Show only step 1 initially (unless step 3 is already shown)
+        {% if not show_step_3 %}
+        goToStep(1);
+        {% endif %}
+        
+        // Add event listeners
+        document.getElementById('mobileNumberInput').addEventListener('input', updateDisplayFields);
+        document.getElementById('currentOperatorSelect').addEventListener('change', updateDisplayFields);
+        
+        // Check eligibility button
+        document.getElementById('checkEligibilityBtn').addEventListener('click', checkEligibility);
+        
+        // New operator filter
+        // Replace the current new operator filter code with this:
+document.getElementById('newOperator').addEventListener('change', function() {
+    const operatorId = this.value;
+    
+    // Show loading
+    const plansContainer = document.querySelector('.row.g-3'); // Adjust selector as needed
+    if (plansContainer) {
+        plansContainer.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Loading plans...</p></div>';
+    }
+    
+    // Make AJAX request
+    fetch(window.location.pathname + '?ajax=1&new_operator=' + operatorId)
+        .then(response => response.json())
+        .then(data => {
+            // Update plans dynamically
+            updatePlans(data.plans);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading plans. Please try again.');
+        });
+});
+
+function updatePlans(plans) {
+    const plansContainer = document.querySelector('.row.g-3');
+    if (!plansContainer) return;
+    
+    if (plans.length === 0) {
+        plansContainer.innerHTML = `
+            <div class="col-12">
+                <div class="text-center py-4">
+                    <div class="fancy-check-icon" style="background: #ff9800;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No port-in plans available</h4>
+                    <p class="text-muted">Please check back later or select a different operator</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    let plansHTML = '';
+    plans.forEach(plan => {
+        plansHTML += `
+            <div class="col-xl-4 col-lg-6 col-md-6">
+                <div class="fancy-plan-card" onclick="selectPortPlan(this, ${plan.id})" 
+                     data-plan='${JSON.stringify(plan)}'>
+                    
+                    <div class="fancy-plan-header">
+                        <div class="fancy-plan-price">₹${plan.price}</div>
+                        <div class="fancy-plan-validity">${plan.validity} ${plan.validity_unit}</div>
+                    </div>
+                    
+                    <div class="operator-badge mb-2">
+                        <span class="operator-name-small">${plan.operator_name}</span>
+                    </div>
+                    
+                    <div class="fancy-plan-features">
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">Data</span>
+                            <span class="fancy-feature-value">${plan.data_allowance || 'Unlimited'}</span>
+                        </div>
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">Calls</span>
+                            <span class="fancy-feature-value">${plan.voice_calls || 'Unlimited'}</span>
+                        </div>
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">SMS</span>
+                            <span class="fancy-feature-value">${plan.sms || 'Unlimited'}</span>
+                        </div>
+                        <div class="fancy-feature-item">
+                            <span class="fancy-feature-label">Validity</span>
+                            <span class="fancy-feature-value">${plan.validity} ${plan.validity_unit}</span>
+                        </div>
+                        ${plan.port_in_bonus ? `
+                        <div class="fancy-bonus-badge mt-2">
+                            <i class="fas fa-gift me-1"></i> ${plan.port_in_bonus}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    plansContainer.innerHTML = plansHTML;
+}
+        // Form submit handler
+        document.getElementById('portForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleFormSubmit();
+        });
+    }
+    
+    // Update display fields
+    function updateDisplayFields() {
+        const mobileNumber = document.getElementById('mobileNumberInput').value;
+        const currentOperatorSelect = document.getElementById('currentOperatorSelect');
+        const currentOperatorName = currentOperatorSelect.options[currentOperatorSelect.selectedIndex].text;
+        
+        document.getElementById('displayMobileNumber').textContent = mobileNumber || '-';
+        document.getElementById('displayCurrentOperator').textContent = currentOperatorName || '-';
+    }
+    
+    // Check eligibility function
+    function checkEligibility() {
+        const mobileNumber = document.getElementById('mobileNumberInput').value.trim();
+        const currentOperator = document.getElementById('currentOperatorSelect').value;
+        const checkBtn = document.getElementById('checkEligibilityBtn');
+        
+        // Basic validation
+        if (!mobileNumber.match(/^[6-9]\d{9}$/)) {
+            alert('Please enter a valid 10-digit Indian mobile number starting with 6,7,8 or 9');
+            return false;
+        }
+        
+        if (!currentOperator) {
+            alert('Please select your current operator');
+            return false;
+        }
+        
+        // Show loading state
+        checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking...';
+        checkBtn.disabled = true;
+        
+        // Simulate API call
+        setTimeout(() => {
+            // Mock eligibility check
+            const isEligible = true; // Always eligible for demo
+            
+            if (isEligible) {
+                alert(`✓ Mobile number ${mobileNumber} is eligible for porting!`);
+                goToStep(2);
+            } else {
+                alert(`✗ Mobile number ${mobileNumber} is not eligible for porting.`);
+            }
+            
+            // Reset button
+            checkBtn.innerHTML = '<i class="fas fa-search me-2"></i>Check Eligibility & Continue';
+            checkBtn.disabled = false;
+        }, 1000);
+        
+        return true;
+    }
+    
+    // Handle form submission
+async function handleFormSubmit() {
+
+     // First check if mobile number already has active port request
+    const mobileNumber = document.getElementById('mobileNumberInput').value;
+    
+    // Check with server if number already has active request
+    try {
+        const response = await fetch(`/api/check-port-request/${mobileNumber}/`);
+        const data = await response.json();
+        
+        if (data.has_active_request) {
+            alert(`Mobile number ${mobileNumber} already has an active port request. Please use a different number or wait for the current request to complete.`);
+            return false;
+        }
+    } catch (error) {
+        console.log('Could not check port request status, continuing...');
+    }
+    // Validate form
+    if (!validateStep3()) {
+        return false;
+    }
+    
+    const selectedPlan = document.getElementById('selectedPlanId').value;
+    if (!selectedPlan) {
+        alert('Please select a port-in plan');
+        goToStep(2);
+        return false;
+    }
+    
+    // Show loading
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+    submitBtn.disabled = true;
+    
+    try {
+        // Submit the form using FormData (proper way)
+        const form = document.getElementById('portForm');
+        const formData = new FormData(form);
+        
+        // Add CSRF token if not already included
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken,
+            }
+        });
+        
+        if (response.redirected) {
+            // If redirected, follow the redirect
+            window.location.href = response.url;
+        } else if (response.ok) {
+            // If response is OK but not redirected, submit normally
+            form.submit();
+        } else {
+            // Handle errors
+            alert('Error submitting form. Please try again.');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: Please try again.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+    
+    // Validate step 3
+    function validateStep3() {
+        const requiredFields = ['full_name', 'email', 'address', 'pincode', 'city', 'state'];
+        for (const fieldName of requiredFields) {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field && field.required && !field.value.trim()) {
+                alert(`Please fill in ${fieldName.replace('_', ' ')}`);
+                field.focus();
+                return false;
+            }
+        }
+        
+        // Validate pincode
+        const pincode = document.getElementById('pincodeInput').value;
+        if (!pincode.match(/^\d{6}$/)) {
+            alert('Please enter a valid 6-digit pincode');
+            document.getElementById('pincodeInput').focus();
+            return false;
+        }
+        
+        const termsCheckbox = document.getElementById('terms');
+        if (!termsCheckbox.checked) {
+            alert('Please agree to the Terms and Conditions');
+            termsCheckbox.focus();
+            return false;
+        }
+        
+        return true;
+    }
+});
+
+// Update the selectPortPlan function:
+function selectPortPlan(cardElement, planId) {
+    // Remove selected class from all cards
+    document.querySelectorAll('.fancy-plan-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked card
+    cardElement.classList.add('selected');
+    
+    // Get plan details from data attribute
+    const planData = JSON.parse(cardElement.getAttribute('data-plan'));
+    
+    // Update selected plan summary
+    document.getElementById('summaryPlanPrice').textContent = `₹${planData.price}`;
+    document.getElementById('summaryPlanOperator').textContent = planData.operator;
+    document.getElementById('summaryPlanName').textContent = planData.name;
+    document.getElementById('summaryPlanValidity').textContent = `${planData.validity} ${planData.validity_unit}`;
+    document.getElementById('summaryPlanData').textContent = planData.data_allowance || 'Unlimited';
+    document.getElementById('summaryPlanCalls').textContent = planData.voice_calls || 'Unlimited';
+    document.getElementById('summaryPlanSMS').textContent = planData.sms || 'Unlimited';
+    
+    // Update final display for step 3
+    document.getElementById('finalPlanName').textContent = planData.name;
+    document.getElementById('finalPlanOperator').textContent = planData.operator;
+    document.getElementById('finalPlanPrice').textContent = `₹${planData.price}`;
+    
+    // Show bonus if exists
+    if (planData.port_in_bonus) {
+        document.getElementById('summaryPlanBonus').textContent = planData.port_in_bonus;
+    } else {
+        document.getElementById('summaryPlanBonus').textContent = 'None';
+    }
+    
+    // Set hidden field values
+    document.getElementById('selectedPlanId').value = planId;
+    
+    // IMPORTANT: Also get and set the operator ID from the plan
+    // You need to get the operator ID somehow - either from data-plan or another attribute
+    // Update your plan cards to include operator_id:
+    // data-plan='{"id": {{ plan.id }}, "operator_id": {{ plan.operator.id }}, ... }'
+    
+    // For now, let's assume we can get it from the selected plan display
+    // You'll need to update your template to pass operator_id in the data-plan attribute
+    
+    // Show summary section
+    const summaryElement = document.getElementById('selectedPlanSummary');
+    summaryElement.style.display = 'block';
+    
+    // Enable continue button
+    document.getElementById('continueBtn').disabled = false;
+    
+    // Smooth scroll to summary
+    setTimeout(() => {
+        summaryElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+    }, 300);
+}
+
+// Navigation function
+function goToStep(stepNumber) {
+    // Hide all steps
+    document.querySelectorAll('.step-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Update step indicators
+    document.querySelectorAll('.fancy-step').forEach((indicator, index) => {
+        indicator.classList.remove('active');
+        if (index < stepNumber) {
+            indicator.classList.add('active');
+        }
+    });
+    
+    // Show current step
+    document.getElementById(`step${stepNumber}`).classList.add('active');
+    
+    // Update progress bar
+    const progress = (stepNumber / 3) * 100;
+    document.getElementById('progressBar').style.width = `${progress}%`;
+    
+    // Smooth scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+{% endblock %}
+{% endblock %}

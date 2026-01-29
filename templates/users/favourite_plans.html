@@ -1,0 +1,528 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Favourite Plans - {{ user.username }} | TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="fw-bold">My Favourite Plans</h1>
+            <p class="text-muted">Save plans for quick access and comparison</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+                <a href="{% url 'plan_list' %}" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Browse More Plans
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-primary border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-heart fa-2x text-primary mb-3"></i>
+                    <h5 class="card-title">Total Favourites</h5>
+                    <p class="display-6 fw-bold">{{ favourite_plans.count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-success border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-mobile-alt fa-2x text-success mb-3"></i>
+                    <h5 class="card-title">Mobile Plans</h5>
+                    <p class="display-6 fw-bold">{{ mobile_plans_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-warning border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-wifi fa-2x text-warning mb-3"></i>
+                    <h5 class="card-title">Broadband Plans</h5>
+                    <p class="display-6 fw-bold">{{ broadband_plans_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-info border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-satellite-dish fa-2x text-info mb-3"></i>
+                    <h5 class="card-title">DTH Plans</h5>
+                    <p class="display-6 fw-bold">{{ dth_plans_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchFavourites" 
+                               placeholder="Search in favourites...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filterOperator">
+                        <option value="">All Operators</option>
+                        {% for operator in operators %}
+                        <option value="{{ operator.id }}">{{ operator.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filterCategory">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favourite Plans Grid -->
+    <div class="row" id="favouritesGrid">
+        {% if favourite_plans %}
+            {% for fav in favourite_plans %}
+            <div class="col-lg-4 col-md-6 mb-4 favourite-item" 
+                 data-operator="{{ fav.plan.operator.id }}"
+                 data-category="{{ fav.plan.category.id }}"
+                 data-name="{{ fav.plan.name|lower }}"
+                 data-operator-name="{{ fav.plan.operator.name|lower }}">
+                <div class="card h-100 shadow-sm favourite-card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            {% if fav.plan.operator.logo %}
+                            <img src="{{ fav.plan.operator.logo.url }}" 
+                                 alt="{{ fav.plan.operator.name }}"
+                                 class="rounded-circle me-2"
+                                 style="width: 30px; height: 30px; object-fit: cover;">
+                            {% endif %}
+                            <span class="fw-bold">{{ fav.plan.operator.name }}</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger remove-favourite" 
+                                data-plan-id="{{ fav.plan.id }}"
+                                title="Remove from favourites">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Plan Popularity Badge -->
+                        {% if fav.plan.is_popular %}
+                        <span class="badge bg-warning mb-2">Popular</span>
+                        {% endif %}
+                        {% if fav.plan.is_featured %}
+                        <span class="badge bg-info mb-2">Featured</span>
+                        {% endif %}
+                        
+                        <h5 class="card-title">{{ fav.plan.name }}</h5>
+                        <p class="card-text text-muted small mb-3">
+                            {{ fav.plan.description|truncatechars:100 }}
+                        </p>
+                        
+                        <!-- Plan Details -->
+                        <div class="plan-details mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Price:</span>
+                                <strong class="text-primary h5">₹{{ fav.plan.price }}</strong>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Validity:</span>
+                                <span>{{ fav.plan.get_full_validity }}</span>
+                            </div>
+                            
+                            {% if fav.plan.data_allowance %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Data:</span>
+                                <span>{{ fav.plan.data_allowance }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if fav.plan.voice_calls %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Calls:</span>
+                                <span>{{ fav.plan.voice_calls }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if fav.plan.sms %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">SMS:</span>
+                                <span>{{ fav.plan.sms }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Category Badge -->
+                        <div class="mb-3">
+                            <span class="badge bg-secondary">
+                                <i class="fas {{ fav.plan.category.icon }}"></i>
+                                {{ fav.plan.category.name }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-white">
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'plan_detail' fav.plan.id %}" 
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-info-circle"></i> View Details
+                            </a>
+                            
+                            {% if user.is_authenticated %}
+                            <button class="btn btn-primary buy-now-btn" 
+                                    data-plan-id="{{ fav.plan.id }}">
+                                <i class="fas fa-shopping-cart"></i> Buy Now
+                            </button>
+                            {% endif %}
+                            
+                            <button class="btn btn-outline-secondary compare-btn"
+                                    data-plan-id="{{ fav.plan.id }}"
+                                    data-plan-name="{{ fav.plan.name }}">
+                                <i class="fas fa-balance-scale"></i> Compare
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <!-- Empty State -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-heart fa-4x text-muted"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Favourite Plans Yet</h4>
+                    <p class="text-muted mb-4">
+                        You haven't added any plans to your favourites. 
+                        Browse our plans and click the heart icon to save them here.
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'plan_list' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search"></i> Browse Plans
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Comparison Modal -->
+    <div class="modal fade" id="compareModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Compare Plans</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="compareContainer">
+                        <!-- Comparison content will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="clearComparison">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    {% if favourite_plans %}
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-balance-scale fa-2x text-primary mb-3"></i>
+                    <h5>Compare Plans</h5>
+                    <p class="text-muted">Select up to 3 plans to compare features side by side</p>
+                    <button class="btn btn-outline-primary" id="compareSelected">
+                        Compare Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-share-alt fa-2x text-success mb-3"></i>
+                    <h5>Share Favourites</h5>
+                    <p class="text-muted">Share your favourite plans with friends</p>
+                    <button class="btn btn-outline-success" id="shareFavourites">
+                        <i class="fas fa-share"></i> Share List
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-download fa-2x text-info mb-3"></i>
+                    <h5>Export List</h5>
+                    <p class="text-muted">Download your favourites as PDF or CSV</p>
+                    <button class="btn btn-outline-info" id="exportFavourites">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.favourite-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.favourite-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    border-color: var(--bs-primary);
+}
+
+.plan-details {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid var(--bs-primary);
+}
+
+.remove-favourite:hover {
+    background-color: var(--bs-danger);
+    color: white;
+}
+
+.checkbox-select {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#compareContainer {
+    min-height: 200px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let selectedPlans = [];
+    
+    // Remove from favourites
+    $('.remove-favourite').click(function() {
+        const planId = $(this).data('plan-id');
+        const card = $(this).closest('.favourite-card');
+        const button = $(this);
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        
+        $.ajax({
+            url: `/plans/${planId}/favourite/`,
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                card.closest('.favourite-item').addClass('fade-out');
+                setTimeout(function() {
+                    card.closest('.favourite-item').remove();
+                    
+                    // Update count
+                    const count = $('.favourite-item').length;
+                    if (count === 0) {
+                        location.reload();
+                    }
+                }, 500);
+                
+                // Show success message
+                showToast('Plan removed from favourites', 'success');
+            },
+            error: function() {
+                button.prop('disabled', false).html('<i class="fas fa-times"></i>');
+                showToast('Error removing plan', 'error');
+            }
+        });
+    });
+    
+    // Search functionality
+    $('#searchFavourites').on('keyup', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        
+        $('.favourite-item').each(function() {
+            const planName = $(this).data('name');
+            const operatorName = $(this).data('operator-name');
+            const card = $(this);
+            
+            if (planName.includes(searchTerm) || operatorName.includes(searchTerm)) {
+                card.show();
+            } else {
+                card.hide();
+            }
+        });
+    });
+    
+    // Filter by operator
+    $('#filterOperator').change(function() {
+        const operatorId = $(this).val();
+        filterPlans('operator', operatorId);
+    });
+    
+    // Filter by category
+    $('#filterCategory').change(function() {
+        const categoryId = $(this).val();
+        filterPlans('category', categoryId);
+    });
+    
+    function filterPlans(type, value) {
+        $('.favourite-item').each(function() {
+            const item = $(this);
+            const showItem = (value === '' || item.data(type) == value);
+            
+            if (showItem) {
+                item.show();
+            } else {
+                item.hide();
+            }
+        });
+    }
+    
+    // Buy Now button
+    $('.buy-now-btn').click(function() {
+        const planId = $(this).data('plan-id');
+        window.location.href = `/plans/${planId}/purchase/`;
+    });
+    
+    // Compare functionality
+    $('.compare-btn').click(function() {
+        const planId = $(this).data('plan-id');
+        const planName = $(this).data('plan-name');
+        
+        if (!selectedPlans.includes(planId)) {
+            if (selectedPlans.length < 3) {
+                selectedPlans.push(planId);
+                $(this).removeClass('btn-outline-secondary').addClass('btn-warning');
+                $(this).html('<i class="fas fa-check"></i> Selected');
+                updateComparisonCount();
+            } else {
+                showToast('You can compare up to 3 plans only', 'warning');
+            }
+        } else {
+            selectedPlans = selectedPlans.filter(id => id !== planId);
+            $(this).removeClass('btn-warning').addClass('btn-outline-secondary');
+            $(this).html('<i class="fas fa-balance-scale"></i> Compare');
+            updateComparisonCount();
+        }
+    });
+    
+    // Compare selected plans
+    $('#compareSelected').click(function() {
+        if (selectedPlans.length < 2) {
+            showToast('Please select at least 2 plans to compare', 'warning');
+            return;
+        }
+        
+        // Load comparison page
+        window.location.href = `/plans/compare/?plans=${selectedPlans.join(',')}`;
+    });
+    
+    // Clear comparison
+    $('#clearComparison').click(function() {
+        selectedPlans = [];
+        $('.compare-btn').removeClass('btn-warning').addClass('btn-outline-secondary');
+        $('.compare-btn').html('<i class="fas fa-balance-scale"></i> Compare');
+        updateComparisonCount();
+    });
+    
+    function updateComparisonCount() {
+        const count = selectedPlans.length;
+        $('#compareSelected').text(`Compare Selected (${count})`);
+    }
+    
+    // Share favourites
+    $('#shareFavourites').click(function() {
+        const shareUrl = window.location.href;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'My Favourite Telecom Plans',
+                text: 'Check out my favourite telecom plans on TelecomPedia!',
+                url: shareUrl,
+            });
+        } else {
+            // Fallback for browsers without Web Share API
+            navigator.clipboard.writeText(shareUrl).then(function() {
+                showToast('Link copied to clipboard!', 'success');
+            });
+        }
+    });
+    
+    // Export favourites
+    $('#exportFavourites').click(function() {
+        // Implement export functionality
+        showToast('Export feature coming soon!', 'info');
+    });
+    
+    // Toast notification function
+    function showToast(message, type) {
+        const toast = $(`
+            <div class="toast align-items-center text-bg-${type} border-0 position-fixed bottom-0 end-0 m-3" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `);
+        
+        $('body').append(toast);
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+    
+    // Initialize tooltips
+    $('[title]').tooltip();
+});
+</script>
+{% endblock %}

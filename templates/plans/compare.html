@@ -1,0 +1,672 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Compare Plans - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'plan_list' %}">Plans</a></li>
+                    <li class="breadcrumb-item active">Compare Plans</li>
+                </ol>
+            </nav>
+            
+            <h1 class="display-5 fw-bold text-primary mb-3">
+                <i class="fas fa-balance-scale me-2"></i> Compare Plans
+            </h1>
+            
+            {% if plans %}
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-info-circle me-3 fa-lg"></i>
+                <div>
+                    <strong>Comparing {{ plans|length }} plan{{ plans|pluralize }}.</strong> 
+                    Select up to 4 plans from the plans page to compare features side by side.
+                    <div class="mt-1">
+                        <a href="{% url 'plan_list' %}" class="btn btn-sm btn-outline-primary mt-2">
+                            <i class="fas fa-plus me-1"></i> Add More Plans
+                        </a>
+                        <button onclick="clearComparison()" class="btn btn-sm btn-outline-danger mt-2">
+                            <i class="fas fa-times me-1"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if plans %}
+    <!-- Comparison Table -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header bg-white border-0 py-3">
+            <h3 class="fw-bold mb-0">Plan Comparison</h3>
+            <p class="text-muted mb-0">Compare features, pricing, and benefits side by side</p>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 200px; min-width: 200px;" class="align-middle">Feature</th>
+                            {% for plan in plans %}
+                            <th class="text-center align-middle" style="min-width: 280px;">
+                                <div class="p-3">
+                                    <!-- Operator Logo and Name -->
+                                    <div class="d-flex align-items-center justify-content-center mb-3">
+                                        {% if plan.operator.logo %}
+                                        <img src="{{ plan.operator.logo.url }}" 
+                                             alt="{{ plan.operator.name }}"
+                                             class="rounded-circle me-2"
+                                             style="width: 40px; height: 40px; object-fit: contain;">
+                                        {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2"
+                                             style="width: 40px; height: 40px;">
+                                            <i class="fas fa-tower-cell text-primary"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div class="text-start">
+                                            <div class="fw-bold">{{ plan.operator.name }}</div>
+                                            <small class="text-muted">{{ plan.operator.get_operator_type_display }}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Plan Name -->
+                                    <h5 class="fw-bold text-primary mb-2">{{ plan.name }}</h5>
+                                    
+                                    <!-- Price -->
+                                    <div class="display-5 fw-bold text-primary mb-2">₹{{ plan.price|intcomma }}</div>
+                                    
+                                    <!-- Validity -->
+                                    <div class="mb-3">
+                                        <span class="badge bg-light text-dark">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ plan.get_full_validity }}
+                                        </span>
+                                        {% if plan.category %}
+                                        <span class="badge bg-info ms-1">
+                                            {{ plan.category.name }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Actions -->
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'plan_detail' plan.id %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-info-circle me-1"></i> Details
+                                        </a>
+                                        {% if user.is_authenticated %}
+                                        <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-shopping-cart me-1"></i> Buy Now
+                                        </a>
+                                        {% else %}
+                                        <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-shopping-cart me-1"></i> Login to Buy
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Basic Information -->
+                        <tr class="table-light">
+                            <td colspan="{{ plans|length|add:1 }}" class="fw-bold">Basic Information</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Operator</td>
+                            {% for plan in plans %}
+                            <td class="text-center">{{ plan.operator.name }}</td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Plan Category</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                {% if plan.category %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="{{ plan.category.icon|default:'fas fa-tag' }} me-1"></i>
+                                    {{ plan.category.name }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Plan Type</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                <span class="badge bg-secondary">
+                                    {{ plan.category.get_category_type_display|default:"Standard" }}
+                                </span>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Pricing -->
+                        <tr class="table-light">
+                            <td colspan="{{ plans|length|add:1 }}" class="fw-bold">Pricing & Validity</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Price</td>
+                            {% for plan in plans %}
+                            <td class="text-center fw-bold text-primary">₹{{ plan.price|intcomma }}</td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Price per Day</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                ₹{{ plan.price_per_day|floatformat:2 }}
+                                <small class="text-muted d-block">per day</small>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Validity</td>
+                            {% for plan in plans %}
+                            <td class="text-center">{{ plan.get_full_validity }}</td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Features -->
+                        <tr class="table-light">
+                            <td colspan="{{ plans|length|add:1 }}" class="fw-bold">Plan Features</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-database me-2"></i>Data Allowance
+                            </td>
+                            {% for plan in plans %}
+                            <td class="text-center">{{ plan.data_allowance|default:"Not specified" }}</td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-phone me-2"></i>Voice Calls
+                            </td>
+                            {% for plan in plans %}
+                            <td class="text-center">{{ plan.voice_calls|default:"Not specified" }}</td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">
+                                <i class="fas fa-sms me-2"></i>SMS
+                            </td>
+                            {% for plan in plans %}
+                            <td class="text-center">{{ plan.sms|default:"Not specified" }}</td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Benefits -->
+                        <tr class="table-light">
+                            <td colspan="{{ plans|length|add:1 }}" class="fw-bold">Additional Benefits</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">OTT Benefits</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                {% if plan.ott_benefits %}
+                                <span class="badge bg-success">Included</span>
+                                <small class="d-block text-muted mt-1">{{ plan.ott_benefits|truncatechars:50 }}</small>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Included</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Other Benefits</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                {% if plan.other_benefits %}
+                                <span class="badge bg-info">Yes</span>
+                                <small class="d-block text-muted mt-1">{{ plan.other_benefits|truncatechars:50 }}</small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Status -->
+                        <tr class="table-light">
+                            <td colspan="{{ plans|length|add:1 }}" class="fw-bold">Status & Popularity</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Popular Plan</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                {% if plan.is_popular %}
+                                <i class="fas fa-check-circle text-success fa-lg"></i>
+                                <div class="small text-success">Yes</div>
+                                {% else %}
+                                <i class="fas fa-times-circle text-secondary fa-lg"></i>
+                                <div class="small text-muted">No</div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Featured Plan</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                {% if plan.is_featured %}
+                                <i class="fas fa-star text-warning fa-lg"></i>
+                                <div class="small text-warning">Featured</div>
+                                {% else %}
+                                <i class="far fa-star text-secondary fa-lg"></i>
+                                <div class="small text-muted">Regular</div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Plan Status</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                {% if plan.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i> Active
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times me-1"></i> Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Actions -->
+                        <tr class="table-light">
+                            <td colspan="{{ plans|length|add:1 }}" class="fw-bold">Actions</td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="fw-bold">Quick Actions</td>
+                            {% for plan in plans %}
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'plan_detail' plan.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if user.is_authenticated %}
+                                    <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                    </a>
+                                    {% endif %}
+                                    <button onclick="toggleFavorite({{ plan.id }})" class="btn btn-sm btn-outline-danger">
+                                        <i class="far fa-heart"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Descriptions -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="fw-bold mb-4">Plan Descriptions</h3>
+            <div class="row g-4">
+                {% for plan in plans %}
+                <div class="col-md-{% if plans|length == 2 %}6{% elif plans|length == 3 %}4{% elif plans|length == 4 %}3{% else %}12{% endif %}">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-white border-0">
+                            <h5 class="fw-bold mb-0">{{ plan.operator.name }} - {{ plan.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">{{ plan.description }}</p>
+                            
+                            {% if plan.ott_benefits %}
+                            <div class="mt-3">
+                                <h6 class="fw-bold">
+                                    <i class="fas fa-tv me-2 text-primary"></i> OTT Benefits
+                                </h6>
+                                <p class="small">{{ plan.ott_benefits }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if plan.other_benefits %}
+                            <div class="mt-3">
+                                <h6 class="fw-bold">
+                                    <i class="fas fa-gift me-2 text-primary"></i> Other Benefits
+                                </h6>
+                                <p class="small">{{ plan.other_benefits }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="card border-primary border-2 mb-5">
+        <div class="card-header bg-primary text-white">
+            <h4 class="fw-bold mb-0">
+                <i class="fas fa-award me-2"></i> Our Recommendation
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    {% with best_plan=plans|dictsort:"price_per_day"|first %}
+                    <h5 class="fw-bold text-primary">Best Value for Money</h5>
+                    <p class="mb-0">
+                        Based on price per day, <strong>{{ best_plan.operator.name }} - {{ best_plan.name }}</strong> 
+                        offers the best value at <strong>₹{{ best_plan.price_per_day|floatformat:2 }} per day</strong>.
+                    </p>
+                    {% endwith %}
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="{% url 'plan_list' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search me-2"></i> Browse More Plans
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No plans selected -->
+    <div class="card border-0 bg-light">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-balance-scale fa-4x text-muted opacity-25"></i>
+            </div>
+            <h3 class="text-muted mb-3">No Plans Selected for Comparison</h3>
+            <p class="text-muted mb-4">
+                Select 2-4 plans from the plans page to compare their features side by side.
+                <br>Click the checkboxes on plan cards and then click "Compare".
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'plan_list' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Plans
+                </a>
+                <a href="{% url 'plan_list' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-plus me-2"></i> Select Plans
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="text-center mt-4">
+        <a href="{% url 'plan_list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i> Back to All Plans
+        </a>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Clear comparison function
+    function clearComparison() {
+        localStorage.removeItem('selectedPlans');
+        showToast('Comparison cleared successfully!', 'info');
+        
+        // Redirect after delay
+        setTimeout(() => {
+            window.location.href = "{% url 'compare_plans' %}";
+        }, 1500);
+    }
+    
+    // Toggle favorite
+    function toggleFavorite(planId) {
+        let favorites = JSON.parse(localStorage.getItem('favoritePlans') || '[]');
+        const index = favorites.indexOf(planId);
+        
+        if (index === -1) {
+            favorites.push(planId);
+            showToast('Plan added to favorites!', 'success');
+        } else {
+            favorites.splice(index, 1);
+            showToast('Plan removed from favorites.', 'info');
+        }
+        
+        localStorage.setItem('favoritePlans', JSON.stringify(favorites));
+        updateFavoriteButton(planId, index === -1);
+    }
+    
+    function updateFavoriteButton(planId, isFavorite) {
+        const button = document.querySelector(`button[onclick="toggleFavorite(${planId})"]`);
+        if (button) {
+            const icon = button.querySelector('i');
+            if (isFavorite) {
+                icon.className = 'fas fa-heart text-danger';
+                button.classList.add('btn-danger');
+                button.classList.remove('btn-outline-danger');
+            } else {
+                icon.className = 'far fa-heart';
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-danger');
+            }
+        }
+    }
+    
+    // Toast notification
+    function showToast(message, type = 'info') {
+        // Create toast container if not exists
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast
+        const toastId = 'toast_' + Date.now();
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.className = `toast align-items-center text-bg-${type} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // Show toast using Bootstrap if available
+        if (typeof bootstrap !== 'undefined') {
+            const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+            bsToast.show();
+        } else {
+            // Fallback simple toast
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Remove toast after hiding
+        toast.addEventListener('hidden.bs.toast', function() {
+            toast.remove();
+        });
+    }
+    
+    // Initialize favorite buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        const favorites = JSON.parse(localStorage.getItem('favoritePlans') || '[]');
+        favorites.forEach(planId => {
+            updateFavoriteButton(planId, true);
+        });
+        
+        // Highlight best values in comparison table
+        highlightBestValues();
+    });
+    
+    // Highlight best values in each row
+    function highlightBestValues() {
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td:not(:first-child)'));
+            const rowTitle = row.querySelector('td:first-child')?.textContent?.trim().toLowerCase();
+            
+            // Skip header rows and actions row
+            if (!rowTitle || rowTitle.includes('actions') || row.classList.contains('table-light')) {
+                return;
+            }
+            
+            const values = cells.map(cell => {
+                const text = cell.textContent.trim();
+                
+                // Extract numeric values
+                const priceMatch = text.match(/₹?\s*([\d,]+\.?\d*)/);
+                if (priceMatch) {
+                    return parseFloat(priceMatch[1].replace(/,/g, ''));
+                }
+                
+                // Check for positive indicators
+                if (text.toLowerCase().includes('unlimited') || 
+                    text.includes('✓') || 
+                    text.includes('check') ||
+                    text.includes('included') ||
+                    text.includes('yes') ||
+                    text.includes('active')) {
+                    return 1;
+                }
+                
+                // Check for negative indicators
+                if (text.includes('✗') || 
+                    text.includes('×') || 
+                    text.includes('no') ||
+                    text.includes('not') ||
+                    text === '-') {
+                    return 0;
+                }
+                
+                return null;
+            });
+            
+            // Filter out null values
+            const validValues = values.filter(v => v !== null);
+            
+            if (validValues.length > 0) {
+                let bestValue;
+                let isPriceRow = rowTitle.includes('price') || rowTitle.includes('per day');
+                
+                if (isPriceRow) {
+                    // For price rows, lower is better
+                    bestValue = Math.min(...validValues);
+                } else {
+                    // For other rows, higher is better
+                    bestValue = Math.max(...validValues);
+                }
+                
+                // Highlight cells with best value
+                cells.forEach((cell, index) => {
+                    if (values[index] === bestValue) {
+                        cell.classList.add('best-value');
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+<style>
+    .table th {
+        vertical-align: middle;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    .best-value {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+        border-left: 3px solid #198754 !important;
+        font-weight: 600;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .toast {
+        min-width: 250px;
+        z-index: 1055;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+    }
+    
+    @media (max-width: 768px) {
+        .table-responsive {
+            font-size: 0.9rem;
+        }
+        
+        .display-5 {
+            font-size: 1.8rem;
+        }
+        
+        .btn-lg {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+    }
+    
+    @media print {
+        .btn, .alert, .breadcrumb, .text-md-end {
+            display: none !important;
+        }
+        
+        .card {
+            border: 1px solid #dee2e6 !important;
+            box-shadow: none !important;
+        }
+        
+        .best-value {
+            background-color: #f8f9fa !important;
+            border-left: 3px solid #212529 !important;
+        }
+    }
+</style>
+{% endblock %}
+{% endblock %}

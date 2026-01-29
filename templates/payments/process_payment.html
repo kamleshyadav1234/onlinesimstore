@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment - {{ plan.name }} - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Progress Steps -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="d-flex justify-content-center">
+                        <div class="text-center mx-4">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" 
+                                 style="width: 40px; height: 40px;">
+                                1
+                            </div>
+                            <span class="fw-bold">Select Plan</span>
+                        </div>
+                        <div class="text-center mx-4">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" 
+                                 style="width: 40px; height: 40px;">
+                                2
+                            </div>
+                            <span class="fw-bold">Payment</span>
+                        </div>
+                        <div class="text-center mx-4">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-2" 
+                                 style="width: 40px; height: 40px;">
+                                3
+                            </div>
+                            <span class="fw-bold">Confirmation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Order Summary -->
+                <div class="col-lg-5 mb-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h4 class="fw-bold mb-0">
+                                <i class="fas fa-receipt me-2"></i> Order Summary
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <!-- Plan Details -->
+                            <div class="mb-4">
+                                <h5 class="fw-bold">{{ plan.operator.name }}</h5>
+                                <h4 class="text-primary fw-bold">{{ plan.name }}</h4>
+                                <p class="text-muted">{{ plan.description }}</p>
+                                
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3">
+                                            <small class="text-muted d-block">Data</small>
+                                            <strong>{{ plan.data_allowance|default:"-" }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3">
+                                            <small class="text-muted d-block">Validity</small>
+                                            <strong>{{ plan.get_full_validity }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3">
+                                            <small class="text-muted d-block">Calls</small>
+                                            <strong>{{ plan.voice_calls|default:"-" }}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3">
+                                            <small class="text-muted d-block">SMS</small>
+                                            <strong>{{ plan.sms|default:"-" }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Price Breakdown -->
+                            <div class="border-top pt-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Plan Price</span>
+                                    <span class="fw-bold">₹{{ plan.price|floatformat:2 }}</span>
+                                </div>
+                                
+                                {% if discount > 0 %}
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>Discount</span>
+                                    <span class="fw-bold">-₹{{ discount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="d-flex justify-content-between mt-3 pt-3 border-top fw-bold fs-5">
+                                    <span>Total Amount</span>
+                                    <span class="text-primary">₹{{ final_amount|floatformat:2 }}</span>
+                                </div>
+                                
+                                {% if discount > 0 %}
+                                <div class="text-center mt-3">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-tag me-1"></i> You save ₹{{ discount|floatformat:2 }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Form -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h4 class="fw-bold mb-0">
+                                <i class="fas fa-credit-card me-2"></i> Payment Details
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <!-- User Info -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-2">Billing Information</h6>
+                                <div class="bg-light rounded p-3">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted d-block">Name</small>
+                                            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted d-block">Email</small>
+                                            <strong>{{ request.user.email }}</strong>
+                                        </div>
+                                        <div class="col-12">
+                                            <small class="text-muted">Mobile number linked to this account will be recharged</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Coupon Code -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-2">Apply Coupon</h6>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="couponCode" 
+                                           placeholder="Enter coupon code"
+                                           value="{{ coupon.code|default:'' }}">
+                                    <button class="btn btn-outline-primary" 
+                                            type="button" 
+                                            id="applyCoupon"
+                                            onclick="applyCoupon()">
+                                        Apply
+                                    </button>
+                                </div>
+                                <div id="couponMessage" class="mt-2"></div>
+                            </div>
+
+                            <!-- Payment Methods -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-3">Select Payment Method</h6>
+                                
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check border rounded p-3">
+                                            <input class="form-check-input" 
+                                                   type="radio" 
+                                                   name="paymentMethod" 
+                                                   id="creditCard" 
+                                                   value="credit_card" 
+                                                   checked>
+                                            <label class="form-check-label w-100" for="creditCard">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-credit-card fa-2x text-primary me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold">Credit Card</div>
+                                                        <small class="text-muted">Visa, Mastercard, Rupay</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check border rounded p-3">
+                                            <input class="form-check-input" 
+                                                   type="radio" 
+                                                   name="paymentMethod" 
+                                                   id="debitCard" 
+                                                   value="debit_card">
+                                            <label class="form-check-label w-100" for="debitCard">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-credit-card fa-2x text-success me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold">Debit Card</div>
+                                                        <small class="text-muted">All major banks</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check border rounded p-3">
+                                            <input class="form-check-input" 
+                                                   type="radio" 
+                                                   name="paymentMethod" 
+                                                   id="upi" 
+                                                   value="upi">
+                                            <label class="form-check-label w-100" for="upi">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" 
+                                                         alt="UPI" 
+                                                         style="height: 32px; width: 32px; margin-right: 12px;">
+                                                    <div>
+                                                        <div class="fw-bold">UPI</div>
+                                                        <small class="text-muted">Google Pay, PhonePe, Paytm</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check border rounded p-3">
+                                            <input class="form-check-input" 
+                                                   type="radio" 
+                                                   name="paymentMethod" 
+                                                   id="netBanking" 
+                                                   value="net_banking">
+                                            <label class="form-check-label w-100" for="netBanking">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-university fa-2x text-info me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold">Net Banking</div>
+                                                        <small class="text-muted">All Indian banks</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check border rounded p-3">
+                                            <input class="form-check-input" 
+                                                   type="radio" 
+                                                   name="paymentMethod" 
+                                                   id="wallet" 
+                                                   value="wallet">
+                                            <label class="form-check-label w-100" for="wallet">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-wallet fa-2x text-warning me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold">Wallet</div>
+                                                        <small class="text-muted">Paytm, PhonePe, MobiKwik</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check border rounded p-3">
+                                            <input class="form-check-input" 
+                                                   type="radio" 
+                                                   name="paymentMethod" 
+                                                   id="cash" 
+                                                   value="cash">
+                                            <label class="form-check-label w-100" for="cash">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-money-bill-wave fa-2x text-success me-3"></i>
+                                                    <div>
+                                                        <div class="fw-bold">Cash on Delivery</div>
+                                                        <small class="text-muted">Pay when activated</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms and Conditions -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                                    <label class="form-check-label" for="termsCheck">
+                                        I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
+                                        and confirm that I have entered the correct mobile number for recharge.
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Payment Button -->
+                            <div class="d-grid">
+                                <button class="btn btn-primary btn-lg py-3" 
+                                        onclick="initiatePayment()"
+                                        id="payButton">
+                                    <i class="fas fa-lock me-2"></i> 
+                                    Pay Now ₹{{ final_amount|floatformat:2 }}
+                                </button>
+                                
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-shield-alt me-1"></i>
+                                        Your payment is secure and encrypted
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Cancel Button -->
+                            <div class="text-center mt-4">
+                                <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to Plan Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Payment Terms:</h6>
+                <ul>
+                    <li>All payments are processed through secure payment gateways</li>
+                    <li>Once payment is confirmed, the recharge will be processed within 15 minutes</li>
+                    <li>Refunds are processed within 5-7 business days for failed transactions</li>
+                    <li>Make sure you have entered the correct mobile number</li>
+                </ul>
+                
+                <h6>Service Terms:</h6>
+                <ul>
+                    <li>The plan benefits are subject to operator terms and conditions</li>
+                    <li>Network coverage depends on the operator's service area</li>
+                    <li>Data speeds may vary based on network conditions</li>
+                    <li>All prices include applicable GST</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+    let currentCoupon = '{{ coupon.code|default:"" }}';
+    let planId = {{ plan.id }};
+    let finalAmount = {{ final_amount }};
+    let razorpayKeyId = '{{ razorpay_key_id|default:"" }}';
+
+    function applyCoupon() {
+        const couponCode = document.getElementById('couponCode').value.trim();
+        const messageDiv = document.getElementById('couponMessage');
+        
+        if (!couponCode) {
+            messageDiv.innerHTML = '<div class="alert alert-warning">Please enter a coupon code</div>';
+            return;
+        }
+        
+        // Show loading
+        messageDiv.innerHTML = '<div class="alert alert-info">Applying coupon...</div>';
+        
+        fetch('{% url "apply_coupon" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                plan_id: planId,
+                coupon_code: couponCode
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentCoupon = data.coupon_code;
+                finalAmount = data.final_amount;
+                
+                // Update UI
+                messageDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                document.getElementById('payButton').innerHTML = 
+                    `<i class="fas fa-lock me-2"></i> Pay Now ₹${data.final_amount.toFixed(2)}`;
+                
+            } else {
+                messageDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            messageDiv.innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
+        });
+    }
+
+    function initiatePayment() {
+        // Validate terms
+        if (!document.getElementById('termsCheck').checked) {
+            alert('Please agree to the Terms and Conditions');
+            return;
+        }
+        
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+        
+        // For cash payments, redirect directly
+        if (paymentMethod === 'cash') {
+            if (confirm('Cash on Delivery selected. An executive will contact you within 24 hours for payment. Continue?')) {
+                processCashPayment();
+            }
+            return;
+        }
+        
+        // For online payments
+        processOnlinePayment(paymentMethod);
+    }
+
+    function processOnlinePayment(paymentMethod) {
+        // Show loading
+        const payButton = document.getElementById('payButton');
+        const originalText = payButton.innerHTML;
+        payButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+        payButton.disabled = true;
+        
+        // Create payment
+        fetch('{% url "create_payment" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                plan_id: planId,
+                payment_method: paymentMethod,
+                coupon_code: currentCoupon
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.razorpay_order_id && razorpayKeyId) {
+                    // Initialize Razorpay
+                    const options = {
+                        key: razorpayKeyId,
+                        amount: data.amount * 100,
+                        currency: 'INR',
+                        name: 'TelecomPedia',
+                        description: 'Plan Purchase: {{ plan.name }}',
+                        order_id: data.razorpay_order_id,
+                        handler: function(response) {
+                            // Payment successful
+                            window.location.href = `/payments/success/?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                        },
+                        prefill: {
+                            name: '{{ request.user.get_full_name|default:request.user.username }}',
+                            email: '{{ request.user.email }}',
+                            contact: ''
+                        },
+                        theme: {
+                            color: '#0d6efd'
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                // Payment cancelled
+                                payButton.innerHTML = originalText;
+                                payButton.disabled = false;
+                            }
+                        }
+                    };
+                    
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                    
+                } else {
+                    // Non-Razorpay payment
+                    window.location.href = `/payments/success/?payment_id=${data.payment_id}`;
+                }
+                
+            } else {
+                alert('Payment initialization failed: ' + data.error);
+                payButton.innerHTML = originalText;
+                payButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            alert('Network error. Please try again.');
+            payButton.innerHTML = originalText;
+            payButton.disabled = false;
+        });
+    }
+
+    function processCashPayment() {
+        fetch('{% url "create_payment" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                plan_id: planId,
+                payment_method: 'cash',
+                coupon_code: currentCoupon
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = `/payments/success/?payment_id=${data.payment_id}`;
+            } else {
+                alert('Payment failed: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Network error. Please try again.');
+        });
+    }
+
+    // Auto-focus coupon input on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('couponCode').focus();
+    });
+</script>
+
+<style>
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .form-check.border.rounded.p-3 {
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+    .form-check.border.rounded.p-3:hover {
+        border-color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    .form-check-input:checked + label {
+        color: #0d6efd;
+    }
+    
+    #payButton {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+        .form-check.border.rounded.p-3 {
+            padding: 1rem !important;
+        }
+    }
+</style>
+{% endblock %}
+{% endblock %}

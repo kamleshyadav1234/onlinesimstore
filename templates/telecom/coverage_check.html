@@ -1,0 +1,470 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Coverage Check - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold text-primary mb-3">
+                <i class="fas fa-map-marker-alt me-2"></i>Network Coverage Check
+            </h1>
+            <p class="lead text-muted">
+                Check if your area has network coverage from different telecom operators.
+                Enter your pincode to see available services.
+            </p>
+        </div>
+    </div>
+
+    <!-- Coverage Check Form -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-search me-2"></i>Check Coverage
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="GET" action="{% url 'coverage_check' %}" id="coverageForm">
+                        <div class="mb-4">
+                            <label for="pincode" class="form-label fw-bold">
+                                <i class="fas fa-map-pin me-1"></i>Enter Your Pincode
+                            </label>
+                            <input type="text" 
+                                   name="pincode" 
+                                   id="pincode" 
+                                   class="form-control form-control-lg" 
+                                   placeholder="e.g., 400001"
+                                   pattern="\d{6}"
+                                   title="Please enter a valid 6-digit pincode"
+                                   required
+                                   value="{{ request.GET.pincode }}">
+                            <div class="form-text">Enter 6-digit Indian pincode</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="operator" class="form-label fw-bold">
+                                <i class="fas fa-tower-cell me-1"></i>Select Operator (Optional)
+                            </label>
+                            <select name="operator" id="operator" class="form-select form-select-lg">
+                                <option value="">All Operators</option>
+                                {% for operator in all_operators %}
+                                <option value="{{ operator.id }}" 
+                                        {% if request.GET.operator == operator.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ operator.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Leave blank to check all operators</div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search me-2"></i>Check Coverage
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Popular Pincodes -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-bolt me-1"></i>Quick Check Popular Cities:
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="?pincode=400001" class="btn btn-outline-primary btn-sm">Mumbai</a>
+                            <a href="?pincode=110001" class="btn btn-outline-primary btn-sm">Delhi</a>
+                            <a href="?pincode=560001" class="btn btn-outline-primary btn-sm">Bangalore</a>
+                            <a href="?pincode=600001" class="btn btn-outline-primary btn-sm">Chennai</a>
+                            <a href="?pincode=700001" class="btn btn-outline-primary btn-sm">Kolkata</a>
+                            <a href="?pincode=380001" class="btn btn-outline-primary btn-sm">Ahmedabad</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="col-lg-6">
+            {% if request.GET.pincode %}
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-map-marked-alt me-2"></i>Coverage Results
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-info-circle fa-2x me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Pincode: <strong>{{ request.GET.pincode }}</strong></h6>
+                                    <p class="mb-0">
+                                        {% if request.GET.operator %}
+                                            Checking specific operator coverage
+                                        {% else %}
+                                            Checking all operators
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if coverage_result %}
+                            <!-- Coverage Available -->
+                            <div class="alert alert-success mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-check-circle fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="mb-1">Coverage Available!</h5>
+                                        <p class="mb-0">
+                                            <strong>{{ coverage_result.operator.name }}</strong> 
+                                            provides service in your area.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Coverage Details -->
+                            <div class="card border-success mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-tower-cell me-2"></i>Coverage Details
+                                    </h5>
+                                    <div class="row mt-3">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-building text-primary me-2"></i>
+                                                <strong>City:</strong>
+                                                <span class="ms-2">{{ coverage_result.area.city }}</span>
+                                            </div>
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-flag text-primary me-2"></i>
+                                                <strong>State:</strong>
+                                                <span class="ms-2">{{ coverage_result.area.get_state_display }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-broadcast-tower text-primary me-2"></i>
+                                                <strong>Operator:</strong>
+                                                <span class="ms-2">{{ coverage_result.operator.name }}</span>
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-phone text-primary me-2"></i>
+                                                <strong>Customer Care:</strong>
+                                                <span class="ms-2">{{ coverage_result.operator.customer_care }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Service Types Available -->
+                                    <div class="mt-3">
+                                        <h6 class="fw-bold mb-2">
+                                            <i class="fas fa-wifi me-1"></i>Available Services:
+                                        </h6>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <span class="badge bg-success p-2">
+                                                <i class="fas fa-mobile-alt me-1"></i> Mobile
+                                            </span>
+                                            <span class="badge bg-info p-2">
+                                                <i class="fas fa-broadcast-tower me-1"></i> 4G
+                                            </span>
+                                            <span class="badge bg-warning p-2">
+                                                <i class="fas fa-bolt me-1"></i> 5G
+                                            </span>
+                                            {% if coverage_result.operator.operator_type == 'broadband' %}
+                                            <span class="badge bg-primary p-2">
+                                                <i class="fas fa-wifi me-1"></i> Broadband
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <a href="{% url 'operator_detail' coverage_result.operator.id %}" 
+                                       class="btn btn-outline-primary w-100">
+                                        <i class="fas fa-info-circle me-2"></i>View Operator Details
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    <a href="{% url 'plan_list' %}?operator={{ coverage_result.operator.id }}" 
+                                       class="btn btn-primary w-100">
+                                        <i class="fas fa-shopping-cart me-2"></i>View Plans
+                                    </a>
+                                </div>
+                            </div>
+
+                        {% else %}
+                            <!-- No Coverage -->
+                            <div class="alert alert-warning">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="mb-1">No Coverage Found</h5>
+                                        <p class="mb-0">
+                                            {% if request.GET.operator %}
+                                                The selected operator doesn't provide service in this area yet.
+                                            {% else %}
+                                                None of our operators currently provide service in this area.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alternative Suggestions -->
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">
+                                        <i class="fas fa-lightbulb me-1"></i>What you can do:
+                                    </h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            Try a nearby pincode
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            Check other operators
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            Contact operators for future expansion plans
+                                        </li>
+                                        <li>
+                                            <i class="fas fa-check text-success me-2"></i>
+                                            Check broadband or DTH alternatives
+                                        </li>
+                                    </ul>
+                                    
+                                    <div class="mt-3">
+                                        <a href="{% url 'operator_list' %}" class="btn btn-outline-warning">
+                                            <i class="fas fa-list me-2"></i>View All Operators
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <!-- Instructions when no search -->
+                <div class="card shadow-lg border-0 h-100">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-question-circle me-2"></i>How to Check Coverage
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-start mb-4">
+                            <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-1 fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5>Enter Your Pincode</h5>
+                                <p class="text-muted mb-0">
+                                    Enter your 6-digit Indian pincode in the search box.
+                                    This helps us identify your exact location.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-start mb-4">
+                            <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-2 fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5>Select Operator (Optional)</h5>
+                                <p class="text-muted mb-0">
+                                    Choose a specific operator or check all operators
+                                    to see who provides service in your area.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-start mb-4">
+                            <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                <i class="fas fa-3 fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5>Get Instant Results</h5>
+                                <p class="text-muted mb-0">
+                                    We'll show you which operators provide service,
+                                    network types available, and plan options.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Benefits -->
+                        <div class="bg-light p-4 rounded">
+                            <h6 class="fw-bold mb-3">
+                                <i class="fas fa-star me-1 text-warning"></i>Benefits of Coverage Check
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-shield-alt text-success me-2"></i>
+                                        <span>Network Reliability</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-bolt text-warning me-2"></i>
+                                        <span>Speed Information</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                                        <span>Best Plan Selection</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-headset text-info me-2"></i>
+                                        <span>Support Availability</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    {% if not request.GET.pincode %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-3">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>About Network Coverage
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-0">
+                                <div class="card-body text-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle p-3 mb-3 d-inline-flex">
+                                        <i class="fas fa-tower-cell fa-2x text-primary"></i>
+                                    </div>
+                                    <h6>Network Towers</h6>
+                                    <p class="text-muted small">
+                                        Coverage depends on tower density and location
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-0">
+                                <div class="card-body text-center">
+                                    <div class="bg-success bg-opacity-10 rounded-circle p-3 mb-3 d-inline-flex">
+                                        <i class="fas fa-signal fa-2x text-success"></i>
+                                    </div>
+                                    <h6>Signal Strength</h6>
+                                    <p class="text-muted small">
+                                        Better signal means faster internet and clearer calls
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-0">
+                                <div class="card-body text-center">
+                                    <div class="bg-warning bg-opacity-10 rounded-circle p-3 mb-3 d-inline-flex">
+                                        <i class="fas fa-expand-arrows-alt fa-2x text-warning"></i>
+                                    </div>
+                                    <h6>Expanding Networks</h6>
+                                    <p class="text-muted small">
+                                        Operators are constantly expanding their coverage
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript for Enhanced Functionality -->
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-format pincode
+        const pincodeInput = document.getElementById('pincode');
+        if (pincodeInput) {
+            pincodeInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 6) {
+                    value = value.substring(0, 6);
+                }
+                e.target.value = value;
+            });
+        }
+
+        // Show loading indicator
+        const coverageForm = document.getElementById('coverageForm');
+        if (coverageForm) {
+            coverageForm.addEventListener('submit', function() {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Checking...';
+                    submitBtn.disabled = true;
+                }
+            });
+        }
+
+        // Auto-select operator if coming from operator page
+        const urlParams = new URLSearchParams(window.location.search);
+        const operatorParam = urlParams.get('operator');
+        if (operatorParam) {
+            const operatorSelect = document.getElementById('operator');
+            if (operatorSelect) {
+                operatorSelect.value = operatorParam;
+            }
+        }
+    });
+</script>
+
+<style>
+    .card {
+        border-radius: 15px;
+        transition: transform 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .btn-outline-primary:hover {
+        transform: scale(1.05);
+    }
+    
+    .badge {
+        font-size: 0.9em;
+        border-radius: 10px;
+    }
+    
+    .form-control-lg {
+        border-radius: 10px;
+        padding: 15px;
+    }
+    
+    .form-select-lg {
+        border-radius: 10px;
+        padding: 15px;
+    }
+</style>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}My SIM Replacement Requests{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">My SIM Replacement Requests</h1>
+    
+    {% if requests %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Mobile Number</th>
+                    <th>Operator</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>{{ req.request_id }}</td>
+                    <td>{{ req.mobile_number }}</td>
+                    <td>{{ req.get_operator_display }}</td>
+                    <td>
+                        <span class="badge bg-{% if req.status == 'delivered' %}success{% elif req.status == 'processing' %}info{% elif req.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ req.created_at|date:"d M Y" }}</td>
+                    <td>
+                        <a href="{% url 'sim_replacement_status_detail' req.request_id %}" class="btn btn-sm btn-outline-primary">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <p class="lead">No SIM replacement requests found.</p>
+        <a href="{% url 'sim_replacement_create' %}" class="btn btn-primary">Create New Request</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

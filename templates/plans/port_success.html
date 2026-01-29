@@ -1,0 +1,178 @@
+<!-- templates/plans/port_success.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Port Request Submitted - TelecomPedia{% endblock %}
+
+{% block extra_css %}
+<style>
+    .success-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 3rem 1rem;
+    }
+    
+    .success-icon {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin: 0 auto 2rem;
+    }
+    
+    .success-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e0e0e0;
+    }
+    
+    .tracking-id {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        display: inline-block;
+        margin: 1rem 0;
+    }
+    
+    .details-list {
+        list-style: none;
+        padding: 0;
+        margin: 2rem 0;
+    }
+    
+    .details-list li {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .details-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .label {
+        font-weight: 600;
+        color: #555;
+    }
+    
+    .value {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .next-steps {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .success-card {
+            padding: 1.5rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="success-container">
+    <div class="success-icon">
+        <i class="fas fa-check"></i>
+    </div>
+    
+    <div class="success-card">
+        <h1 class="text-center mb-3">Port Request Submitted Successfully!</h1>
+        <p class="text-center text-muted mb-4">
+            Your mobile number porting request has been received. Here are your details:
+        </p>
+        
+        <div class="text-center">
+            <div class="tracking-id">
+                Tracking ID: {{ tracking_id }}
+            </div>
+        </div>
+        
+        {% if port_request %}
+        <ul class="details-list">
+            <li>
+                <span class="label">Mobile Number:</span>
+                <span class="value">{{ port_request.mobile_number }}</span>
+            </li>
+            <li>
+                <span class="label">Current Operator:</span>
+                <span class="value">{{ port_request.current_operator.name }}</span>
+            </li>
+            <li>
+                <span class="label">New Operator:</span>
+                <span class="value">{{ port_request.new_operator.name }}</span>
+            </li>
+            <li>
+                <span class="label">Selected Plan:</span>
+                <span class="value">{{ port_request.selected_plan.name }} - ₹{{ port_request.selected_plan.price }}</span>
+            </li>
+            <li>
+                <span class="label">Full Name:</span>
+                <span class="value">{{ port_request.full_name }}</span>
+            </li>
+            <li>
+                <span class="label">Email:</span>
+                <span class="value">{{ port_request.email }}</span>
+            </li>
+            <li>
+                <span class="label">Status:</span>
+                <span class="value badge bg-warning text-dark">Pending</span>
+            </li>
+        </ul>
+        {% endif %}
+        
+        <div class="next-steps">
+            <h5 class="mb-3">What happens next?</h5>
+            <ol class="mb-0">
+                <li>Our team will verify your details within 24 hours</li>
+                <li>You'll receive a confirmation call</li>
+                <li>Delivery executive will visit for document verification</li>
+                <li>New SIM will be delivered within 3-5 business days</li>
+                <li>Porting will be completed within 7 days</li>
+            </ol>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg flex-grow-1">
+                <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-primary btn-lg flex-grow-1">
+                <i class="fas fa-home me-2"></i>Back to Home
+            </a>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="text-muted small">
+                <i class="fas fa-phone-alt me-1"></i>
+                Need help? Call our support: 1800-123-4567
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load operator_filters %}  <!-- Add this line -->
+
+{% block title %}Telecom Operators - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Page Header -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item active">Operators</li>
+                </ol>
+            </nav>
+            
+            <h1 class="display-5 fw-bold text-primary mb-3">
+                <i class="fas fa-tower-cell me-2"></i>Telecom Operators
+            </h1>
+            <p class="lead text-muted">
+                Browse all telecom operators offering services in India. Compare plans, check coverage, 
+                and find the best operator for your needs.
+            </p>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">
+                        <i class="fas fa-filter me-2"></i>Filter Operators
+                    </h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" id="searchInput" class="form-control border-start-0" 
+                                       placeholder="Search operators..." 
+                                       onkeyup="filterOperators()">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <select class="form-select" id="typeFilter" onchange="filterOperators()">
+                                <option value="">All Types</option>
+                                <option value="mobile">Mobile Network</option>
+                                <option value="broadband">Broadband</option>
+                                <option value="dth">DTH</option>
+                                <option value="landline">Landline</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <select class="form-select" id="statusFilter" onchange="filterOperators()">
+                                <option value="">All Status</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <select class="form-select" id="sortFilter" onchange="filterOperators()">
+                                <option value="name">Sort by: Name A-Z</option>
+                                <option value="name_desc">Sort by: Name Z-A</option>
+                                <option value="type">Sort by: Type</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Filter Buttons -->
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <a href="{% url 'operator_list' %}?type=mobile" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-mobile-alt me-1"></i> Mobile
+                        </a>
+                        <a href="{% url 'operator_list' %}?type=broadband" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-wifi me-1"></i> Broadband
+                        </a>
+                        <a href="{% url 'operator_list' %}?type=dth" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-satellite me-1"></i> DTH
+                        </a>
+                        <a href="{% url 'operator_list' %}?type=landline" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-phone me-1"></i> Landline
+                        </a>
+                        <a href="{% url 'operator_list' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Clear Filters
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operators Grid -->
+    <div class="row" id="operatorsGrid">
+        {% if operators %}
+            {% for operator in operators %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4 operator-card" 
+                 data-type="{{ operator.operator_type }}"
+                 data-status="{% if operator.is_active %}active{% else %}inactive{% endif %}"
+                 data-name="{{ operator.name|lower }}">
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <!-- Operator Status Badge -->
+                    <div class="position-absolute top-0 end-0 m-3">
+                        {% if operator.is_active %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i> Active
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-times-circle me-1"></i> Inactive
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Operator Logo -->
+                    <div class="card-body text-center pt-5">
+                        <div class="mb-4">
+                            {% if operator.logo %}
+                                <img src="{{ operator.logo.url }}" 
+                                     alt="{{ operator.name }}" 
+                                     class="img-fluid rounded-circle shadow-sm"
+                                     style="width: 120px; height: 120px; object-fit: contain;">
+                            {% else %}
+                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                                     style="width: 120px; height: 120px;">
+                                    <i class="fas fa-tower-cell fa-3x text-primary"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Operator Info -->
+                        <h5 class="card-title fw-bold">{{ operator.name }}</h5>
+                        
+                        <div class="mb-3">
+                            <span class="badge bg-primary">
+                                <i class="fas fa-{% if operator.operator_type == 'mobile' %}mobile-alt{% elif operator.operator_type == 'broadband' %}wifi{% elif operator.operator_type == 'dth' %}satellite{% else %}phone{% endif %} me-1"></i>
+                                {{ operator.get_operator_type_display }}
+                            </span>
+                        </div>
+                        
+                        <p class="card-text text-muted small mb-4">
+                            {{ operator.description|truncatechars:100 }}
+                        </p>
+                        
+                        <!-- Quick Stats -->
+                        <div class="row g-2 mb-4">
+                            <div class="col-6">
+                                <div class="bg-light rounded p-2 text-center">
+                                    <small class="text-muted d-block">Plans</small>
+                                    <strong class="text-primary">12+</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light rounded p-2 text-center">
+                                    <small class="text-muted d-block">Coverage</small>
+                                    <strong class="text-primary">95%</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'operator_detail' operator.id %}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i> View Details
+                            </a>
+                            <a href="{% url 'plan_list' %}?operator={{ operator.id }}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-shopping-cart me-1"></i> View Plans
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="card-footer bg-transparent border-top-0 pt-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-headset me-1"></i> {{ operator.customer_care }}
+                            </small>
+                            <a href="{{ operator.website }}" target="_blank" class="text-decoration-none">
+                                <small><i class="fas fa-external-link-alt"></i> Website</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- No Operators Found -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-tower-cell fa-4x text-muted opacity-25"></i>
+                        </div>
+                        <h4 class="text-muted mb-3">No Operators Found</h4>
+                        <p class="text-muted mb-4">
+                            No telecom operators match your current filters. 
+                            Try adjusting your search criteria.
+                        </p>
+                        <a href="{% url 'operator_list' %}" class="btn btn-primary">
+                            <i class="fas fa-redo me-2"></i> Clear Filters
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            
+            <p class="text-center text-muted mt-2">
+                Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }} operators
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 text-center">
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>Operator Statistics
+                    </h5>
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="display-6 fw-bold text-primary">{{ operators.count }}</div>
+                            <div class="text-muted">Total Operators</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="display-6 fw-bold text-success">
+                                {{ operators|filterby:"is_active,True"|length }}
+                            </div>
+                            <div class="text-muted">Active Operators</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="display-6 fw-bold text-info">
+                                {{ operators|filterby:"operator_type,mobile"|length }}
+                            </div>
+                            <div class="text-muted">Mobile Operators</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="display-6 fw-bold text-warning">
+                                {{ operators|filterby:"operator_type,broadband"|length }}
+                            </div>
+                            <div class="text-muted">Broadband Providers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Filtering -->
+{% block extra_js %}
+<script>
+    function filterOperators() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const sortFilter = document.getElementById('sortFilter').value;
+        
+        const operatorCards = document.querySelectorAll('.operator-card');
+        let visibleCount = 0;
+        
+        // Create array for sorting
+        const operatorArray = Array.from(operatorCards);
+        
+        // Sort the array
+        if (sortFilter === 'name') {
+            operatorArray.sort((a, b) => {
+                const nameA = a.getAttribute('data-name');
+                const nameB = b.getAttribute('data-name');
+                return nameA.localeCompare(nameB);
+            });
+        } else if (sortFilter === 'name_desc') {
+            operatorArray.sort((a, b) => {
+                const nameA = a.getAttribute('data-name');
+                const nameB = b.getAttribute('data-name');
+                return nameB.localeCompare(nameA);
+            });
+        } else if (sortFilter === 'type') {
+            operatorArray.sort((a, b) => {
+                const typeA = a.getAttribute('data-type');
+                const typeB = b.getAttribute('data-type');
+                return typeA.localeCompare(typeB);
+            });
+        }
+        
+        // Reorder the grid
+        const grid = document.getElementById('operatorsGrid');
+        grid.innerHTML = '';
+        operatorArray.forEach(card => {
+            grid.appendChild(card);
+        });
+        
+        // Apply filters
+        operatorCards.forEach(card => {
+            const name = card.getAttribute('data-name');
+            const type = card.getAttribute('data-type');
+            const status = card.getAttribute('data-status');
+            
+            const matchesSearch = name.includes(searchTerm);
+            const matchesType = !typeFilter || type === typeFilter;
+            const matchesStatus = !statusFilter || status === statusFilter;
+            
+            if (matchesSearch && matchesType && matchesStatus) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show message if no results
+        const noResultsDiv = document.getElementById('noResults');
+        if (visibleCount === 0) {
+            if (!noResultsDiv) {
+                const message = `
+                    <div class="col-12" id="noResults">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center py-5">
+                                <div class="mb-4">
+                                    <i class="fas fa-search fa-3x text-muted opacity-25"></i>
+                                </div>
+                                <h4 class="text-muted mb-3">No Operators Found</h4>
+                                <p class="text-muted mb-4">
+                                    No operators match your current filters.
+                                </p>
+                                <button onclick="clearFilters()" class="btn btn-primary">
+                                    <i class="fas fa-redo me-2"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += message;
+            }
+        } else if (noResultsDiv) {
+            noResultsDiv.remove();
+        }
+    }
+    
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('typeFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('sortFilter').value = 'name';
+        filterOperators();
+    }
+    
+    // Initialize filters from URL parameters
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const typeParam = urlParams.get('type');
+        
+        if (typeParam) {
+            document.getElementById('typeFilter').value = typeParam;
+        }
+        
+        filterOperators();
+    });
+</script>
+
+<style>
+    .hover-card {
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1) !important;
+        border-color: var(--bs-primary);
+    }
+    
+    .page-link {
+        border-radius: 8px;
+        margin: 0 3px;
+        border: none;
+        color: var(--bs-primary);
+    }
+    
+    .page-item.active .page-link {
+        background-color: var(--bs-primary);
+        border-color: var(--bs-primary);
+    }
+    
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0;
+        margin-bottom: 1rem;
+    }
+    
+    .breadcrumb-item a {
+        text-decoration: none;
+        color: var(--bs-primary);
+    }
+    
+    .breadcrumb-item.active {
+        color: var(--bs-secondary);
+    }
+    
+    @media (max-width: 768px) {
+        .display-5 {
+            font-size: 2rem;
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+{% endblock %}
+{% endblock %}

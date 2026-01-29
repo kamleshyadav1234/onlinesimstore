@@ -1,0 +1,810 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Telecom Plans - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <h1 class="display-5 fw-bold mb-3 text-primary">Browse Telecom Plans</h1>
+            <p class="lead text-muted mb-4">
+                Compare and choose from hundreds of prepaid, postpaid, and data plans from all major telecom operators.
+            </p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <a href="{% url 'compare_plans' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-balance-scale me-2"></i> Compare Plans
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-body p-4">
+            <form method="get" id="filterForm">
+                <div class="row g-3">
+                    <!-- Operator Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Operator</label>
+                        <select name="operator" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Operators</option>
+                            {% for op in all_operators %}
+                            <option value="{{ op.id }}" {% if request.GET.operator == op.id|stringformat:"i" %}selected{% endif %}>
+                                {{ op.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Category</label>
+                        <select name="category" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"i" %}selected{% endif %}>
+                                {{ cat.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Price Range -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Price Range</label>
+                        <select name="price_range" class="form-select" onchange="this.form.submit()">
+                            <option value="">Any Price</option>
+                            <option value="0-100" {% if request.GET.price_range == "0-100" %}selected{% endif %}>Under ₹100</option>
+                            <option value="100-300" {% if request.GET.price_range == "100-300" %}selected{% endif %}>₹100 - ₹300</option>
+                            <option value="300-500" {% if request.GET.price_range == "300-500" %}selected{% endif %}>₹300 - ₹500</option>
+                            <option value="500-1000" {% if request.GET.price_range == "500-1000" %}selected{% endif %}>₹500 - ₹1000</option>
+                            <option value="1000+" {% if request.GET.price_range == "1000+" %}selected{% endif %}>Above ₹1000</option>
+                        </select>
+                    </div>
+
+                    <!-- Plan Type -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Plan Type</label>
+                        <select name="plan_type" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Types</option>
+                            <option value="popular" {% if request.GET.plan_type == "popular" %}selected{% endif %}>Popular Only</option>
+                            <option value="featured" {% if request.GET.plan_type == "featured" %}selected{% endif %}>Featured Only</option>
+                        </select>
+                    </div>
+
+                    <!-- Additional Filters (Collapsible) -->
+                    <div class="col-12">
+                        <button class="btn btn-link text-decoration-none p-0" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                            <i class="fas fa-filter me-1"></i> Advanced Filters
+                        </button>
+                    </div>
+
+                    <div class="collapse" id="advancedFilters">
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Data Allowance</label>
+                                <select name="data" class="form-select" onchange="this.form.submit()">
+                                    <option value="">Any Data</option>
+                                    <option value="unlimited" {% if request.GET.data == "unlimited" %}selected{% endif %}>Unlimited</option>
+                                    <option value="1gb+" {% if request.GET.data == "1gb+" %}selected{% endif %}>1GB+ Daily</option>
+                                    <option value="2gb+" {% if request.GET.data == "2gb+" %}selected{% endif %}>2GB+ Daily</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Validity</label>
+                                <select name="validity" class="form-select" onchange="this.form.submit()">
+                                    <option value="">Any Validity</option>
+                                    <option value="28" {% if request.GET.validity == "28" %}selected{% endif %}>28 Days</option>
+                                    <option value="30" {% if request.GET.validity == "30" %}selected{% endif %}>30 Days</option>
+                                    <option value="60" {% if request.GET.validity == "60" %}selected{% endif %}>60 Days</option>
+                                    <option value="90" {% if request.GET.validity == "90" %}selected{% endif %}>90 Days</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Calls</label>
+                                <select name="calls" class="form-select" onchange="this.form.submit()">
+                                    <option value="">Any Calls</option>
+                                    <option value="unlimited" {% if request.GET.calls == "unlimited" %}selected{% endif %}>Unlimited Calls</option>
+                                    <option value="local" {% if request.GET.calls == "local" %}selected{% endif %}>Local Unlimited</option>
+                                    <option value="std" {% if request.GET.calls == "std" %}selected{% endif %}>STD Included</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Sort By</label>
+                                <select name="sort" class="form-select" onchange="this.form.submit()">
+                                    <option value="price" {% if request.GET.sort == "price" %}selected{% endif %}>Price: Low to High</option>
+                                    <option value="-price" {% if request.GET.sort == "-price" %}selected{% endif %}>Price: High to Low</option>
+                                    <option value="validity" {% if request.GET.sort == "validity" %}selected{% endif %}>Validity: Low to High</option>
+                                    <option value="-validity" {% if request.GET.sort == "-validity" %}selected{% endif %}>Validity: High to Low</option>
+                                    <option value="popular" {% if request.GET.sort == "popular" %}selected{% endif %}>Most Popular</option>
+                                    <option value="featured" {% if request.GET.sort == "featured" %}selected{% endif %}>Featured First</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clear Filters Button -->
+                    {% if request.GET %}
+                    <div class="col-12 mt-3">
+                        <a href="{% url 'plan_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Clear All Filters
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">
+                {% if plans %}
+                    {{ plans.paginator.count }} Plans Found
+                {% else %}
+                    No Plans Found
+                {% endif %}
+            </h3>
+            {% if request.GET %}
+            <p class="text-muted mb-0">
+                {% if request.GET.operator %}
+                    Filtered by: 
+                    {% for op in all_operators %}
+                        {% if request.GET.operator == op.id|stringformat:"i" %}
+                            {{ op.name }}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if request.GET.category %}
+                    {% for cat in categories %}
+                        {% if request.GET.category == cat.id|stringformat:"i" %}
+                            • {{ cat.name }}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-download me-1"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i> Excel</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i> PDF</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-print me-2"></i> Print</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Plans Grid -->
+    {% if plans %}
+    <div class="row g-4">
+        {% for plan in plans %}
+        <div class="col-xl-4 col-lg-6">
+            <div class="card border-0 shadow-sm h-100 plan-card {% if plan.is_popular %}border-warning border-2{% endif %} {% if plan.is_featured %}border-primary border-2{% endif %}">
+                <!-- Plan Badges -->
+                <div class="position-absolute top-0 end-0 m-3">
+                    {% if plan.is_popular %}
+                    <span class="badge bg-warning text-dark">
+                        <i class="fas fa-fire me-1"></i> Popular
+                    </span>
+                    {% endif %}
+                    {% if plan.is_featured %}
+                    <span class="badge bg-primary">
+                        <i class="fas fa-star me-1"></i> Featured
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Operator Header -->
+                    <div class="d-flex align-items-center mb-3">
+                        {% if plan.operator.logo %}
+                        <img src="{{ plan.operator.logo.url }}" 
+                             alt="{{ plan.operator.name }}"
+                             class="rounded-circle me-3"
+                             style="width: 50px; height: 50px; object-fit: contain;">
+                        {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3"
+                             style="width: 50px; height: 50px;">
+                            <i class="fas fa-tower-cell text-primary"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="fw-bold mb-0">{{ plan.operator.name }}</h5>
+                            <small class="text-muted">
+                                <i class="fas fa-{{ plan.operator.operator_type|default:'mobile-alt' }} me-1"></i>
+                                {{ plan.operator.get_operator_type_display }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Plan Name & Category -->
+                    <h4 class="fw-bold text-primary mb-2">{{ plan.name }}</h4>
+                    {% if plan.category %}
+                    <div class="mb-3">
+                        <span class="badge bg-light text-dark">
+                            <i class="{{ plan.category.icon|default:'fas fa-tag' }} me-1"></i>
+                            {{ plan.category.name }}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Plan Description -->
+                    <p class="text-muted mb-4">{{ plan.description|truncatechars:120 }}</p>
+
+                    <!-- Plan Features -->
+                    <div class="mb-4">
+                        {% if plan.data_allowance %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-database text-primary me-3" style="width: 20px;"></i>
+                            <span>{{ plan.data_allowance }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if plan.voice_calls %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-phone text-primary me-3" style="width: 20px;"></i>
+                            <span>{{ plan.voice_calls }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if plan.sms %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-sms text-primary me-3" style="width: 20px;"></i>
+                            <span>{{ plan.sms }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar text-primary me-3" style="width: 20px;"></i>
+                            <span>Validity: {{ plan.get_full_validity }}</span>
+                        </div>
+                    </div>
+
+                    <!-- OTT Benefits -->
+                    {% if plan.ott_benefits %}
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-tv me-2"></i> OTT Benefits
+                        </h6>
+                        <p class="small text-muted mb-0">{{ plan.ott_benefits|truncatechars:80 }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Price & Action -->
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <div class="display-6 fw-bold text-primary mb-0">₹{{ plan.price|intcomma }}</div>
+                                <small class="text-muted">Total Price</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted d-block">Per Day: ₹{{ plan.price_per_day|floatformat:2 }}</small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-info-circle me-2"></i> View Details
+                            </a>
+                            {% if user.is_authenticated %}
+                            <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-primary">
+                                <i class="fas fa-shopping-cart me-2"></i> Buy Now
+                            </a>
+                            {% else %}
+                            <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-primary">
+                                <i class="fas fa-shopping-cart me-2"></i> Login to Buy
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if plans.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if plans.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ plans.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for i in plans.paginator.page_range %}
+                {% if plans.number == i %}
+                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i > plans.number|add:'-3' and i < plans.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        {{ i }}
+                    </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if plans.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ plans.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- No Results -->
+    <div class="card border-0 bg-light">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-search fa-4x text-muted opacity-25"></i>
+            </div>
+            <h3 class="text-muted mb-3">No Plans Found</h3>
+            <p class="text-muted mb-4">
+                Try adjusting your filters or browse all plans.
+            </p>
+            <a href="{% url 'plan_list' %}" class="btn btn-primary">
+                <i class="fas fa-redo me-2"></i> Reset Filters
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Categories Section -->
+    <div class="mt-5 pt-5 border-top">
+        <h3 class="fw-bold mb-4 text-center">Browse by Category</h3>
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-md-3 col-6">
+                <a href="{% url 'plan_list' %}?category={{ category.id }}" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm text-center h-100 hover-lift">
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 70px; height: 70px;">
+                                    <i class="{{ category.icon|default:'fas fa-tag' }} fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                            <h5 class="fw-bold mb-2">{{ category.name }}</h5>
+                            <p class="text-muted small mb-0">{{ category.description|truncatechars:60 }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Plan comparison functionality
+let selectedPlans = [];
+
+function toggleCompare(checkbox) {
+    const planId = parseInt(checkbox.value);
+    const index = selectedPlans.indexOf(planId);
+    
+    if (index === -1) {
+        if (selectedPlans.length < 4) {
+            selectedPlans.push(planId);
+            updateCompareButton();
+            highlightSelectedPlan(planId, true);
+        } else {
+            checkbox.checked = false;
+            alert('You can compare up to 4 plans at a time.');
+        }
+    } else {
+        selectedPlans.splice(index, 1);
+        updateCompareButton();
+        highlightSelectedPlan(planId, false);
+    }
+    
+    // Save selection to localStorage
+    saveSelectionToStorage();
+}
+
+function highlightSelectedPlan(planId, isSelected) {
+    const planCard = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
+    if (planCard) {
+        if (isSelected) {
+            planCard.classList.add('border-primary', 'border-3');
+        } else {
+            planCard.classList.remove('border-primary', 'border-3');
+        }
+    }
+}
+
+function updateCompareButton() {
+    const compareBtn = document.getElementById('compareBtn');
+    const compareCount = document.getElementById('compareCount');
+    
+    if (compareCount) {
+        compareCount.textContent = selectedPlans.length;
+    }
+    
+    if (selectedPlans.length > 1) {
+        compareBtn.innerHTML = `<i class="fas fa-balance-scale me-2"></i> Compare (${selectedPlans.length})`;
+        compareBtn.classList.remove('disabled', 'btn-secondary');
+        compareBtn.classList.add('btn-primary');
+        compareBtn.href = `/plans/compare/?plans=${selectedPlans.join(',')}`;
+        compareBtn.onclick = null; // Remove any previous click handler
+    } else {
+        compareBtn.innerHTML = '<i class="fas fa-balance-scale me-2"></i> Compare';
+        compareBtn.classList.add('disabled', 'btn-secondary');
+        compareBtn.classList.remove('btn-primary');
+        compareBtn.href = '#';
+        compareBtn.onclick = function(e) {
+            e.preventDefault();
+            if (selectedPlans.length === 1) {
+                alert('Select at least 2 plans to compare.');
+            } else {
+                alert('Select 2-4 plans to compare. Click the checkboxes on plan cards.');
+            }
+        };
+    }
+}
+
+function saveSelectionToStorage() {
+    localStorage.setItem('selectedPlans', JSON.stringify(selectedPlans));
+}
+
+function loadSelectionFromStorage() {
+    const saved = localStorage.getItem('selectedPlans');
+    if (saved) {
+        selectedPlans = JSON.parse(saved);
+        
+        // Update checkboxes
+        selectedPlans.forEach(planId => {
+            const checkbox = document.querySelector(`input[name="compare_${planId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                highlightSelectedPlan(planId, true);
+            }
+        });
+        
+        updateCompareButton();
+    }
+}
+
+function clearComparison() {
+    selectedPlans = [];
+    
+    // Uncheck all checkboxes
+    document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Remove highlights
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.remove('border-primary', 'border-3');
+    });
+    
+    updateCompareButton();
+    localStorage.removeItem('selectedPlans');
+}
+
+// Filter form auto-submit
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved selection
+    loadSelectionFromStorage();
+    
+    // Update compare button on page load
+    updateCompareButton();
+    
+    // Filter form auto-submit
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.querySelectorAll('select, input').forEach(element => {
+            element.addEventListener('change', function() {
+                if (this.type !== 'checkbox' && this.type !== 'radio') {
+                    filterForm.submit();
+                }
+            });
+        });
+    }
+    
+    // Add compare checkboxes if not present
+    addCompareCheckboxes();
+    
+    // Add clear comparison button
+    addClearComparisonButton();
+});
+
+function addCompareCheckboxes() {
+    // Add checkboxes to plan cards if they don't exist
+    document.querySelectorAll('.plan-card').forEach(card => {
+        const planId = card.getAttribute('data-plan-id') || 
+                      card.id.replace('plan-', '') || 
+                      card.querySelector('a[href*="/plans/"]')?.href?.match(/\/plans\/(\d+)\//)?.[1];
+        
+        if (planId && !card.querySelector('.compare-checkbox')) {
+            const checkboxContainer = document.createElement('div');
+            checkboxContainer.className = 'form-check position-absolute top-0 start-0 m-3';
+            checkboxContainer.innerHTML = `
+                <input type="checkbox" 
+                       class="form-check-input compare-checkbox" 
+                       id="compare_${planId}"
+                       name="compare_${planId}"
+                       value="${planId}"
+                       onchange="toggleCompare(this)"
+                       style="width: 20px; height: 20px;">
+                <label class="form-check-label visually-hidden" for="compare_${planId}">
+                    Compare this plan
+                </label>
+            `;
+            card.style.position = 'relative';
+            card.setAttribute('data-plan-id', planId);
+            card.appendChild(checkboxContainer);
+        }
+    });
+}
+
+function addClearComparisonButton() {
+    const headerSection = document.querySelector('.row.mb-5 .col-lg-8');
+    if (headerSection && selectedPlans.length > 0) {
+        // Check if button already exists
+        if (!document.getElementById('clearCompareBtn')) {
+            const clearBtn = document.createElement('button');
+            clearBtn.id = 'clearCompareBtn';
+            clearBtn.className = 'btn btn-outline-danger btn-sm ms-3';
+            clearBtn.innerHTML = '<i class="fas fa-times me-1"></i> Clear Selection';
+            clearBtn.onclick = clearComparison;
+            headerSection.appendChild(clearBtn);
+        }
+    } else {
+        const clearBtn = document.getElementById('clearCompareBtn');
+        if (clearBtn) clearBtn.remove();
+    }
+}
+
+// Price per day calculation (improved version)
+function calculatePricePerDay() {
+    document.querySelectorAll('.plan-card').forEach(card => {
+        const priceElement = card.querySelector('.display-6, .h4, .h5, [class*="price"]');
+        if (priceElement) {
+            const priceText = priceElement.textContent;
+            const priceMatch = priceText.match(/₹?([\d,]+\.?\d*)/);
+            
+            if (priceMatch) {
+                const price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                const validityElement = card.querySelector('[class*="validity"], .fa-calendar')?.parentElement;
+                
+                if (validityElement) {
+                    const validityText = validityElement.textContent;
+                    const validityMatch = validityText.match(/(\d+)/);
+                    
+                    if (validityMatch) {
+                        const validity = parseInt(validityMatch[1]);
+                        if (validity > 0) {
+                            const pricePerDay = price / validity;
+                            
+                            // Find or create price per day element
+                            let perDayElement = card.querySelector('.price-per-day');
+                            if (!perDayElement) {
+                                perDayElement = document.createElement('div');
+                                perDayElement.className = 'price-per-day small text-muted mt-1';
+                                const priceContainer = card.querySelector('.text-end') || 
+                                                      card.querySelector('.d-flex.justify-content-between');
+                                if (priceContainer) {
+                                    priceContainer.appendChild(perDayElement);
+                                }
+                            }
+                            
+                            perDayElement.textContent = `₹${pricePerDay.toFixed(2)}/day`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Add to favorites with feedback
+function toggleFavorite(planId) {
+    // Get current favorites from localStorage
+    let favorites = JSON.parse(localStorage.getItem('favoritePlans') || '[]');
+    const index = favorites.indexOf(planId);
+    const favoriteBtn = document.querySelector(`.favorite-btn[data-plan-id="${planId}"]`);
+    
+    if (index === -1) {
+        // Add to favorites
+        favorites.push(planId);
+        
+        // Visual feedback
+        if (favoriteBtn) {
+            favoriteBtn.innerHTML = '<i class="fas fa-heart text-danger"></i>';
+            favoriteBtn.title = 'Remove from favorites';
+            
+            // Show toast notification
+            showToast('Plan added to favorites!', 'success');
+        }
+    } else {
+        // Remove from favorites
+        favorites.splice(index, 1);
+        
+        // Visual feedback
+        if (favoriteBtn) {
+            favoriteBtn.innerHTML = '<i class="far fa-heart"></i>';
+            favoriteBtn.title = 'Add to favorites';
+            
+            // Show toast notification
+            showToast('Plan removed from favorites.', 'info');
+        }
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('favoritePlans', JSON.stringify(favorites));
+    
+    // Update favorite count if exists
+    updateFavoriteCount();
+}
+
+function updateFavoriteCount() {
+    const favorites = JSON.parse(localStorage.getItem('favoritePlans') || '[]');
+    const favoriteCountElement = document.getElementById('favoriteCount');
+    if (favoriteCountElement) {
+        favoriteCountElement.textContent = favorites.length;
+    }
+}
+
+function showToast(message, type = 'info') {
+    // Create toast container if not exists
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toastId = 'toast_' + Date.now();
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `toast align-items-center text-bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Show toast
+    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+    bsToast.show();
+    
+    // Remove toast after hiding
+    toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
+    });
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate price per day
+    calculatePricePerDay();
+    
+    // Update favorite count
+    updateFavoriteCount();
+    
+    // Add Bootstrap if not present for toast functionality
+    if (typeof bootstrap === 'undefined') {
+        console.warn('Bootstrap not loaded. Toast notifications may not work.');
+    }
+});
+
+// Add CSS styles for better UX
+const style = document.createElement('style');
+style.textContent = `
+    .plan-card.border-primary {
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+    
+    .compare-checkbox {
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    
+    .compare-checkbox:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    
+    .compare-checkbox:checked {
+        opacity: 1;
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .toast {
+        min-width: 250px;
+    }
+    
+    .favorite-btn {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .favorite-btn:hover {
+        transform: scale(1.2);
+    }
+    
+    #clearCompareBtn {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .compare-checkbox {
+            width: 24px !important;
+            height: 24px !important;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<style>
+    .plan-card {
+        transition: all 0.3s ease;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .plan-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        transition: transform 0.2s ease;
+    }
+    
+    .page-item.active .page-link {
+        background-color: var(--bs-primary);
+        border-color: var(--bs-primary);
+    }
+    
+    .form-select:focus {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    }
+    
+    .badge {
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+    
+    @media (max-width: 768px) {
+        .display-6 {
+            font-size: 1.8rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem !important;
+        }
+    }
+</style>
+{% endblock %}
+{% endblock %}

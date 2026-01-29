@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Successful | TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Success Message -->
+            <div class="card border-success shadow-lg">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-check-circle fa-4x"></i>
+                    </div>
+                    <h1 class="fw-bold mb-0">Payment Successful!</h1>
+                    <p class="mb-0">Your payment has been processed successfully</p>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Transaction Details -->
+                    <div class="text-center mb-5">
+                        <h3 class="text-success mb-3">
+                            <i class="fas fa-rupee-sign"></i> {{ payment.amount }}
+                        </h3>
+                        <p class="text-muted">Paid Successfully</p>
+                    </div>
+
+                    <!-- Plan Details -->
+                    {% if payment.plan %}
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Plan Details</h6>
+                                    <h5 class="card-title">{{ payment.plan.name }}</h5>
+                                    <p class="card-text">{{ payment.plan.description|truncatechars:100 }}</p>
+                                    <p class="mb-1"><strong>Operator:</strong> {{ payment.plan.operator.name }}</p>
+                                    <p class="mb-1"><strong>Validity:</strong> {{ payment.plan.get_full_validity }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">Payment Details</h6>
+                                    <div class="row mb-2">
+                                        <div class="col-6"><strong>Bill Number:</strong></div>
+                                        <div class="col-6 text-end">{{ payment.bill_number }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6"><strong>Transaction ID:</strong></div>
+                                        <div class="col-6 text-end">{{ payment.transaction_id }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6"><strong>Payment Method:</strong></div>
+                                        <div class="col-6 text-end">{{ payment.get_payment_method_display }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6"><strong>Date & Time:</strong></div>
+                                        <div class="col-6 text-end">{{ payment.payment_date|date:"d M Y, h:i A" }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-6"><strong>Status:</strong></div>
+                                        <div class="col-6 text-end">
+                                            <span class="badge bg-success">{{ payment.get_payment_status_display }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Order Summary -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Order Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-6">Plan Amount:</div>
+                                <div class="col-6 text-end">₹{{ payment.plan.price|default:payment.amount }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Tax (GST 18%):</div>
+                                <div class="col-6 text-end">₹{% widthratio payment.amount 100 18 %}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6"><strong>Total Amount:</strong></div>
+                                <div class="col-6 text-end"><strong>₹{{ payment.amount }}</strong></div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <p class="text-muted small mb-0">
+                                        <i class="fas fa-info-circle"></i>
+                                        Your plan will be activated within 5-10 minutes. You'll receive a confirmation SMS and email.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Important Information -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb"></i> What happens next?</h6>
+                        <ul class="mb-0">
+                            <li>Your plan will be activated shortly</li>
+                            <li>You'll receive confirmation via SMS and email</li>
+                            <li>Invoice has been sent to your registered email</li>
+                            <li>You can view/download invoice from your payment history</li>
+                        </ul>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="row mt-5">
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'plan_history' %}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-history"></i> View Plan History
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'payment_detail' payment.bill_number %}" class="btn btn-primary w-100">
+                                <i class="fas fa-download"></i> Download Invoice
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Quick Links -->
+                    <div class="text-center mt-4">
+                        <p class="text-muted mb-2">Need help?</p>
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-question-circle"></i> FAQ
+                            </a>
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-phone"></i> Contact Support
+                            </a>
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-file-alt"></i> Terms & Conditions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thank You Message -->
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    <i class="fas fa-heart text-danger"></i>
+                    Thank you for choosing TelecomPedia! Your satisfaction is our priority.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

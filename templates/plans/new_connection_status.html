@@ -1,0 +1,428 @@
+<!-- templates/plans/new_connection_status.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}New Connection Request Status - TelecomPedia{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .status-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    .status-step {
+        position: relative;
+        padding-left: 40px;
+        margin-bottom: 2rem;
+    }
+    
+    .status-step-icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        background: #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .status-step.active .status-step-icon {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .status-step.completed .status-step-icon {
+        background: #198754;
+        color: white;
+    }
+    
+    .status-step.completed .status-step-icon::after {
+        content: "✓";
+    }
+    
+    .tracking-badge {
+        font-size: 0.9rem;
+        font-family: monospace;
+        letter-spacing: 1px;
+    }
+    
+    .detail-card {
+        border-left: 4px solid #0d6efd;
+        transition: all 0.3s ease;
+    }
+    
+    .detail-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .process-timeline {
+        border-left: 3px solid #dee2e6;
+        margin-left: 15px;
+        padding-left: 30px;
+    }
+    
+    .process-step {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .process-step::before {
+        content: '';
+        position: absolute;
+        left: -38px;
+        top: 0;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid #dee2e6;
+    }
+    
+    .process-step.active::before {
+        border-color: #0d6efd;
+        background: #0d6efd;
+    }
+    
+    .process-step.completed::before {
+        border-color: #198754;
+        background: #198754;
+    }
+    
+    .process-step.completed::after {
+        content: "✓";
+        position: absolute;
+        left: -33px;
+        top: -1px;
+        color: white;
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'new_connection' %}">New Connection</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Request Status</li>
+        </ol>
+    </nav>
+    
+    <!-- Success Header -->
+    <div class="status-header text-center">
+        <div class="status-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h1 class="fw-bold mb-2">New Connection Request Submitted!</h1>
+        <p class="lead mb-0">Your new mobile connection request has been received successfully.</p>
+    </div>
+    
+    <!-- Tracking ID -->
+    <div class="card border-success mb-4">
+        <div class="card-body text-center">
+            <h3 class="card-title mb-2">
+                <i class="fas fa-barcode me-2"></i>Tracking ID
+            </h3>
+            <div class="tracking-badge bg-dark text-white px-3 py-2 rounded d-inline-block">
+                {{ connection_request.tracking_id }}
+            </div>
+            <p class="text-muted mt-2 mb-0">Use this ID to track your request status</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left Column: Request Details -->
+        <div class="col-lg-8">
+            <!-- Request Details Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-file-alt me-2"></i>Request Details</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-user me-2 text-primary"></i>Personal Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Full Name:</strong> {{ connection_request.full_name }}</li>
+                                <li><strong>Email:</strong> {{ connection_request.email }}</li>
+                                <li><strong>Alternate Mobile:</strong> {{ connection_request.mobile|default:"Not provided" }}</li>
+                                <li><strong>Date of Birth:</strong> {{ connection_request.date_of_birth|date:"d M Y"|default:"Not provided" }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-phone me-2 text-primary"></i>Connection Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Operator:</strong> {{ connection_request.operator.name }}</li>
+                                <li><strong>Selected Plan:</strong> {{ connection_request.selected_plan.name }}</li>
+                                <li><strong>Plan Price:</strong> ₹{{ connection_request.selected_plan.price }}</li>
+                                {% if connection_request.number_preference %}
+                                <li><strong>Number Preference:</strong> {{ connection_request.number_preference }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-map-marker-alt me-2 text-primary"></i>Address Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Address:</strong> {{ connection_request.address }}</li>
+                                <li><strong>City:</strong> {{ connection_request.city }}</li>
+                                <li><strong>State:</strong> {{ connection_request.state }}</li>
+                                <li><strong>Pincode:</strong> {{ connection_request.pincode }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6><i class="fas fa-truck me-2 text-primary"></i>Delivery Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Preferred Date:</strong> {{ connection_request.preferred_delivery_date|date:"d M Y" }}</li>
+                                <li><strong>Time Slot:</strong> {{ connection_request.preferred_delivery_time }}</li>
+                                {% if connection_request.delivery_address %}
+                                <li><strong>Delivery Address:</strong> {{ connection_request.delivery_address }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h6><i class="fas fa-info-circle me-2 text-primary"></i>Request Information</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Status:</strong> 
+                                    <span class="badge {% if connection_request.status == 'pending' %}bg-warning{% elif connection_request.status == 'activated' %}bg-success{% elif connection_request.status == 'rejected' %}bg-danger{% else %}bg-info{% endif %}">
+                                        {{ connection_request.get_status_display }}
+                                    </span>
+                                </li>
+                                <li><strong>Submitted On:</strong> {{ connection_request.created_at|date:"d M Y, h:i A" }}</li>
+                                {% if connection_request.new_mobile_number %}
+                                <li><strong>Assigned Number:</strong> {{ connection_request.new_mobile_number }}</li>
+                                {% endif %}
+                                {% if connection_request.activation_date %}
+                                <li><strong>Activation Date:</strong> {{ connection_request.activation_date|date:"d M Y, h:i A" }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- What Happens Next -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-list-alt me-2"></i>What happens next?</h4>
+                </div>
+                <div class="card-body">
+                    <div class="process-timeline">
+                        {% for step in steps %}
+                        <div class="process-step {% if step.status == 'completed' %}completed{% elif step.status == 'active' %}active{% endif %}">
+                            <h6 class="fw-bold">{{ step.name }}</h6>
+                            <p class="mb-0 text-muted">{{ step.description }}</p>
+                            <small class="text-muted">
+                                {% if step.status == 'completed' %}
+                                <i class="fas fa-check text-success me-1"></i>Completed
+                                {% elif step.status == 'active' %}
+                                <i class="fas fa-spinner text-primary me-1"></i>In Progress
+                                {% else %}
+                                <i class="fas fa-clock text-secondary me-1"></i>Pending
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Status & Actions -->
+        <div class="col-lg-4">
+            <!-- Current Status Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Current Status</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-1 mb-3">
+                        {% if connection_request.status == 'pending' %}
+                        <i class="fas fa-hourglass-half text-warning"></i>
+                        {% elif connection_request.status == 'document_verification' %}
+                        <i class="fas fa-file-check text-info"></i>
+                        {% elif connection_request.status == 'sim_dispatch' %}
+                        <i class="fas fa-truck text-primary"></i>
+                        {% elif connection_request.status == 'sim_delivered' %}
+                        <i class="fas fa-box-open text-success"></i>
+                        {% elif connection_request.status == 'activated' %}
+                        <i class="fas fa-check-circle text-success"></i>
+                        {% elif connection_request.status == 'rejected' %}
+                        <i class="fas fa-times-circle text-danger"></i>
+                        {% else %}
+                        <i class="fas fa-info-circle text-secondary"></i>
+                        {% endif %}
+                    </div>
+                    <h4 class="mb-3">{{ connection_request.get_status_display }}</h4>
+                    <p class="text-muted">
+                        {% if connection_request.status == 'pending' %}
+                        Your request is being processed. Our team will contact you shortly.
+                        {% elif connection_request.status == 'document_verification' %}
+                        Our delivery executive will visit your address for document collection.
+                        {% elif connection_request.status == 'sim_dispatch' %}
+                        SIM card has been dispatched for delivery.
+                        {% elif connection_request.status == 'sim_delivered' %}
+                        SIM card has been delivered. Activation is in progress.
+                        {% elif connection_request.status == 'activated' %}
+                        Your new number is now active and ready to use!
+                        {% elif connection_request.status == 'rejected' %}
+                        Your request could not be processed. Please contact support.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Document Preparation -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Document Checklist</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Please keep these documents ready for verification:</p>
+                    <ul class="mb-0">
+                        <li><i class="fas fa-check-circle text-success me-2"></i>Aadhaar Card (Original)</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i>Passport Size Photo</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i>PAN Card (For postpaid)</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i>Address Proof (if different)</li>
+                    </ul>
+                    <div class="alert alert-info mt-3 mb-0">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Our delivery executive will collect documents during delivery.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Important Notes -->
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Important Notes</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Please be available at the delivery address during the scheduled time</li>
+                        <li>Keep original documents ready for verification</li>
+                        <li>Delivery executive will complete KYC verification</li>
+                        <li>SIM activation will be done immediately after verification</li>
+                        <li>Contact customer care for any queries</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'new_connection' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus-circle me-2"></i>Apply for Another Connection
+                        </a>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>Back to Home
+                        </a>
+                        <a href="#" class="btn btn-outline-info" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i>Print this Page
+                        </a>
+                        {% if connection_request.status == 'pending' %}
+                        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            <i class="fas fa-times-circle me-2"></i>Cancel Request
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customer Support -->
+    <div class="card mt-4">
+        <div class="card-body text-center">
+            <h5><i class="fas fa-headset me-2 text-primary"></i>Need Help?</h5>
+            <p class="mb-2">Our customer support team is here to assist you</p>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="h4 mb-2"><i class="fas fa-phone text-primary"></i></div>
+                    <h6>Call Us</h6>
+                    <p class="mb-0">1800-123-4567</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="h4 mb-2"><i class="fas fa-envelope text-primary"></i></div>
+                    <h6>Email Us</h6>
+                    <p class="mb-0">support@telecompedia.com</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="h4 mb-2"><i class="fas fa-comments text-primary"></i></div>
+                    <h6>Live Chat</h6>
+                    <p class="mb-0">Available 24/7</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Request Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Connection Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this connection request?</p>
+                <p class="text-danger"><strong>Note:</strong> This action cannot be undone.</p>
+                <form method="post" action="{% url 'cancel_connection_request' connection_request.tracking_id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="cancelReason" class="form-label">Reason for cancellation</label>
+                        <textarea class="form-control" id="cancelReason" name="reason" rows="3" required></textarea>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go Back</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for printing -->
+<script>
+function printPage() {
+    window.print();
+}
+
+// Auto-refresh page every 30 seconds if status is pending
+{% if connection_request.status == 'pending' or connection_request.status == 'document_verification' or connection_request.status == 'sim_dispatch' %}
+setTimeout(function() {
+    window.location.reload();
+}, 30000);
+{% endif %}
+</script>
+{% endblock %}

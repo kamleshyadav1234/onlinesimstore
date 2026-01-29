@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment History | TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="fw-bold">Payment History</h1>
+            <p class="text-muted">View all your payment transactions</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-primary border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-rupee-sign fa-2x text-primary mb-3"></i>
+                    <h5 class="card-title">Total Spent</h5>
+                    <p class="display-6 fw-bold">
+                        ₹{{ total_spent|default:"0" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-success border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                    <h5 class="card-title">Successful</h5>
+                    <p class="display-6 fw-bold">{{ successful_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-danger border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-times-circle fa-2x text-danger mb-3"></i>
+                    <h5 class="card-title">Failed</h5>
+                    <p class="display-6 fw-bold">{{ failed_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-info border-2">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x text-info mb-3"></i>
+                    <h5 class="card-title">Pending</h5>
+                    <p class="display-6 fw-bold">{{ pending_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" action="{% url 'payment_history' %}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
+                        <option value="refunded" {% if request.GET.status == 'refunded' %}selected{% endif %}>Refunded</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="start_date" class="form-control" 
+                           value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="end_date" class="form-control" 
+                           value="{{ request.GET.end_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="card shadow">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">All Transactions</h5>
+            <span class="badge bg-primary">{{ payments.count }} records</span>
+        </div>
+        
+        <div class="card-body">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Bill Number</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>
+                                <strong>{{ payment.bill_number }}</strong>
+                                <br>
+                                <small class="text-muted">{{ payment.transaction_id }}</small>
+                            </td>
+                            <td>
+                                {% if payment.plan %}
+                                <div class="d-flex align-items-center">
+                                    {% if payment.plan.operator.logo %}
+                                    <img src="{{ payment.plan.operator.logo.url }}" 
+                                         alt="{{ payment.plan.operator.name }}"
+                                         class="rounded-circle me-2"
+                                         style="width: 30px; height: 30px; object-fit: cover;">
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ payment.plan.name|truncatechars:20 }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ payment.plan.operator.name }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Plan deleted</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-primary">₹{{ payment.amount }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ payment.get_payment_method_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ payment.payment_date|date:"d M Y" }}
+                                <br>
+                                <small class="text-muted">{{ payment.payment_date|date:"h:i A" }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if payment.payment_status == 'completed' %}success{% elif payment.payment_status == 'failed' %}danger{% elif payment.payment_status == 'pending' %}warning{% else %}info{% endif %} p-2">
+                                    {{ payment.get_payment_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'payment_detail' payment.bill_number %}" 
+                                       class="btn btn-outline-primary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if payment.payment_status == 'completed' %}
+                                    <button class="btn btn-outline-success" title="Download Invoice"
+                                            onclick="downloadInvoice('{{ payment.bill_number }}')">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if payment.payment_status == 'failed' %}
+                                    <button class="btn btn-outline-danger" title="Retry Payment"
+                                            onclick="retryPayment('{{ payment.plan.id }}')">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-receipt fa-4x text-muted"></i>
+                </div>
+                <h4 class="text-muted mb-3">No Payment History</h4>
+                <p class="text-muted mb-4">You haven't made any payments yet.</p>
+                <a href="{% url 'plan_list' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-search"></i> Browse Plans
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    {% if payments %}
+    <div class="card shadow mt-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6><i class="fas fa-download"></i> Export Payment History</h6>
+                    <p class="text-muted mb-0">Download your payment history for record keeping</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button class="btn btn-outline-success">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                        <button class="btn btn-outline-info">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadInvoice(billNumber) {
+    window.location.href = `/payments/detail/${billNumber}/?download=true`;
+}
+
+function retryPayment(planId) {
+    window.location.href = `/payments/process/?plan_id=${planId}`;
+}
+</script>
+{% endblock %}

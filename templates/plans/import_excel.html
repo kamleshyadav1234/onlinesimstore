@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Plans - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-import me-2"></i> Import Plans from Excel
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Instructions -->
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i> Import Instructions
+                        </h5>
+                        <ul class="mb-0">
+                            <li>Download the template below to see the correct format</li>
+                            <li>Fill in your plan data following the template structure</li>
+                            <li>Save the file as .xlsx format before uploading</li>
+                            <li>Upload the completed Excel file using the form below</li>
+                            <li>Existing plans with the same name will be updated</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Download Template Button -->
+                    <div class="text-center mb-5">
+                        <a href="{% url 'download_template' %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-download me-2"></i> Download Template
+                        </a>
+                    </div>
+                    
+                    <!-- Upload Form -->
+                    <form method="post" enctype="multipart/form-data" class="border rounded p-4 bg-light">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="excel_file" class="form-label fw-bold">
+                                <i class="fas fa-file-excel me-2 text-success"></i> Select Excel File (.xlsx)
+                            </label>
+                            <input type="file" class="form-control" id="excel_file" name="excel_file" 
+                                   accept=".xlsx, .xls" required>
+                            <div class="form-text">
+                                Only Excel files (.xlsx or .xls) are accepted
+                            </div>
+                        </div>
+                        
+                        <!-- Sample Data Structure -->
+                        <div class="mb-4">
+                            <h5 class="fw-bold mb-3">Required Columns:</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Column Name</th>
+                                            <th>Description</th>
+                                            <th>Required</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Operator</td>
+                                            <td>Operator name</td>
+                                            <td><span class="badge bg-success">Required</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Plan Name</td>
+                                            <td>Name of the plan</td>
+                                            <td><span class="badge bg-success">Required</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Price</td>
+                                            <td>Plan price in ₹</td>
+                                            <td><span class="badge bg-success">Required</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Validity</td>
+                                            <td>Plan validity in days</td>
+                                            <td><span class="badge bg-success">Required</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Data Allowance</td>
+                                            <td>Data limit (e.g., "

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}SIM Replacement Instructions{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">SIM Replacement Instructions</h1>
+    <div class="row">
+        {% for step in steps %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <div class="display-4 text-primary mb-3">{{ step.number }}</div>
+                    <h5 class="card-title">{{ step.title }}</h5>
+                    <p class="card-text">{{ step.description }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

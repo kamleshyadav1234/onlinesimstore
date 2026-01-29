@@ -1,0 +1,393 @@
+<!-- templates/plans/sim_replacement_create.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SIM Replacement Request | TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-primary">SIM Replacement Request</h1>
+        <p class="lead text-muted">Replace your lost, stolen, or damaged SIM card quickly and securely</p>
+    </div>
+
+    <!-- Process Steps -->
+    <div class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 50px; height: 50px;">
+                                1
+                            </div>
+                            <h6>Fill Details</h6>
+                            <p class="small text-muted">Enter your information</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-number bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 50px; height: 50px;">
+                                2
+                            </div>
+                            <h6>Upload Documents</h6>
+                            <p class="small text-muted">Upload required documents</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-number bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 50px; height: 50px;">
+                                3
+                            </div>
+                            <h6>Make Payment</h6>
+                            <p class="small text-muted">Pay replacement fee</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="step-number bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 50px; height: 50px;">
+                                4
+                            </div>
+                            <h6>Get New SIM</h6>
+                            <p class="small text-muted">SIM delivered & activated</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-sim-card me-2"></i>SIM Replacement Form</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Display form errors -->
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Please correct the errors below:</strong>
+                            <ul>
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <li>{{ field.label }}: {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Reason for Replacement -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">1. Reason for Replacement</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check card border p-3 h-100">
+                                        <input class="form-check-input" type="radio" name="reason" id="reason_lost" value="lost" 
+                                               {% if form.reason.value == 'lost' %}checked{% endif %}>
+                                        <label class="form-check-label" for="reason_lost">
+                                            <i class="fas fa-search text-warning me-2"></i>
+                                            <strong>Lost SIM</strong>
+                                            <p class="small text-muted mb-0">SIM card is lost or misplaced</p>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check card border p-3 h-100">
+                                        <input class="form-check-input" type="radio" name="reason" id="reason_stolen" value="stolen"
+                                               {% if form.reason.value == 'stolen' %}checked{% endif %}>
+                                        <label class="form-check-label" for="reason_stolen">
+                                            <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                            <strong>Stolen SIM</strong>
+                                            <p class="small text-muted mb-0">SIM card was stolen</p>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check card border p-3 h-100">
+                                        <input class="form-check-input" type="radio" name="reason" id="reason_damaged" value="damaged"
+                                               {% if form.reason.value == 'damaged' %}checked{% endif %}>
+                                        <label class="form-check-label" for="reason_damaged">
+                                            <i class="fas fa-times-circle text-secondary me-2"></i>
+                                            <strong>Damaged SIM</strong>
+                                            <p class="small text-muted mb-0">SIM card is physically damaged</p>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if form.reason.errors %}
+                            <div class="text-danger small mt-2">{{ form.reason.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Operator & Mobile Number Details -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">2. Operator & Mobile Number Details</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Select Operator *</label>
+                                    <select class="form-select {% if form.operator.errors %}is-invalid{% endif %}" 
+                                            name="operator" required>
+                                        <option value="">Choose Operator</option>
+                                        <option value="airtel" {% if form.operator.value == 'airtel' %}selected{% endif %}>Airtel</option>
+                                        <option value="jio" {% if form.operator.value == 'jio' %}selected{% endif %}>Jio</option>
+                                        <option value="vi" {% if form.operator.value == 'vi' %}selected{% endif %}>Vi (Vodafone Idea)</option>
+                                        <option value="bsnl" {% if form.operator.value == 'bsnl' %}selected{% endif %}>BSNL</option>
+                                    </select>
+                                    {% if form.operator.errors %}
+                                    <div class="invalid-feedback">{{ form.operator.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Mobile Number to Replace *</label>
+                                    <input type="tel" class="form-control {% if form.mobile_number.errors %}is-invalid{% endif %}" 
+                                           name="mobile_number" value="{{ form.mobile_number.value|default:'' }}"
+                                           placeholder="10-digit mobile number" required>
+                                    {% if form.mobile_number.errors %}
+                                    <div class="invalid-feedback">{{ form.mobile_number.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">Current SIM Type *</label>
+                                    <select class="form-select {% if form.old_sim_type.errors %}is-invalid{% endif %}" 
+                                            name="old_sim_type" required>
+                                        <option value="">Select Current SIM</option>
+                                        <option value="regular" {% if form.old_sim_type.value == 'regular' %}selected{% endif %}>Regular SIM</option>
+                                        <option value="micro" {% if form.old_sim_type.value == 'micro' %}selected{% endif %}>Micro SIM</option>
+                                        <option value="nano" {% if form.old_sim_type.value == 'nano' %}selected{% endif %}>Nano SIM</option>
+                                        <option value="esim" {% if form.old_sim_type.value == 'esim' %}selected{% endif %}>eSIM</option>
+                                    </select>
+                                    {% if form.old_sim_type.errors %}
+                                    <div class="invalid-feedback">{{ form.old_sim_type.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">New SIM Type Required *</label>
+                                    <select class="form-select {% if form.new_sim_type.errors %}is-invalid{% endif %}" 
+                                            name="new_sim_type" required>
+                                        <option value="">Select New SIM</option>
+                                        <option value="nano" {% if form.new_sim_type.value == 'nano' %}selected{% endif %}>Nano SIM (Default)</option>
+                                        <option value="regular" {% if form.new_sim_type.value == 'regular' %}selected{% endif %}>Regular SIM</option>
+                                        <option value="micro" {% if form.new_sim_type.value == 'micro' %}selected{% endif %}>Micro SIM</option>
+                                        <option value="esim" {% if form.new_sim_type.value == 'esim' %}selected{% endif %}>eSIM</option>
+                                    </select>
+                                    {% if form.new_sim_type.errors %}
+                                    <div class="invalid-feedback">{{ form.new_sim_type.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Details -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">3. Customer Details</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Full Name *</label>
+                                    <input type="text" class="form-control {% if form.full_name.errors %}is-invalid{% endif %}" 
+                                           name="full_name" value="{{ form.full_name.value|default:'' }}" required>
+                                    {% if form.full_name.errors %}
+                                    <div class="invalid-feedback">{{ form.full_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                                           name="email" value="{{ form.email.value|default:'' }}" required>
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback">{{ form.email.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Alternate Contact Number *</label>
+                                    <input type="tel" class="form-control {% if form.alternate_contact.errors %}is-invalid{% endif %}" 
+                                           name="alternate_contact" value="{{ form.alternate_contact.value|default:'' }}"
+                                           placeholder="10-digit alternate number" required>
+                                    {% if form.alternate_contact.errors %}
+                                    <div class="invalid-feedback">{{ form.alternate_contact.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Date of Birth (Optional)</label>
+                                    <input type="date" class="form-control" name="date_of_birth" 
+                                           value="{{ form.date_of_birth.value|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Address Details -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">4. Delivery Address</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Address Line 1 *</label>
+                                    <input type="text" class="form-control {% if form.address_line1.errors %}is-invalid{% endif %}" 
+                                           name="address_line1" value="{{ form.address_line1.value|default:'' }}" 
+                                           placeholder="House No, Building, Street" required>
+                                    {% if form.address_line1.errors %}
+                                    <div class="invalid-feedback">{{ form.address_line1.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Address Line 2 (Optional)</label>
+                                    <input type="text" class="form-control" name="address_line2" 
+                                           value="{{ form.address_line2.value|default:'' }}" placeholder="Area, Locality">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">City *</label>
+                                    <input type="text" class="form-control {% if form.city.errors %}is-invalid{% endif %}" 
+                                           name="city" value="{{ form.city.value|default:'' }}" required>
+                                    {% if form.city.errors %}
+                                    <div class="invalid-feedback">{{ form.city.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">State *</label>
+                                    <select class="form-select {% if form.state.errors %}is-invalid{% endif %}" name="state" required>
+                                        <option value="">Select State</option>
+                                        <option value="delhi" {% if form.state.value == 'delhi' %}selected{% endif %}>Delhi</option>
+                                        <option value="mumbai" {% if form.state.value == 'mumbai' %}selected{% endif %}>Maharashtra</option>
+                                        <option value="karnataka" {% if form.state.value == 'karnataka' %}selected{% endif %}>Karnataka</option>
+                                        <option value="tamilnadu" {% if form.state.value == 'tamilnadu' %}selected{% endif %}>Tamil Nadu</option>
+                                        <option value="up" {% if form.state.value == 'up' %}selected{% endif %}>Uttar Pradesh</option>
+                                    </select>
+                                    {% if form.state.errors %}
+                                    <div class="invalid-feedback">{{ form.state.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Pincode *</label>
+                                    <input type="text" class="form-control {% if form.pincode.errors %}is-invalid{% endif %}" 
+                                           name="pincode" value="{{ form.pincode.value|default:'' }}"
+                                           pattern="[0-9]{6}" placeholder="6-digit pincode" required>
+                                    {% if form.pincode.errors %}
+                                    <div class="invalid-feedback">{{ form.pincode.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Service Details -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">5. Service Type</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card {% if form.service_type.value == 'fast' %}border-success{% else %}border{% endif %}">
+                                        <div class="card-body">
+                                            <h6 class="text-success"><i class="fas fa-bolt me-2"></i>Fast Track Service</h6>
+                                            <p class="mb-2"><strong>Delivery:</strong> 2-4 hours</p>
+                                            <p class="mb-0"><strong>Fee:</strong> ₹199</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card {% if form.service_type.value == 'standard' %}border-primary{% else %}border{% endif %}">
+                                        <div class="card-body">
+                                            <h6><i class="fas fa-shipping-fast me-2"></i>Standard Service</h6>
+                                            <p class="mb-2"><strong>Delivery:</strong> 24-48 hours</p>
+                                            <p class="mb-0"><strong>Fee:</strong> ₹99</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">Select Service Type *</label>
+                                <select class="form-select {% if form.service_type.errors %}is-invalid{% endif %}" 
+                                        name="service_type" required>
+                                    <option value="">Select Service Type</option>
+                                    <option value="standard" {% if form.service_type.value == 'standard' %}selected{% endif %}>Standard Service (₹99)</option>
+                                    <option value="fast" {% if form.service_type.value == 'fast' %}selected{% endif %}>Fast Track Service (₹199)</option>
+                                </select>
+                                {% if form.service_type.errors %}
+                                <div class="invalid-feedback">{{ form.service_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4">
+                            <div class="form-check {% if form.terms_accepted.errors %}is-invalid{% endif %}">
+                                <input class="form-check-input" type="checkbox" id="terms" name="terms_accepted" 
+                                       {% if form.terms_accepted.value %}checked{% endif %}>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a> and confirm that all information provided is correct.
+                                </label>
+                                {% if form.terms_accepted.errors %}
+                                <div class="invalid-feedback">{{ form.terms_accepted.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="form-check mt-2 {% if form.declaration_accepted.errors %}is-invalid{% endif %}">
+                                <input class="form-check-input" type="checkbox" id="declaration" name="declaration_accepted"
+                                       {% if form.declaration_accepted.value %}checked{% endif %}>
+                                <label class="form-check-label" for="declaration">
+                                    I declare that the SIM card is lost/stolen/damaged and I'm the rightful owner of this mobile number.
+                                </label>
+                                {% if form.declaration_accepted.errors %}
+                                <div class="invalid-feedback">{{ form.declaration_accepted.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="reset" class="btn btn-outline-secondary me-2">Reset Form</button>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-paper-plane me-2"></i>Continue to Step 2
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal (Add this at the bottom) -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms & Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>SIM Replacement Terms</h6>
+                <p>1. You must be the rightful owner of the mobile number.</p>
+                <p>2. Replacement fee is non-refundable once processed.</p>
+                <p>3. Delivery time may vary based on location and operator.</p>
+                <p>4. You must present original documents when receiving SIM.</p>
+                <p>5. TelecomPedia acts as a facilitator, final approval rests with the operator.</p>
+                <p>6. Misuse of this service may lead to legal action.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.step-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+.form-check .card:hover {
+    border-color: #0d6efd;
+    cursor: pointer;
+}
+.form-check-input:checked + .card {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+}
+</style>
+{% endblock %}

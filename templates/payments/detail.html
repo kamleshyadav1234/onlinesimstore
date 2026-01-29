@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Invoice #{{ payment.bill_number }} | TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5" id="invoice">
+    <!-- Invoice Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="fw-bold">Invoice</h1>
+            <p class="text-muted">Bill Number: {{ payment.bill_number }}</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <a href="{% url 'payment_history' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn btn-success" onclick="downloadPDF()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Card -->
+    <div class="card shadow">
+        <!-- Invoice Header -->
+        <div class="card-header bg-light">
+            <div class="row">
+                <div class="col-md-6">
+                    <img src="{% static 'images/logo.png' %}" alt="TelecomPedia" height="40" class="mb-2">
+                    <h4 class="mb-0">TelecomPedia</h4>
+                    <p class="text-muted mb-0">Your Telecom Partner</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h2 class="text-primary mb-0">INVOICE</h2>
+                    <p class="text-muted mb-0">#{{ payment.bill_number }}</p>
+                    <p class="mb-0">Date: {{ payment.payment_date|date:"d M Y" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <!-- Bill To & Status -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>Bill To:</h6>
+                    <p class="mb-1"><strong>{{ payment.user.get_full_name|default:payment.user.username }}</strong></p>
+                    <p class="mb-1">{{ payment.user.email }}</p>
+                    <p class="mb-1">{{ payment.user.phone }}</p>
+                    {% if payment.user.address %}
+                    <p class="mb-0">{{ payment.user.address }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-end">
+                    <h6>Payment Status:</h6>
+                    <span class="badge bg-{% if payment.payment_status == 'completed' %}success{% elif payment.payment_status == 'failed' %}danger{% elif payment.payment_status == 'pending' %}warning{% else %}info{% endif %} fs-6">
+                        {{ payment.get_payment_status_display }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Plan Details -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th>Operator</th>
+                            <th>Validity</th>
+                            <th>Features</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <h6 class="mb-1">{{ payment.plan.name|default:"Telecom Plan" }}</h6>
+                                <p class="text-muted mb-0 small">
+                                    {% if payment.plan.description %}
+                                        {{ payment.plan.description|truncatechars:100 }}
+                                    {% else %}
+                                        Telecom service plan
+                                    {% endif %}
+                                </p>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if payment.plan and payment.plan.operator.logo %}
+                                    <img src="{{ payment.plan.operator.logo.url }}" 
+                                         alt="{{ payment.plan.operator.name }}"
+                                         class="rounded-circle me-2"
+                                         style="width: 30px; height: 30px; object-fit: cover;">
+                                    {% endif %}
+                                    {{ payment.plan.operator.name|default:"Telecom Operator" }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if payment.plan %}
+                                    {{ payment.plan.get_full_validity }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.plan %}
+                                    {% if payment.plan.data_allowance %}
+                                    <span class="badge bg-info me-1">Data: {{ payment.plan.data_allowance }}</span>
+                                    {% endif %}
+                                    {% if payment.plan.voice_calls %}
+                                    <span class="badge bg-info me-1">Calls: {{ payment.plan.voice_calls }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">No details available</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">₹{{ payment.amount }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Amount Breakdown -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Payment Information</h6>
+                            <div class="row mb-2">
+                                <div class="col-6">Transaction ID:</div>
+                                <div class="col-6 text-end">{{ payment.transaction_id }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Payment Method:</div>
+                                <div class="col-6 text-end">{{ payment.get_payment_method_display }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Payment Date:</div>
+                                <div class="col-6 text-end">{{ payment.payment_date|date:"d M Y, h:i A" }}</div>
+                            </div>
+                            {% if payment.razorpay_payment_id %}
+                            <div class="row mb-2">
+                                <div class="col-6">Gateway Ref:</div>
+                                <div class="col-6 text-end">{{ payment.razorpay_payment_id }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Amount Summary</h6>
+                            <div class="row mb-2">
+                                <div class="col-6">Plan Amount:</div>
+                                <div class="col-6 text-end">₹{{ payment.amount }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Tax (GST 18%):</div>
+                                <div class="col-6 text-end">₹{{ payment.amount|multiply:0.18|floatformat:2 }}</div>
+
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Discount:</div>
+                                <div class="col-6 text-end">₹0.00</div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6"><strong>Total Amount:</strong></div>
+                                <div class="col-6 text-end"><strong class="h5">₹{{ payment.amount }}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms & Conditions -->
+            <div class="mt-4 pt-4 border-top">
+                <h6>Terms & Conditions</h6>
+                <ul class="small text-muted mb-0">
+                    <li>This is a computer-generated invoice and does not require a signature.</li>
+                    <li>All amounts are in Indian Rupees (INR).</li>
+                    <li>For any queries regarding this invoice, please contact our support team.</li>
+                    <li>Plan activation may take 5-10 minutes after payment confirmation.</li>
+                    <li>Refunds are processed within 5-7 business days as per our refund policy.</li>
+                </ul>
+            </div>
+
+            <!-- Company Footer -->
+            <div class="mt-4 pt-4 border-top">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>TelecomPedia</h6>
+                        <p class="small text-muted mb-0">
+                            123 Business Street<br>
+                            Mumbai, Maharashtra 400001<br>
+                            India
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Contact</h6>
+                        <p class="small text-muted mb-0">
+                            Phone: 1800-123-4567<br>
+                            Email: billing@telecompedia.com<br>
+                            Website: www.telecompedia.com
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>GST Information</h6>
+                        <p class="small text-muted mb-0">
+                            GSTIN: 27ABCDE1234F1Z5<br>
+                            PAN: ABCDE1234F<br>
+                            CIN: U72900MH2023PTC123456
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Support -->
+    <div class="alert alert-info mt-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h6><i class="fas fa-headset"></i> Need Help?</h6>
+                <p class="mb-0">Our customer support team is available 24/7 to assist you with any questions.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="tel:18001234567" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-phone"></i> Call Support
+                </a>
+                <a href="mailto:support@telecompedia.com" class="btn btn-primary">
+                    <i class="fas fa-envelope"></i> Email Us
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadPDF() {
+    // In a real application, you would generate PDF here
+    // For now, we'll just print
+    window.print();
+}
+
+// Print styles
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if download parameter is present
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('download') === 'true') {
+        setTimeout(() => {
+            downloadPDF();
+        }, 1000);
+    }
+});
+</script>
+
+<style>
+@media print {
+    .navbar, footer, .btn-group, .alert {
+        display: none !important;
+    }
+    
+    #invoice {
+        padding: 0 !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    body {
+        font-size: 12px !important;
+    }
+}
+</style>
+{% endblock %}

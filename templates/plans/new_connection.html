@@ -1,0 +1,1091 @@
+<!-- templates/plans/new_connection.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}New Mobile Connection - TelecomPedia{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        position: relative;
+    }
+    
+    .step-indicator::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background-color: #dee2e6;
+        z-index: -1;
+    }
+    
+    .step-indicator:last-child::after {
+        display: none;
+    }
+    
+    .step-indicator.active::after {
+        background-color: #0d6efd;
+    }
+    
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        background-color: #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin: 0 auto 10px;
+    }
+    
+    .step-indicator.active .step-circle {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .plan-card {
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .plan-card:hover {
+        transform: translateY(-5px);
+        border-color: #0d6efd;
+    }
+    
+    .plan-card.selected {
+        border-color: #0d6efd;
+        background-color: #f8f9fa;
+    }
+    
+    .step-content {
+        display: none;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    .step-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .payment-option-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .payment-option-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .payment-option-card.active {
+        border-width: 2px;
+    }
+    
+    .payment-option-card input[type="radio"] {
+        display: none;
+    }
+    
+    .payment-option-card.active label {
+        font-weight: bold;
+    }
+    
+    .icon-xl {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Connection Services</a></li>
+            <li class="breadcrumb-item active" aria-current="page">New Connection</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <div class="icon-xl bg-primary bg-opacity-10 text-primary rounded-circle mb-3 mx-auto">
+                    <i class="fas fa-sim-card fa-3x"></i>
+                </div>
+                <h1 class="fw-bold">Get New Mobile Connection</h1>
+                <p class="lead text-muted">Choose a new mobile number with exciting welcome offers and best plans</p>
+            </div>
+            
+            <!-- Multi-step Form -->
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0"><i class="fas fa-sim-card me-2"></i>New Mobile Connection</h4>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <!-- Step Indicator -->
+                    <div class="row mb-5">
+                        <div class="col-3 text-center">
+                            <div class="step-indicator active">
+                                <div class="step-circle">1</div>
+                                <div class="step-label">Operator & Plan</div>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="step-indicator">
+                                <div class="step-circle">2</div>
+                                <div class="step-label">Personal Info</div>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="step-indicator">
+                                <div class="step-circle">3</div>
+                                <div class="step-label">Address</div>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="step-indicator">
+                                <div class="step-circle">4</div>
+                                <div class="step-label">Delivery</div>
+                            </div>
+                        </div>
+                        <div class="col-3 text-center">
+                            <div class="step-indicator">
+                                <div class="step-circle">5</div>
+                                <div class="step-label">Payment</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" action="{% url 'new_connection' %}" id="newConnectionForm" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Step 1: Operator & Plan Selection -->
+                        <div class="step-content active" id="step1">
+                            <h4 class="mb-4">Step 1: Choose Operator & Plan</h4>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Operator *</label>
+                                <select name="operator" class="form-control form-control-lg" id="newOperator" required>
+                                    <option value="">Select Operator</option>
+                                    {% for operator in operators %}
+                                    <option value="{{ operator.id }}">{{ operator.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Choose your preferred mobile service provider</div>
+                            </div>
+                            
+                            <!-- Connection Type -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Connection Type *</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="connection_type" id="prepaid" value="prepaid" checked>
+                                    <label class="btn btn-outline-primary" for="prepaid">Prepaid</label>
+                                    
+                                    <input type="radio" class="btn-check" name="connection_type" id="postpaid" value="postpaid">
+                                    <label class="btn btn-outline-primary" for="postpaid">Postpaid</label>
+                                </div>
+                            </div>
+                            
+                            <!-- New Connection Plans Display -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Select Plan *</label>
+                                <div id="newPlansContainer" class="row g-3">
+                                    <div class="col-12 text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading plans...</span>
+                                        </div>
+                                        <p class="mt-2">Select an operator to see plans</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Plan Details -->
+                            <div class="card border-primary mb-4" id="selectedPlanCard" style="display: none;">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Selected Plan</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h5 id="selectedPlanName">Plan Name</h5>
+                                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                                <span class="badge bg-primary">New Connection</span>
+                                                <span class="badge bg-success" id="selectedPlanBonus">Welcome Bonus</span>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <small class="text-muted">Data:</small>
+                                                    <p class="mb-0 fw-bold" id="selectedPlanData">-</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted">Validity:</small>
+                                                    <p class="mb-0 fw-bold" id="selectedPlanValidity">-</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <h3 class="text-primary mb-0" id="selectedPlanPrice">₹0</h3>
+                                            <input type="hidden" name="selected_plan" id="selectedPlanId">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Number Preference -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Number Preference (Optional)</label>
+                                <input type="text" name="number_preference" class="form-control" 
+                                       placeholder="e.g., 98XX98XX98, VIP series, Lucky number">
+                                <div class="form-text">Enter your preferred number pattern or series</div>
+                            </div>
+                            
+                            <div class="d-grid mt-4">
+                                <button type="button" class="btn btn-primary btn-lg btn-next-step" data-next="2">
+                                    Continue <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2: Personal Information -->
+                        <div class="step-content" id="step2">
+                            <h4 class="mb-4">Step 2: Personal Information</h4>
+                            
+                            <!-- Document Collection Note -->
+                            <div class="alert alert-info mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-clipboard-check me-3"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Document Collection Process</h6>
+                                        <p class="mb-0">All required documents (Aadhaar Card, Passport Photo, PAN Card, and Address Proof) will be collected by our delivery executive during verification.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Full Name *</label>
+                                    <input type="text" name="full_name" class="form-control" required 
+                                           value="{{ request.user.get_full_name|default:'' }}"
+                                           placeholder="As per Aadhaar card">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Email Address *</label>
+                                    <input type="email" name="email" class="form-control" required 
+                                           value="{{ request.user.email|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Alternate Mobile Number *</label>
+                                    <input type="tel" name="alternate_mobile" class="form-control" required
+                                           pattern="[6-9][0-9]{9}"
+                                           placeholder="For delivery updates">
+                                    <div class="form-text">Will be used for delivery updates</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Date of Birth *</label>
+                                    <input type="date" name="date_of_birth" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary btn-lg btn-prev-step" data-prev="1">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg btn-next-step" data-next="3">
+                                    Continue <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Address Details -->
+                        <div class="step-content" id="step3">
+                            <h4 class="mb-4">Step 3: Address Details</h4>
+                            
+                            <!-- Document Collection Reminder -->
+                            <div class="alert alert-warning mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-map-marker-alt me-3"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Document Collection Address</h6>
+                                        <p class="mb-0">Our delivery executive will visit this address to collect your documents for verification.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Address *</label>
+                                <textarea name="address" class="form-control" rows="3" required
+                                          placeholder="Complete address where delivery executive will visit"></textarea>
+                            </div>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Pincode *</label>
+                                    <input type="text" name="pincode" class="form-control" required maxlength="6"
+                                           placeholder="Enter 6-digit pincode">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">City *</label>
+                                    <input type="text" name="city" class="form-control" required 
+                                           placeholder="Enter city">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">State *</label>
+                                    <input type="text" name="state" class="form-control" required 
+                                           placeholder="Enter state">
+                                </div>
+                            </div>
+                            
+                            <!-- Different Delivery Address -->
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="differentDeliveryAddress">
+                                <label class="form-check-label fw-bold" for="differentDeliveryAddress">
+                                    Delivery address is different from above address
+                                </label>
+                            </div>
+                            
+                            <div id="deliveryAddressFields" style="display: none;" class="mt-3">
+                                <label class="form-label fw-bold">Delivery Address *</label>
+                                <textarea name="delivery_address" class="form-control" rows="2"></textarea>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary btn-lg btn-prev-step" data-prev="2">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg btn-next-step" data-next="4">
+                                    Continue <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Delivery Schedule -->
+                        <div class="step-content" id="step4">
+                            <h4 class="mb-4">Step 4: Delivery Schedule</h4>
+                            
+                            <!-- Document Preparation Reminder -->
+                            <div class="alert alert-success mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-alt me-3"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Prepare Your Documents</h6>
+                                        <p class="mb-0">Please keep your Aadhaar Card, Passport Photo, and other required documents ready for verification during delivery.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Preferred Delivery Date *</label>
+                                    <input type="date" name="preferred_delivery_date" class="form-control" required 
+                                           min="{% now 'Y-m-d' %}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Preferred Time Slot *</label>
+                                    <select name="preferred_delivery_time" class="form-control" required>
+                                        <option value="">Select Time Slot</option>
+                                        <option value="09:00-12:00">9:00 AM - 12:00 PM</option>
+                                        <option value="12:00-15:00">12:00 PM - 3:00 PM</option>
+                                        <option value="15:00-18:00">3:00 PM - 6:00 PM</option>
+                                        <option value="18:00-21:00">6:00 PM - 9:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Terms and Conditions -->
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                                </label>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary btn-lg btn-prev-step" data-prev="3">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg btn-next-step" data-next="5">
+                                    Continue to Payment <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 5: Payment Options -->
+                        <div class="step-content" id="step5">
+                            <h4 class="mb-4">Step 5: Payment Options</h4>
+                            
+                            <div class="alert alert-info mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-credit-card me-3"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">Choose Payment Method</h6>
+                                        <p class="mb-0">You can pay for your first plan now or when the SIM is delivered.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Options -->
+                            <div class="row g-4 mb-4">
+                                <!-- Option 1: Cash on Delivery -->
+                                <div class="col-md-6">
+                                    <div class="payment-option-card card h-100 border-success active" id="codCard">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <i class="fas fa-money-bill-wave fa-3x text-success"></i>
+                                            </div>
+                                            <h5>Cash on Delivery</h5>
+                                            <p class="text-muted">Pay when SIM is delivered</p>
+                                            <div class="mb-3">
+                                                <h4 id="codAmountDisplay" class="text-success">₹0</h4>
+                                                <p class="small text-muted">Plan price + SIM cost</p>
+                                            </div>
+                                            <input type="radio" name="payment_method" 
+                                                   id="payment_cod" value="cod" checked>
+                                            <label class="form-check-label fw-bold" for="payment_cod">
+                                                Pay on Delivery
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Option 2: Pay Online Now -->
+                                <div class="col-md-6">
+                                    <div class="payment-option-card card h-100 border-primary" id="onlineCard">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <i class="fas fa-bolt fa-3x text-primary"></i>
+                                            </div>
+                                            <h5>Pay Online Now</h5>
+                                            <p class="text-muted">Get instant plan activation</p>
+                                            <div class="mb-3">
+                                                <h4 id="onlineAmountDisplay" class="text-primary">₹0</h4>
+                                                <p class="small text-muted">Plan price only (SIM free)</p>
+                                            </div>
+                                            <input type="radio" name="payment_method" 
+                                                   id="payment_online" value="online">
+                                            <label class="form-check-label" for="payment_online">
+                                                Pay Now & Save ₹49
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Plan Summary -->
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <h6 id="summaryPlanName">No plan selected</h6>
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <small class="text-muted">Validity:</small>
+                                                    <p class="mb-0 fw-bold" id="summaryPlanValidity">-</p>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted">Data:</small>
+                                                    <p class="mb-0 fw-bold" id="summaryPlanData">-</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <h3 class="text-primary mb-0" id="summaryPlanPrice">₹0</h3>
+                                            <p class="small text-muted mb-0">Plan Amount</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Additional Charges -->
+                                    <div class="pt-3 border-top">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>SIM Card Charge</span>
+                                            <span id="simCharge">₹49</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Delivery Charge</span>
+                                            <span class="text-success">FREE</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between fw-bold fs-5 mt-3 pt-2 border-top">
+                                            <span>Total Amount</span>
+                                            <span id="totalAmount">₹49</span>
+                                        </div>
+                                        
+                                        <!-- Note for online payment -->
+                                        <div id="onlinePaymentNote" class="alert alert-success mt-3" style="display: none;">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Save ₹49:</strong> Pay online and get SIM card FREE!
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary btn-lg btn-prev-step" data-prev="4">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </button>
+                                
+                                <!-- Two Submit Buttons based on payment method -->
+                                <div id="submitButtons">
+                                    <!-- COD Submit Button -->
+                                    <button type="submit" class="btn btn-success btn-lg" id="codSubmitBtn">
+                                        <i class="fas fa-check-circle me-2"></i>Submit Request
+                                    </button>
+                                    
+                                    <!-- Online Payment Button (will be shown when online selected) -->
+                                    <button type="button" class="btn btn-primary btn-lg" id="onlinePaymentBtn" style="display: none;">
+                                        <i class="fas fa-lock me-2"></i>Pay Now & Complete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Information Cards -->
+            <div class="row mt-4 g-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5><i class="fas fa-clipboard-check me-2 text-primary"></i>Document Collection Process</h5>
+                            <ul class="mb-0">
+                                <li><strong>Home Delivery & Verification:</strong> Executive visits your address</li>
+                                <li><strong>Documents collected:</strong>
+                                    <ul class="small">
+                                        <li>Aadhaar Card (Mandatory)</li>
+                                        <li>Passport Size Photograph</li>
+                                        <li>PAN Card (For postpaid)</li>
+                                        <li>Address Proof (if different)</li>
+                                    </ul>
+                                </li>
+                                <li>Instant activation upon verification</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5><i class="fas fa-shipping-fast me-2 text-primary"></i>Delivery Information</h5>
+                            <ul class="mb-0">
+                                <li>SIM delivered within 2-3 business days</li>
+                                <li>Free home delivery</li>
+                                <li>ID verification & document collection at delivery</li>
+                                <li>Instant activation upon delivery</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>New Mobile Connection Terms</h6>
+                <p>1. The applicant must be 18 years or above.</p>
+                <p>2. Original documents are required for verification.</p>
+                <p>3. SIM activation is subject to successful KYC verification.</p>
+                <p>4. The first plan will be activated immediately upon payment.</p>
+                <p>5. For cash on delivery, payment must be made at the time of delivery.</p>
+                <p>6. The applicant must be present at the delivery address for verification.</p>
+                <p>7. Refunds are subject to company policy and applicable laws.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Multi-step navigation
+    let currentStep = 1;
+    const stepContents = document.querySelectorAll('.step-content');
+    const stepIndicators = document.querySelectorAll('.step-indicator');
+    
+    // Show step function
+    function showStep(stepNumber) {
+        stepContents.forEach(content => content.classList.remove('active'));
+        stepIndicators.forEach((indicator, index) => {
+            indicator.classList.remove('active');
+            if (index < stepNumber) {
+                indicator.classList.add('active');
+            }
+        });
+        
+        document.getElementById(`step${stepNumber}`).classList.add('active');
+        currentStep = stepNumber;
+        
+        // Scroll to top of step
+        document.getElementById(`step${stepNumber}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    // Next step buttons
+    document.querySelectorAll('.btn-next-step').forEach(button => {
+        button.addEventListener('click', function() {
+            if (validateStep(currentStep)) {
+                const nextStep = parseInt(this.getAttribute('data-next'));
+                showStep(nextStep);
+            }
+        });
+    });
+    
+    // Previous step buttons
+    document.querySelectorAll('.btn-prev-step').forEach(button => {
+        button.addEventListener('click', function() {
+            const prevStep = parseInt(this.getAttribute('data-prev'));
+            showStep(prevStep);
+        });
+    });
+    
+    // Load new connection plans when operator changes
+    document.getElementById('newOperator').addEventListener('change', function() {
+        const operatorId = this.value;
+        const plansContainer = document.getElementById('newPlansContainer');
+        
+        if (!operatorId) {
+            plansContainer.innerHTML = '<div class="col-12 text-center py-4"><p class="text-muted">Select an operator to see plans</p></div>';
+            document.getElementById('selectedPlanCard').style.display = 'none';
+            return;
+        }
+        
+        // Show loading
+        plansContainer.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading plans...</span>
+                </div>
+                <p class="mt-2">Loading new connection plans...</p>
+            </div>
+        `;
+        
+        // Fetch new connection plans
+        fetch(`/api/new-connection-plans/?operator_id=${operatorId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(plans => {
+                if (plans.error) {
+                    throw new Error(plans.error);
+                }
+                
+                if (plans.length === 0) {
+                    plansContainer.innerHTML = `
+                        <div class="col-12 text-center py-4">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                            <p class="text-muted">No new connection plans available for this operator</p>
+                            <p class="text-muted small">Please try a different operator</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Display plans
+                let plansHTML = '';
+                plans.forEach(plan => {
+                    plansHTML += `
+                        <div class="col-md-6">
+                            <div class="plan-card card h-100" data-plan-id="${plan.id}" onclick="selectNewConnectionPlan(this, ${plan.id})">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">${plan.name}</h6>
+                                        <span class="badge bg-primary">New Connection</span>
+                                    </div>
+                                    <h4 class="text-primary mb-2">₹${plan.price}</h4>
+                                    <div class="plan-details">
+                                        <p class="mb-1"><small>Validity: ${plan.validity} ${plan.validity_unit}</small></p>
+                                        <p class="mb-1"><small>Data: ${plan.data_allowance || 'Not specified'}</small></p>
+                                        <p class="mb-1"><small>Calls: ${plan.voice_calls || 'Not specified'}</small></p>
+                                        ${plan.new_connection_bonus ? `<p class="mb-0"><small class="text-success"><i class="fas fa-gift me-1"></i>${plan.new_connection_bonus}</small></p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                plansContainer.innerHTML = plansHTML;
+            })
+            .catch(error => {
+                console.error('Error loading plans:', error);
+                plansContainer.innerHTML = `
+                    <div class="col-12 text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                        <p class="text-muted">Error loading plans</p>
+                        <p class="text-muted small">${error.message}</p>
+                    </div>
+                `;
+            });
+    });
+    
+    // Toggle delivery address fields
+    document.getElementById('differentDeliveryAddress').addEventListener('change', function() {
+        const deliveryAddressFields = document.getElementById('deliveryAddressFields');
+        if (this.checked) {
+            deliveryAddressFields.style.display = 'block';
+            deliveryAddressFields.querySelector('textarea').required = true;
+        } else {
+            deliveryAddressFields.style.display = 'none';
+            deliveryAddressFields.querySelector('textarea').required = false;
+        }
+    });
+    
+    // Payment option selection
+    const codCard = document.getElementById('codCard');
+    const onlineCard = document.getElementById('onlineCard');
+    
+    codCard.addEventListener('click', function() {
+        codCard.classList.add('active', 'border-success');
+        onlineCard.classList.remove('active', 'border-primary');
+        document.getElementById('payment_cod').checked = true;
+        updatePaymentDisplay('cod');
+    });
+    
+    onlineCard.addEventListener('click', function() {
+        onlineCard.classList.add('active', 'border-primary');
+        codCard.classList.remove('active', 'border-success');
+        document.getElementById('payment_online').checked = true;
+        updatePaymentDisplay('online');
+    });
+    
+    // Update payment display based on selection
+    function updatePaymentDisplay(method) {
+        const codSubmitBtn = document.getElementById('codSubmitBtn');
+        const onlinePaymentBtn = document.getElementById('onlinePaymentBtn');
+        const onlinePaymentNote = document.getElementById('onlinePaymentNote');
+        const simChargeElement = document.getElementById('simCharge');
+        const totalAmountElement = document.getElementById('totalAmount');
+        
+        const planPrice = parseFloat(document.getElementById('summaryPlanPrice').textContent.replace('₹', '')) || 0;
+        
+        if (method === 'online') {
+            // Show online payment button, hide COD submit
+            codSubmitBtn.style.display = 'none';
+            onlinePaymentBtn.style.display = 'inline-block';
+            onlinePaymentNote.style.display = 'block';
+            
+            // Update amounts for online payment (SIM free)
+            simChargeElement.innerHTML = '<del>₹49</del> <span class="text-success">FREE</span>';
+            totalAmountElement.textContent = `₹${planPrice}`;
+            
+        } else {
+            // Show COD submit button, hide online payment
+            codSubmitBtn.style.display = 'inline-block';
+            onlinePaymentBtn.style.display = 'none';
+            onlinePaymentNote.style.display = 'none';
+            
+            // Update amounts for COD (plan + SIM)
+            simChargeElement.textContent = '₹49';
+            totalAmountElement.textContent = `₹${planPrice + 49}`;
+        }
+    }
+    
+    // ✅ NEW: Handle online payment button click - SAVE FORM BEFORE PAYMENT
+    document.getElementById('onlinePaymentBtn').addEventListener('click', async function() {
+        const planId = document.getElementById('selectedPlanId').value;
+        
+        if (!planId) {
+            alert('Please select a plan first');
+            return;
+        }
+        
+        // Validate all steps before proceeding
+        if (!validateAllSteps()) {
+            alert('Please complete all required fields before proceeding to payment.');
+            return;
+        }
+        
+        // Show loading
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving Request...';
+        this.disabled = true;
+        
+        try {
+            // Step 1: Create FormData object
+            const formData = new FormData(document.getElementById('newConnectionForm'));
+            
+            // Step 2: Submit form via AJAX to save NewConnectionRequest
+            const response = await fetch('{% url "new_connection" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            // Parse response
+            let responseData;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                responseData = await response.json();
+            } else {
+                // Try to get HTML response for debugging
+                const text = await response.text();
+                console.error('Non-JSON response:', text.substring(0, 500));
+                throw new Error('Server returned non-JSON response');
+            }
+            
+            if (response.ok && responseData.success) {
+                // Step 3: Get the connection request ID from response
+                const connectionRequestId = responseData.connection_request_id;
+                const trackingId = responseData.tracking_id;
+                
+                // ✅ SUCCESS: Form saved, now redirect to payment
+                console.log('New connection request saved successfully:', trackingId);
+                
+                // Redirect to payment page with connection request ID
+                window.location.href = `/payments/process/?plan_id=${planId}&new_connection=true&connection_request_id=${connectionRequestId}`;
+                
+            } else {
+                // Show error message
+                const errorMessage = responseData.error || responseData.message || 'Failed to save connection request. Please try again.';
+                alert('Error: ' + errorMessage);
+                console.error('Server error:', responseData);
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while saving your request: ' + error.message);
+            this.innerHTML = originalText;
+            this.disabled = false;
+        }
+    });
+    
+    // Update plan summary when plan is selected
+    function updatePaymentSummary(planName, planPrice, planValidity, planData) {
+        // Update summary display
+        document.getElementById('summaryPlanName').textContent = planName;
+        document.getElementById('summaryPlanPrice').textContent = `₹${planPrice}`;
+        document.getElementById('summaryPlanValidity').textContent = planValidity;
+        document.getElementById('summaryPlanData').textContent = planData;
+        
+        // Calculate amounts
+        const planAmount = parseFloat(planPrice) || 0;
+        
+        // Update COD amount (plan + SIM)
+        document.getElementById('codAmountDisplay').textContent = `₹${planAmount + 49}`;
+        
+        // Update Online amount (plan only, SIM free)
+        document.getElementById('onlineAmountDisplay').textContent = `₹${planAmount}`;
+        
+        // Update total based on selected payment method
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (selectedPayment && selectedPayment.value === 'online') {
+            document.getElementById('totalAmount').textContent = `₹${planAmount}`;
+        } else {
+            document.getElementById('totalAmount').textContent = `₹${planAmount + 49}`;
+        }
+    }
+    
+    // Form validation
+    function validateStep(step) {
+        let isValid = true;
+        
+        if (step === 1) {
+            const operator = document.getElementById('newOperator').value;
+            const selectedPlan = document.getElementById('selectedPlanId').value;
+            
+            if (!operator) {
+                alert('Please select an operator');
+                isValid = false;
+            } else if (!selectedPlan) {
+                alert('Please select a plan');
+                isValid = false;
+            }
+        } else if (step === 2) {
+            // Validate personal information
+            const fullName = document.querySelector('[name="full_name"]').value.trim();
+            const email = document.querySelector('[name="email"]').value.trim();
+            const mobile = document.querySelector('[name="alternate_mobile"]').value.trim();
+            const dob = document.querySelector('[name="date_of_birth"]').value;
+            
+            if (!fullName) {
+                alert('Please enter your full name');
+                isValid = false;
+            } else if (!email) {
+                alert('Please enter your email address');
+                isValid = false;
+            } else if (!mobile || !/^[6-9][0-9]{9}$/.test(mobile)) {
+                alert('Please enter a valid 10-digit mobile number starting with 6-9');
+                isValid = false;
+            } else if (!dob) {
+                alert('Please select your date of birth');
+                isValid = false;
+            }
+        } else if (step === 3) {
+            // Validate address information
+            const address = document.querySelector('[name="address"]').value.trim();
+            const pincode = document.querySelector('[name="pincode"]').value.trim();
+            const city = document.querySelector('[name="city"]').value.trim();
+            const state = document.querySelector('[name="state"]').value.trim();
+            
+            if (!address) {
+                alert('Please enter your address');
+                isValid = false;
+            } else if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) {
+                alert('Please enter a valid 6-digit pincode');
+                isValid = false;
+            } else if (!city) {
+                alert('Please enter your city');
+                isValid = false;
+            } else if (!state) {
+                alert('Please enter your state');
+                isValid = false;
+            }
+        } else if (step === 4) {
+            // Validate delivery schedule
+            const deliveryDate = document.querySelector('[name="preferred_delivery_date"]').value;
+            const timeSlot = document.querySelector('[name="preferred_delivery_time"]').value;
+            const terms = document.getElementById('terms').checked;
+            
+            if (!deliveryDate) {
+                alert('Please select a preferred delivery date');
+                isValid = false;
+            } else if (!timeSlot) {
+                alert('Please select a preferred time slot');
+                isValid = false;
+            } else if (!terms) {
+                alert('Please agree to the Terms and Conditions');
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    // Validate all steps
+    function validateAllSteps() {
+        return validateStep(1) && validateStep(2) && validateStep(3) && validateStep(4);
+    }
+    
+    // ✅ UPDATED: Form submission for COD (normal submission)
+    document.getElementById('newConnectionForm').addEventListener('submit', function(e) {
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        
+        // If online payment selected, don't submit form normally
+        if (paymentMethod && paymentMethod.value === 'online') {
+            e.preventDefault();
+            return false;
+        }
+        
+        // For COD, validate all steps before submission
+        if (!validateAllSteps()) {
+            e.preventDefault();
+            alert('Please complete all required fields before submitting.');
+            return false;
+        }
+        
+        // Show loading for COD submission
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        submitBtn.disabled = true;
+        
+        // Allow normal form submission for COD
+        return true;
+    });
+});
+
+// Global function to select new connection plan
+function selectNewConnectionPlan(cardElement, planId) {
+    // Remove selected class from all cards
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked card
+    cardElement.classList.add('selected');
+    
+    // Get plan details from card
+    const planName = cardElement.querySelector('.card-title').textContent;
+    const planPrice = cardElement.querySelector('.text-primary').textContent.replace('₹', '');
+    const planDetails = cardElement.querySelectorAll('.plan-details p');
+    
+    // Get plan details for summary
+    let planValidity = '-';
+    let planData = '-';
+    
+    if (planDetails.length >= 1) {
+        planValidity = planDetails[0].textContent.replace('Validity: ', '');
+    }
+    if (planDetails.length >= 2) {
+        planData = planDetails[1].textContent.replace('Data: ', '');
+    }
+    
+    // Update selected plan display
+    document.getElementById('selectedPlanName').textContent = planName;
+    document.getElementById('selectedPlanPrice').textContent = `₹${planPrice}`;
+    document.getElementById('selectedPlanId').value = planId;
+    document.getElementById('selectedPlanValidity').textContent = planValidity;
+    document.getElementById('selectedPlanData').textContent = planData;
+    
+    // Update payment summary
+    updatePaymentSummary(planName, planPrice, planValidity, planData);
+    
+    // Show selected plan card
+    document.getElementById('selectedPlanCard').style.display = 'block';
+}
+
+// Update payment summary function (accessible globally)
+function updatePaymentSummary(planName, planPrice, planValidity, planData) {
+    // Update summary display
+    document.getElementById('summaryPlanName').textContent = planName;
+    document.getElementById('summaryPlanPrice').textContent = `₹${planPrice}`;
+    document.getElementById('summaryPlanValidity').textContent = planValidity;
+    document.getElementById('summaryPlanData').textContent = planData;
+    
+    // Calculate amounts
+    const planAmount = parseFloat(planPrice) || 0;
+    
+    // Update COD amount (plan + SIM)
+    document.getElementById('codAmountDisplay').textContent = `₹${planAmount + 49}`;
+    
+    // Update Online amount (plan only, SIM free)
+    document.getElementById('onlineAmountDisplay').textContent = `₹${planAmount}`;
+    
+    // Update total based on selected payment method
+    const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+    if (selectedPayment && selectedPayment.value === 'online') {
+        document.getElementById('totalAmount').textContent = `₹${planAmount}`;
+        document.getElementById('simCharge').innerHTML = '<del>₹49</del> <span class="text-success">FREE</span>';
+    } else {
+        document.getElementById('totalAmount').textContent = `₹${planAmount + 49}`;
+        document.getElementById('simCharge').textContent = '₹49';
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}

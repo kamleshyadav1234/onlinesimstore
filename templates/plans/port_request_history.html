@@ -1,0 +1,192 @@
+<!-- templates/plans/port_request_history.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Port Request History - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">Port Request History</h1>
+            <p class="text-muted">Track all your mobile number porting requests</p>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Total Requests</h6>
+                            <h3 class="fw-bold mt-2">{{ total_requests }}</h3>
+                        </div>
+                        <div class="icon-circle">
+                            <i class="fas fa-list fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Pending</h6>
+                            <h3 class="fw-bold mt-2">{{ pending_count }}</h3>
+                        </div>
+                        <div class="icon-circle">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Processing</h6>
+                            <h3 class="fw-bold mt-2">{{ processing_count }}</h3>
+                        </div>
+                        <div class="icon-circle">
+                            <i class="fas fa-cogs fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Completed</h6>
+                            <h3 class="fw-bold mt-2">{{ completed_count }}</h3>
+                        </div>
+                        <div class="icon-circle">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Requests Table -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Recent Port Requests</h5>
+        </div>
+        <div class="card-body">
+            {% if port_requests %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Tracking ID</th>
+                            <th>Mobile Number</th>
+                            <th>Current Operator</th>
+                            <th>New Operator</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in port_requests %}
+                        <tr>
+                            <td>
+                                <strong>{{ request.tracking_id }}</strong>
+                            </td>
+                            <td>{{ request.mobile_number }}</td>
+                            <td>{{ request.current_operator.name }}</td>
+                            <td>{{ request.new_operator.name }}</td>
+                            <td>
+                                <span class="status-badge status-{{ request.status }}" style="color: black !important; font-weight: bold !important;"></span>
+                                    {{ request.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ request.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <a href="{% url 'port_request_status' request.tracking_id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <div class="empty-state-icon mb-3">
+                    <i class="fas fa-exchange-alt fa-4x text-muted"></i>
+                </div>
+                <h4 class="text-muted">No port requests found</h4>
+                <p class="text-muted">You haven't submitted any port requests yet.</p>
+                <a href="{% url 'port_number' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Submit New Port Request
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-state-icon {
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
