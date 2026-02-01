@@ -120,7 +120,7 @@ class PortRequest(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='port_requests')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='port_requests')
     current_operator = models.ForeignKey(TelecomOperator, on_delete=models.PROTECT, 
                                        related_name='current_port_requests')
     new_operator = models.ForeignKey(TelecomOperator, on_delete=models.PROTECT, 
@@ -200,7 +200,7 @@ class NewConnectionRequest(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='new_connection_requests')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='new_connection_requests')
  
     operator = models.ForeignKey(TelecomOperator, on_delete=models.PROTECT)
     selected_plan = models.ForeignKey(Plan, on_delete=models.PROTECT,

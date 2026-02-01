@@ -1144,24 +1144,89 @@ class OperatorListView(ListView):
         return queryset
 
 
-class SearchView(TemplateView):
+
+class SearchView(ListView):
     template_name = 'telecom/search_results.html'
+    context_object_name = 'plans'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        filter_type = self.request.GET.get('type', 'all')
+        
+        if query:
+            # Base queryset
+            plans = Plan.objects.all()
+            operators = TelecomOperator.objects.all()
+            
+            # Apply search to plans
+            plans = plans.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(operator__name__icontains=query) |
+                Q(category__name__icontains=query)
+            ).distinct()
+            
+            # Apply search to operators
+            operators = operators.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(operator_type__icontains=query)
+            ).distinct()
+            
+            # Apply filters
+            if filter_type == 'plans':
+                return plans
+            elif filter_type == 'operators':
+                return operators
+            elif filter_type in ['mobile', 'broadband', 'dth']:
+                plans = plans.filter(operator__operator_type=filter_type)
+                operators = operators.filter(operator_type=filter_type)
+                return list(plans) + list(operators)
+            else:
+                # Return all results
+                return list(plans) + list(operators)
+        
+        return Plan.objects.none()
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        query = self.request.GET.get('q')
+        query = self.request.GET.get('q', '')
+        filter_type = self.request.GET.get('type', 'all')
+        
+        # Get separate querysets for counts
         if query:
-            context['operators'] = TelecomOperator.objects.filter(
-                Q(name__icontains=query) | 
-                Q(description__icontains=query),
-                is_active=True
-            )
-            context['plans'] = Plan.objects.filter(
+            plans = Plan.objects.filter(
                 Q(name__icontains=query) |
-                Q(description__icontains=query),
-                is_active=True
-            )
-            context['search_query'] = query
+                Q(description__icontains=query) |
+                Q(operator__name__icontains=query)
+            ).distinct()
+            
+            operators = TelecomOperator.objects.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query)
+            ).distinct()
+            
+            # Apply type filter
+            if filter_type in ['mobile', 'broadband', 'dth']:
+                plans = plans.filter(operator__operator_type=filter_type)
+                operators = operators.filter(operator_type=filter_type)
+            
+            context['plans'] = plans
+            context['operators'] = operators
+            context['plans_count'] = plans.count()
+            context['operators_count'] = operators.count()
+            context['total_results'] = plans.count() + operators.count()
+        else:
+            context['plans'] = Plan.objects.none()
+            context['operators'] = TelecomOperator.objects.none()
+            context['plans_count'] = 0
+            context['operators_count'] = 0
+            context['total_results'] = 0
+        
+        context['query'] = query
+        context['filter_type'] = filter_type
+        
         return context
 
 # class CoverageCheckView(TemplateView):

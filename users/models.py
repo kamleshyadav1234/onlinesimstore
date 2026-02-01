@@ -35,7 +35,7 @@ class CustomUser(AbstractUser):
         return f"{self.username} - {self.get_user_type_display()}"
 
 class UserPlanHistory(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)
     plan = models.ForeignKey('plans.Plan', on_delete=models.SET_NULL, null=True)
     purchased_on = models.DateTimeField(auto_now_add=True)
     activated_on = models.DateTimeField(null=True, blank=True)
@@ -70,7 +70,7 @@ class UserPlanHistory(models.Model):
         return self.days_remaining < 0
 
 class UserFavouritePlan(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)
     plan = models.ForeignKey('plans.Plan', on_delete=models.CASCADE)
     added_on = models.DateTimeField(auto_now_add=True)
     

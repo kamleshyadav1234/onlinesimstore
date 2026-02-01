@@ -40,17 +40,70 @@ class CustomLoginView(LoginView):
 class CustomLogoutView(LogoutView):
     next_page = reverse_lazy('home')
 
+
+
+
+
+
 class RegisterView(CreateView):
     form_class = CustomUserCreationForm
     template_name = 'users/register.html'
     success_url = reverse_lazy('dashboard')
     
     def form_valid(self, form):
-        response = super().form_valid(form)
-        user = form.save()
-        login(self.request, user)
-        messages.success(self.request, 'Registration successful! Welcome to TelecomPedia.')
-        return response
+        print("=" * 50)
+        print("DEBUG: Form is VALID")
+        print("DEBUG: Form cleaned data:", form.cleaned_data)
+        
+        try:
+            # Save the user
+            user = form.save()
+            print(f"DEBUG: User created - ID: {user.id}, Username: {user.username}")
+            print(f"DEBUG: User email: {user.email}, phone: {user.phone}")
+            
+            # Log the user in
+            login(self.request, user)
+            print("DEBUG: User logged in successfully")
+            
+            # Add success message
+            messages.success(self.request, 'Registration successful! Welcome to TelecomPedia.')
+            print("DEBUG: Success message added")
+            
+        except Exception as e:
+            print(f"DEBUG: ERROR during user creation: {str(e)}")
+            messages.error(self.request, f'Error creating account: {str(e)}')
+            return self.form_invalid(form)
+        
+        print("=" * 50)
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        print("=" * 50)
+        print("DEBUG: Form is INVALID")
+        print("DEBUG: Form errors:", form.errors)
+        print("DEBUG: Form non-field errors:", form.non_field_errors())
+        print("DEBUG: POST data:", self.request.POST)
+        
+        # Add error messages for each field
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f'{field}: {error}')
+        
+        print("=" * 50)
+        return super().form_invalid(form)
+    
+    def get(self, request, *args, **kwargs):
+        print("DEBUG: GET request to register page")
+        return super().get(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        print("DEBUG: POST request to register page")
+        print("DEBUG: Raw POST data:", dict(request.POST))
+        return super().post(request, *args, **kwargs)
+
+
+
+
 
 # Profile Views
 class ProfileView(LoginRequiredMixin, DetailView):

@@ -1,0 +1,541 @@
+<!-- templates/telecom/search_results.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search Results - TelecomPedia{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-container {
+        padding: 40px 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 70vh;
+    }
+    
+    .search-header {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .search-box {
+        position: relative;
+    }
+    
+    .search-input {
+        border-radius: 50px;
+        padding: 15px 30px;
+        border: 2px solid #0d6efd;
+        font-size: 1.1rem;
+    }
+    
+    .search-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-radius: 50px;
+        padding: 10px 25px;
+    }
+    
+    .result-card {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        margin-bottom: 25px;
+    }
+    
+    .result-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    }
+    
+    .plan-card {
+        background: white;
+        border-left: 5px solid #0d6efd;
+    }
+    
+    .operator-card {
+        background: white;
+        border-left: 5px solid #198754;
+    }
+    
+    .category-badge {
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 5px 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .price-tag {
+        background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+        color: #d63384;
+        border-radius: 10px;
+        padding: 8px 15px;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .operator-logo {
+        width: 70px;
+        height: 70px;
+        object-fit: contain;
+        border-radius: 10px;
+        background: white;
+        padding: 5px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        color: #6c757d;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+    
+    .filter-badge {
+        background: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+        border: 2px solid rgba(13, 110, 253, 0.3);
+        border-radius: 25px;
+        padding: 8px 20px;
+        margin: 5px;
+        display: inline-block;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-badge:hover {
+        background: rgba(13, 110, 253, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .filter-badge.active {
+        background: #0d6efd;
+        color: white;
+    }
+    
+    .result-count {
+        color: #6c757d;
+        font-size: 1.1rem;
+    }
+    
+    .highlight {
+        background-color: #fff3cd;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <div class="container">
+        <!-- Search Header -->
+        <div class="search-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold mb-3">Search Results</h1>
+                    <p class="lead text-muted">Found {{ total_results }} results for "<span class="text-primary">{{ query }}</span>"</p>
+                </div>
+                <div class="col-md-4">
+                    <form method="GET" action="{% url 'search' %}" class="search-box">
+                        <div class="input-group">
+                            <input type="search" 
+                                   name="q" 
+                                   class="form-control search-input" 
+                                   placeholder="Search plans, operators..." 
+                                   value="{{ query }}"
+                                   required>
+                            <button class="btn btn-primary search-btn" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            {% if plans or operators %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h6 class="mb-3">Filter by:</h6>
+                    <div class="d-flex flex-wrap">
+                        <a href="?q={{ query }}&type=all" class="filter-badge {% if filter_type == 'all' or not filter_type %}active{% endif %}">
+                            <i class="fas fa-layer-group me-1"></i> All
+                        </a>
+                        <a href="?q={{ query }}&type=plans" class="filter-badge {% if filter_type == 'plans' %}active{% endif %}">
+                            <i class="fas fa-sim-card me-1"></i> Plans ({{ plans_count }})
+                        </a>
+                        <a href="?q={{ query }}&type=operators" class="filter-badge {% if filter_type == 'operators' %}active{% endif %}">
+                            <i class="fas fa-tower-cell me-1"></i> Operators ({{ operators_count }})
+                        </a>
+                        <a href="?q={{ query }}&type=mobile" class="filter-badge {% if filter_type == 'mobile' %}active{% endif %}">
+                            <i class="fas fa-mobile-alt me-1"></i> Mobile
+                        </a>
+                        <a href="?q={{ query }}&type=broadband" class="filter-badge {% if filter_type == 'broadband' %}active{% endif %}">
+                            <i class="fas fa-wifi me-1"></i> Broadband
+                        </a>
+                        <a href="?q={{ query }}&type=dth" class="filter-badge {% if filter_type == 'dth' %}active{% endif %}">
+                            <i class="fas fa-satellite-dish me-1"></i> DTH
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Search Results -->
+        {% if plans or operators %}
+            <!-- Plans Section -->
+            {% if plans %}
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold">
+                            <i class="fas fa-sim-card me-2 text-primary"></i> Plans
+                            <span class="badge bg-primary ms-2">{{ plans|length }}</span>
+                        </h3>
+                        <a href="{% url 'plan_list' %}?q={{ query }}" class="btn btn-outline-primary">
+                            View All Plans <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="row">
+                        {% for plan in plans %}
+                        <div class="col-md-4 col-lg-3 mb-4">
+                            <div class="result-card plan-card h-100">
+                                <div class="card-body p-4">
+                                    <!-- Operator Info -->
+                                    <div class="d-flex align-items-center mb-3">
+                                        {% if plan.operator.logo %}
+                                        <img src="{{ plan.operator.logo.url }}" 
+                                             alt="{{ plan.operator.name }}" 
+                                             class="operator-logo me-3">
+                                        {% else %}
+                                        <div class="operator-logo bg-primary text-white d-flex align-items-center justify-content-center me-3">
+                                            <i class="fas fa-tower-cell fa-2x"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-0">{{ plan.operator.name }}</h6>
+                                            <small class="text-muted">{{ plan.operator.get_operator_type_display }}</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Plan Name -->
+                                    <h5 class="card-title mb-2">
+                                        {{ plan.name|safe }}
+                                    </h5>
+                                    
+                                    <!-- Plan Description -->
+                                    <p class="card-text text-muted small mb-3">
+                                        {{ plan.description|truncatechars:100|safe }}
+                                    </p>
+                                    
+                                    <!-- Plan Details -->
+                                    <div class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-muted">Price:</span>
+                                            <span class="price-tag">₹{{ plan.price }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted">Validity:</span>
+                                            <span>{{ plan.validity_days }} days</span>
+                                        </div>
+                                        {% if plan.data_allowance %}
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Data:</span>
+                                            <span class="fw-bold">{{ plan.data_allowance }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary btn-sm">
+                                            View Details
+                                        </a>
+                                        {% if user.is_authenticated %}
+                                        <button class="btn btn-primary btn-sm toggle-favourite" data-plan-id="{{ plan.id }}">
+                                            <i class="fas fa-heart me-1"></i> Save
+                                        </button>
+                                        {% else %}
+                                        <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-heart me-1"></i> Save
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Operators Section -->
+            {% if operators %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-bold">
+                            <i class="fas fa-tower-cell me-2 text-success"></i> Operators
+                            <span class="badge bg-success ms-2">{{ operators|length }}</span>
+                        </h3>
+                        <a href="{% url 'operator_list' %}?q={{ query }}" class="btn btn-outline-success">
+                            View All Operators <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="row">
+                        {% for operator in operators %}
+                        <div class="col-md-3 col-lg-2 mb-4">
+                            <div class="result-card operator-card text-center h-100">
+                                <div class="card-body p-4">
+                                    <!-- Operator Logo -->
+                                    {% if operator.logo %}
+                                    <img src="{{ operator.logo.url }}" 
+                                         alt="{{ operator.name }}" 
+                                         class="img-fluid mb-3" style="height: 60px; object-fit: contain;">
+                                    {% else %}
+                                    <div class="mb-3">
+                                        <i class="fas fa-tower-cell fa-3x text-success"></i>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Operator Name -->
+                                    <h6 class="card-title mb-1">
+                                        {{ operator.name|safe }}
+                                    </h6>
+                                    
+                                    <!-- Operator Type -->
+                                    <span class="category-badge d-inline-block mb-3">
+                                        {{ operator.get_operator_type_display }}
+                                    </span>
+                                    
+                                    <!-- Operator Details -->
+                                    <p class="card-text text-muted small mb-3">
+                                        {% if operator.description %}
+                                        {{ operator.description|truncatechars:80|safe }}
+                                        {% else %}
+                                        Leading telecom service provider
+                                        {% endif %}
+                                    </p>
+                                    
+                                    <!-- Plan Count -->
+                                    <div class="mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-sim-card me-1"></i>
+                                            {{ operator.plans.count }} plans
+                                        </small>
+                                    </div>
+                                    
+                                    <!-- Action Button -->
+                                    <a href="{% url 'operator_detail' operator.id %}" class="btn btn-outline-success btn-sm w-100">
+                                        View Operator
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+        {% else %}
+            <!-- No Results -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3 class="fw-bold mb-3">No Results Found</h3>
+                <p class="text-muted mb-4">
+                    We couldn't find any results for "<strong>{{ query }}</strong>".<br>
+                    Try different keywords or check the spelling.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'plan_list' %}" class="btn btn-primary">
+                        <i class="fas fa-sim-card me-2"></i> Browse All Plans
+                    </a>
+                    <a href="{% url 'operator_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-tower-cell me-2"></i> View Operators
+                    </a>
+                </div>
+                
+                <!-- Suggestions -->
+                <div class="mt-5">
+                    <h6 class="mb-3">Popular Searches:</h6>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <a href="?q=prepaid" class="btn btn-outline-secondary btn-sm">Prepaid Plans</a>
+                        <a href="?q=postpaid" class="btn btn-outline-secondary btn-sm">Postpaid Plans</a>
+                        <a href="?q=airtel" class="btn btn-outline-secondary btn-sm">Airtel</a>
+                        <a href="?q=jio" class="btn btn-outline-secondary btn-sm">Jio</a>
+                        <a href="?q=wifi" class="btn btn-outline-secondary btn-sm">WiFi Plans</a>
+                        <a href="?q=family" class="btn btn-outline-secondary btn-sm">Family Plans</a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Related Searches -->
+        {% if total_results > 0 %}
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">
+                            <i class="fas fa-lightbulb me-2 text-warning"></i> Related Searches
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="?q={{ query }}+prepaid" class="btn btn-outline-info btn-sm">
+                                {{ query }} prepaid
+                            </a>
+                            <a href="?q={{ query }}+postpaid" class="btn btn-outline-info btn-sm">
+                                {{ query }} postpaid
+                            </a>
+                            <a href="?q={{ query }}+plans" class="btn btn-outline-info btn-sm">
+                                {{ query }} plans
+                            </a>
+                            <a href="?q=cheap+{{ query }}" class="btn btn-outline-info btn-sm">
+                                cheap {{ query }}
+                            </a>
+                            <a href="?q={{ query }}+2024" class="btn btn-outline-info btn-sm">
+                                {{ query }} 2024
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight search terms
+        function highlightText(text, query) {
+            if (!query) return text;
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+        
+        // Apply highlighting to plan names and descriptions
+        const query = "{{ query|escapejs }}";
+        if (query) {
+            // Highlight plan names
+            document.querySelectorAll('.plan-card .card-title').forEach(title => {
+                const original = title.innerHTML;
+                title.innerHTML = highlightText(original, query);
+            });
+            
+            // Highlight plan descriptions
+            document.querySelectorAll('.plan-card .card-text').forEach(desc => {
+                const original = desc.innerHTML;
+                desc.innerHTML = highlightText(original, query);
+            });
+            
+            // Highlight operator names
+            document.querySelectorAll('.operator-card .card-title').forEach(title => {
+                const original = title.innerHTML;
+                title.innerHTML = highlightText(original, query);
+            });
+            
+            // Highlight operator descriptions
+            document.querySelectorAll('.operator-card .card-text').forEach(desc => {
+                const original = desc.innerHTML;
+                desc.innerHTML = highlightText(original, query);
+            });
+        }
+        
+        // Toggle favourite functionality
+        document.querySelectorAll('.toggle-favourite').forEach(button => {
+            button.addEventListener('click', function() {
+                const planId = this.getAttribute('data-plan-id');
+                const button = this;
+                
+                fetch("{% url 'toggle_favourite' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ plan_id: planId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'added') {
+                        button.innerHTML = '<i class="fas fa-heart me-1"></i> Saved';
+                        button.classList.remove('btn-primary');
+                        button.classList.add('btn-success');
+                    } else if (data.status === 'removed') {
+                        button.innerHTML = '<i class="fas fa-heart me-1"></i> Save';
+                        button.classList.remove('btn-success');
+                        button.classList.add('btn-primary');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+        
+        // Filter badges click effect
+        document.querySelectorAll('.filter-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                document.querySelectorAll('.filter-badge').forEach(b => {
+                    b.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+        
+        // Search input focus
+        const searchInput = document.querySelector('.search-input');
+        if (searchInput) {
+            searchInput.focus();
+            // Select all text for easy editing
+            searchInput.select();
+        }
+        
+        // Animate cards on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.result-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(card);
+        });
+    });
+</script>
+{% endblock %}

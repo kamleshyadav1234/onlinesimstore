@@ -1,0 +1,549 @@
+<!-- templates/users/register.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register - TelecomPedia{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding: 40px 0;
+    }
+    
+    .register-card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+    
+    .register-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+        border-radius: 0 !important;
+        padding: 2.5rem 2rem;
+    }
+    
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+        padding: 12px 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .input-group-text {
+        border-radius: 10px 0 0 10px;
+        background: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        border-right: none;
+    }
+    
+    .password-toggle {
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+    
+    .password-toggle:hover {
+        color: #0d6efd;
+    }
+    
+    .btn-register {
+        background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(13, 110, 253, 0.3);
+    }
+    
+    .divider {
+        position: relative;
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .divider::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 100%;
+        height: 1px;
+        background: #e0e0e0;
+    }
+    
+    .divider span {
+        background: white;
+        padding: 0 20px;
+        position: relative;
+        color: #6c757d;
+        font-size: 14px;
+    }
+    
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 24px;
+    }
+    
+    .delivery-executive {
+        background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+        color: #d63384;
+    }
+    
+    .safe-delivery {
+        background: linear-gradient(45deg, #a1c4fd 0%, #c2e9fb 100%);
+        color: #0d6efd;
+    }
+    
+    .choose-number {
+        background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%);
+        color: #fd7e14;
+    }
+    
+    .benefit-item {
+        text-align: center;
+        padding: 15px;
+        border-radius: 10px;
+        background: rgba(13, 110, 253, 0.05);
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .benefit-item:hover {
+        background: rgba(13, 110, 253, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-up {
+        animation: fadeInUp 0.5s ease-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="container">
+        <div class="row justify-content-center align-items-center">
+            <!-- Left Side - Benefits -->
+            <div class="col-lg-5 mb-5 mb-lg-0 animate-fade-up">
+                <div class="text-white">
+                    <h1 class="display-5 fw-bold mb-4">Join India's Fastest SIM Delivery Network</h1>
+                    <p class="lead mb-5">Create your account to experience 2-hour SIM delivery and exclusive telecom deals.</p>
+                    
+                    <div class="benefit-item text-white">
+                        <div class="feature-icon delivery-executive mb-3 mx-auto">
+                            <i class="fas fa-truck-fast"></i>
+                        </div>
+                        <h5 class="mb-2">2-Hour Delivery</h5>
+                        <p class="mb-0 small">Get SIM delivered at your doorstep in record time</p>
+                    </div>
+                    
+                    <div class="benefit-item text-white">
+                        <div class="feature-icon choose-number mb-3 mx-auto">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h5 class="mb-2">Choose Fancy Numbers</h5>
+                        <p class="mb-0 small">Select your preferred mobile number during delivery</p>
+                    </div>
+                    
+                    <div class="benefit-item text-white">
+                        <div class="feature-icon safe-delivery mb-3 mx-auto">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h5 class="mb-2">100% Secure</h5>
+                        <p class="mb-0 small">Safe delivery with verified professionals</p>
+                    </div>
+                    
+                    <div class="mt-5">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check-circle fa-2x text-success me-3"></i>
+                            <div>
+                                <h5 class="mb-1">Already have an account?</h5>
+                                <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4 mt-2">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Login Now
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side - Registration Form -->
+            <div class="col-lg-7 animate-fade-up" style="animation-delay: 0.2s;">
+                <div class="register-card">
+                    <div class="card-header text-center text-white">
+                        <div class="d-flex align-items-center justify-content-center mb-3">
+                            <div class="feature-icon safe-delivery me-3" style="width: 70px; height: 70px;">
+                                <i class="fas fa-user-plus fa-2x"></i>
+                            </div>
+                            <div class="text-start">
+                                <h2 class="mb-1">Create Account</h2>
+                                <p class="mb-0 opacity-75">Join TelecomPedia in 30 seconds</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-4 p-md-5">
+                        <form method="POST" id="registerForm">
+                            {% csrf_token %}
+                            
+                            <!-- Username and Email -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label fw-semibold">
+                                        <i class="fas fa-user-circle me-2 text-primary"></i>Username *
+                                    </label>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           placeholder="Enter unique username" required>
+                                    <div class="form-text">
+                                        <small>This will be your public identity</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label fw-semibold">
+                                        <i class="fas fa-envelope me-2 text-primary"></i>Email Address *
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           placeholder="you@example.com" required>
+                                    <div class="form-text">
+                                        <small>We'll send verification link</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Number -->
+                            <div class="mb-3">
+                                <label for="phone" class="form-label fw-semibold">
+                                    <i class="fas fa-mobile-alt me-2 text-primary"></i>Mobile Number *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+91</span>
+                                    <input type="tel" class="form-control" id="phone" name="phone" 
+                                           pattern="[0-9]{10}" placeholder="Enter 10-digit mobile number"
+                                           required>
+                                    <button type="button" class="btn btn-outline-primary" id="sendOtpBtn">
+                                        Send OTP
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    <small>For verification and delivery updates</small>
+                                </div>
+                            </div>
+
+                            <!-- OTP Verification (Initially Hidden) -->
+                            <div class="mb-3 d-none" id="otpSection">
+                                <label for="otp" class="form-label fw-semibold">
+                                    <i class="fas fa-key me-2 text-primary"></i>Enter OTP *
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="otp" name="otp" 
+                                           placeholder="6-digit OTP" maxlength="6" pattern="[0-9]{6}">
+                                    <button type="button" class="btn btn-outline-success" id="verifyOtpBtn">
+                                        Verify
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    <small>OTP sent to your mobile number</small>
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="password1" class="form-label fw-semibold">
+                                        <i class="fas fa-lock me-2 text-primary"></i>Password *
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="password1" 
+                                               name="password1" placeholder="Create strong password" required>
+                                        <span class="input-group-text password-toggle" id="togglePassword1">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                    </div>
+                                    <div class="password-strength mt-2">
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar" id="passwordStrengthBar" 
+                                                 style="width: 0%;"></div>
+                                        </div>
+                                        <small class="text-muted" id="passwordStrengthText">Password strength</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="password2" class="form-label fw-semibold">
+                                        <i class="fas fa-lock me-2 text-primary"></i>Confirm Password *
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="password2" 
+                                               name="password2" placeholder="Re-enter password" required>
+                                        <span class="input-group-text password-toggle" id="togglePassword2">
+                                            <i class="fas fa-eye"></i>
+                                        </span>
+                                    </div>
+                                    <div class="form-text">
+                                        <small>Must match the password above</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms and Conditions -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="terms" required>
+                                    <label class="form-check-label" for="terms">
+                                        I agree to TelecomPedia's 
+                                        <a href="#" class="text-primary">Terms of Service</a> and 
+                                        <a href="#" class="text-primary">Privacy Policy</a>
+                                    </label>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="newsletter">
+                                    <label class="form-check-label" for="newsletter">
+                                        Send me updates about new plans and offers via email
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid mb-4">
+                                <button type="submit" class="btn btn-register btn-lg" id="registerBtn">
+                                    <i class="fas fa-rocket me-2"></i>Create My Account
+                                </button>
+                            </div>
+
+                            <!-- Social Login (Optional) -->
+                            <div class="divider">
+                                <span>Or register with</span>
+                            </div>
+                            
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-outline-dark w-100">
+                                        <i class="fab fa-google me-2"></i>Google
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-outline-primary w-100">
+                                        <i class="fab fa-facebook me-2"></i>Facebook
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Already have account -->
+                        <div class="text-center mt-4">
+                            <p class="mb-2">Already have an account? 
+                                <a href="{% url 'login' %}" class="text-primary fw-semibold">Login here</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Password toggle functionality
+        const togglePassword1 = document.getElementById('togglePassword1');
+        const togglePassword2 = document.getElementById('togglePassword2');
+        const password1 = document.getElementById('password1');
+        const password2 = document.getElementById('password2');
+        
+        function togglePasswordVisibility(input, toggle) {
+            toggle.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        }
+        
+        togglePasswordVisibility(password1, togglePassword1);
+        togglePasswordVisibility(password2, togglePassword2);
+        
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const progressBar = document.getElementById('passwordStrengthBar');
+            const strengthText = document.getElementById('passwordStrengthText');
+            
+            if (password.length >= 8) strength += 25;
+            if (/[A-Z]/.test(password)) strength += 25;
+            if (/[0-9]/.test(password)) strength += 25;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+            
+            progressBar.style.width = `${strength}%`;
+            
+            if (strength < 50) {
+                progressBar.className = 'progress-bar bg-danger';
+                strengthText.textContent = 'Weak password';
+                strengthText.className = 'text-danger';
+            } else if (strength < 75) {
+                progressBar.className = 'progress-bar bg-warning';
+                strengthText.textContent = 'Fair password';
+                strengthText.className = 'text-warning';
+            } else {
+                progressBar.className = 'progress-bar bg-success';
+                strengthText.textContent = 'Strong password';
+                strengthText.className = 'text-success';
+            }
+        }
+        
+        password1.addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+            validatePasswords();
+        });
+        
+        // Password confirmation validation
+        function validatePasswords() {
+            if (password1.value !== password2.value && password2.value !== '') {
+                password2.setCustomValidity('Passwords do not match');
+                password2.classList.add('is-invalid');
+            } else {
+                password2.setCustomValidity('');
+                password2.classList.remove('is-invalid');
+            }
+        }
+        
+        password2.addEventListener('input', validatePasswords);
+        
+        // OTP Simulation (for demo)
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
+        const otpSection = document.getElementById('otpSection');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const phoneInput = document.getElementById('phone');
+        const otpInput = document.getElementById('otp');
+        
+        sendOtpBtn.addEventListener('click', function() {
+            const phone = phoneInput.value;
+            if (phone.length === 10 && /^[0-9]+$/.test(phone)) {
+                // Simulate OTP sending
+                const fakeOtp = '123456'; // For demo only
+                console.log(`OTP ${fakeOtp} sent to +91${phone}`);
+                
+                // Show OTP section
+                otpSection.classList.remove('d-none');
+                sendOtpBtn.disabled = true;
+                sendOtpBtn.textContent = 'OTP Sent';
+                sendOtpBtn.classList.remove('btn-outline-primary');
+                sendOtpBtn.classList.add('btn-outline-secondary');
+                
+                // Auto-fill OTP for demo (remove in production)
+                otpInput.value = fakeOtp;
+                
+                // Start countdown for resend
+                let countdown = 60;
+                const interval = setInterval(() => {
+                    sendOtpBtn.textContent = `Resend (${countdown}s)`;
+                    countdown--;
+                    if (countdown < 0) {
+                        clearInterval(interval);
+                        sendOtpBtn.disabled = false;
+                        sendOtpBtn.textContent = 'Resend OTP';
+                        sendOtpBtn.classList.remove('btn-outline-secondary');
+                        sendOtpBtn.classList.add('btn-outline-primary');
+                    }
+                }, 1000);
+            } else {
+                alert('Please enter a valid 10-digit mobile number');
+                phoneInput.focus();
+            }
+        });
+        
+        verifyOtpBtn.addEventListener('click', function() {
+            const otp = otpInput.value;
+            if (otp.length === 6 && /^[0-9]+$/.test(otp)) {
+                // Simulate OTP verification
+                verifyOtpBtn.disabled = true;
+                verifyOtpBtn.innerHTML = '<i class="fas fa-check me-1"></i>Verified';
+                verifyOtpBtn.classList.remove('btn-outline-success');
+                verifyOtpBtn.classList.add('btn-success');
+                otpInput.disabled = true;
+            } else {
+                alert('Please enter a valid 6-digit OTP');
+            }
+        });
+        
+        // Form submission enhancement
+        const registerForm = document.getElementById('registerForm');
+        const registerBtn = document.getElementById('registerBtn');
+        
+        registerForm.addEventListener('submit', function(e) {
+            // Remove OTP validation for now (demo only)
+            // In production, add proper OTP validation here
+            
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+        });
+        
+        // Input animations
+        const inputs = document.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                if (this.value === '') {
+                    this.parentElement.classList.remove('focused');
+                }
+            });
+        });
+        
+        // Phone number formatting
+        phoneInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 10) {
+                this.value = this.value.slice(0, 10);
+            }
+        });
+    });
+</script>
+{% endblock %}
