@@ -1,4 +1,4 @@
-<!-- home.html - Fixed version without mul filter -->
+<!-- home.html - Updated with Font Awesome icons -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -6,391 +6,139 @@
 
 {% block extra_css %}
 <style>
-    /* Custom Styles with Gradients */
-    :root {
-        --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        --gradient-success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        --gradient-dark: linear-gradient(135deg, #141e30 0%, #243b55 100%);
-    }
-    
+    /* Custom Styles */
     .hero-gradient {
-        background: var(--gradient-primary);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .hero-gradient::before {
-        content: '';
-        position: absolute;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        animation: pulse-radial 20s infinite linear;
-    }
-    
-    @keyframes pulse-radial {
-        0% { transform: translate(-50%, -50%) scale(1); }
-        50% { transform: translate(-50%, -50%) scale(1.2); }
-        100% { transform: translate(-50%, -50%) scale(1); }
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
     
     .service-card {
-        border-radius: 20px;
-        border: none;
-        background: linear-gradient(145deg, #ffffff, #f0f0f0);
-        box-shadow: 20px 20px 60px #d9d9d9, -20px -20px 60px #ffffff;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border-radius: 15px;
+        border: 1px solid rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
         overflow: hidden;
-        position: relative;
-    }
-    
-    .service-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 5px;
-        background: var(--gradient-primary);
-        transform: scaleX(0);
-        transition: transform 0.4s ease;
-    }
-    
-    .service-card:hover::before {
-        transform: scaleX(1);
+        background: white;
     }
     
     .service-card:hover {
-        transform: translateY(-15px) scale(1.02);
-        box-shadow: 30px 30px 90px #d9d9d9, -30px -30px 90px #ffffff;
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+        border-color: #667eea;
     }
     
     .stats-box {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 20px;
-        padding: 25px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 20px;
         transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
     }
     
-    .stats-box::after {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-        transform: rotate(45deg);
-        transition: all 0.6s ease;
-    }
-    
-    .stats-box:hover::after {
-        transform: rotate(45deg) translate(20%, 20%);
+    .stats-box:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     }
     
     .testimonial-card {
-        background: var(--gradient-dark);
-        border-radius: 25px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 20px;
         border: none;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .testimonial-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, transparent 60%, rgba(255,255,255,0.05) 100%);
     }
     
     .city-badge {
-        background: rgba(102, 126, 234, 0.15);
+        background: rgba(102, 126, 234, 0.1);
         border: 2px solid rgba(102, 126, 234, 0.3);
-        border-radius: 30px;
-        padding: 10px 25px;
-        margin: 8px;
+        border-radius: 25px;
+        padding: 8px 20px;
+        margin: 5px;
         display: inline-block;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
     }
     
     .city-badge:hover {
-        background: rgba(102, 126, 234, 0.3);
-        transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        background: rgba(102, 126, 234, 0.2);
+        transform: translateY(-2px);
     }
     
     .plan-card {
-        border-radius: 20px;
+        border-radius: 15px;
         overflow: hidden;
-        background: white;
-        border: none;
-        box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-    }
-    
-    .plan-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 8px;
-        background: var(--gradient-primary);
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
     }
     
     .plan-card:hover {
-        transform: translateY(-12px);
-        box-shadow: 0 30px 60px rgba(50, 50, 93, 0.25), 0 15px 35px rgba(0, 0, 0, 0.2);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
     
     .pulse {
         animation: pulse 2s infinite;
-        position: relative;
     }
     
     @keyframes pulse {
-        0% { 
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
-        }
-        70% { 
-            transform: scale(1.05);
-            box-shadow: 0 0 0 15px rgba(255, 193, 7, 0);
-        }
-        100% { 
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
-        }
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
     }
     
     .feature-icon {
-        width: 90px;
-        height: 90px;
-        border-radius: 25px;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 25px;
-        font-size: 2.5rem;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-    }
-    
-    .feature-icon:hover {
-        transform: rotate(15deg) scale(1.1);
+        margin: 0 auto 20px;
+        font-size: 2rem;
     }
     
     .delivery-executive {
-        background: var(--gradient-secondary);
-        color: white;
+        background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+        color: #d63384;
     }
     
     .safe-delivery {
-        background: var(--gradient-success);
-        color: white;
+        background: linear-gradient(45deg, #a1c4fd 0%, #c2e9fb 100%);
+        color: #0d6efd;
     }
     
     .choose-number {
-        background: var(--gradient-warning);
-        color: white;
+        background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%);
+        color: #fd7e14;
     }
     
     .operator-logo {
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
         object-fit: contain;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+        transition: transform 0.3s ease;
     }
     
     .operator-logo:hover {
-        transform: scale(1.2) rotate(5deg);
-        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+        transform: scale(1.1);
     }
     
     .media-logo {
-        height: 45px;
+        height: 40px;
         object-fit: contain;
         filter: grayscale(100%);
-        opacity: 0.8;
-        transition: all 0.4s ease;
+        opacity: 0.7;
+        transition: all 0.3s ease;
     }
     
     .media-logo:hover {
         filter: grayscale(0%);
         opacity: 1;
-        transform: scale(1.1);
-    }
-    
-    /* SVG Backgrounds */
-    .svg-background {
-        position: absolute;
-        pointer-events: none;
-        opacity: 0.1;
-        z-index: 0;
-    }
-    
-    .tower-svg {
-        width: 300px;
-        height: 300px;
-        bottom: 0;
-        right: 0;
-        transform: translate(30%, 30%);
-    }
-    
-    .signal-svg {
-        width: 200px;
-        height: 200px;
-        top: 20%;
-        left: 5%;
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    .network-svg {
-        width: 250px;
-        height: 250px;
-        bottom: 20%;
-        left: 10%;
-        animation: rotate 30s linear infinite;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0) rotate(0deg); }
-        50% { transform: translateY(-20px) rotate(5deg); }
-    }
-    
-    @keyframes rotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    /* Mobile Responsive Improvements */
-    @media (max-width: 768px) {
-        .hero-gradient {
-            text-align: center;
-            padding-top: 60px;
-            padding-bottom: 60px;
-        }
-        
-        .display-4 {
-            font-size: 2.5rem;
-        }
-        
-        .feature-icon {
-            width: 70px;
-            height: 70px;
-            font-size: 2rem;
-        }
-        
-        .service-card, .plan-card {
-            margin-bottom: 20px;
-        }
-        
-        .stats-box {
-            margin-bottom: 15px;
-            padding: 20px;
-        }
-        
-        .city-badge {
-            padding: 8px 15px;
-            margin: 5px;
-            font-size: 0.9rem;
-        }
-        
-        .btn-lg {
-            padding: 12px 24px;
-            font-size: 1rem;
-        }
-        
-        .svg-background {
-            display: none;
-        }
-        
-        .row.g-4 {
-            margin: 0 -8px;
-        }
-        
-        .row.g-4 > [class*="col-"] {
-            padding: 0 8px;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        .display-4 {
-            font-size: 2rem;
-        }
-        
-        .lead {
-            font-size: 1rem;
-        }
-        
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            font-size: 1.5rem;
-        }
-        
-        .d-flex.flex-wrap.gap-2 {
-            justify-content: center;
-        }
-        
-        .badge.fs-6 {
-            font-size: 0.8rem !important;
-            padding: 6px 12px;
-        }
-        
-        .testimonial-card {
-            margin-bottom: 15px;
-        }
-    }
-    
-    /* Touch Device Optimizations */
-    @media (hover: none) and (pointer: coarse) {
-        .service-card:hover,
-        .stats-box:hover,
-        .city-badge:hover,
-        .plan-card:hover {
-            transform: none;
-        }
-        
-        .service-card:active,
-        .stats-box:active {
-            transform: scale(0.98);
-        }
-        
-        .btn-lg {
-            padding: 15px 30px;
-        }
     }
     
     /* Animation classes */
     .fade-in {
-        animation: fadeIn 1s ease-in forwards;
-        opacity: 0;
+        animation: fadeIn 1s ease-in;
     }
     
     .slide-up {
-        animation: slideUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        opacity: 0;
-        transform: translateY(30px);
+        animation: slideUp 0.8s ease-out;
     }
-    
-    .stagger-delay-1 { animation-delay: 0.1s; }
-    .stagger-delay-2 { animation-delay: 0.2s; }
-    .stagger-delay-3 { animation-delay: 0.3s; }
-    .stagger-delay-4 { animation-delay: 0.4s; }
     
     @keyframes fadeIn {
         from { opacity: 0; }
@@ -398,244 +146,100 @@
     }
     
     @keyframes slideUp {
-        from { 
-            opacity: 0;
-            transform: translateY(40px);
-        }
-        to { 
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* Grid Lines Background */
-    .grid-bg {
-        background-image: 
-            linear-gradient(rgba(102, 126, 234, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(102, 126, 234, 0.05) 1px, transparent 1px);
-        background-size: 50px 50px;
-        position: relative;
-    }
-    
-    /* Floating Elements */
-    .float-element {
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    /* Gradient Text */
-    .gradient-text {
-        background: var(--gradient-primary);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Hero Section - Enhanced with SVG Backgrounds -->
+<!-- Hero Section - Enhanced -->
 <section class="hero-gradient text-white py-5 position-relative overflow-hidden fade-in">
-    <!-- SVG Backgrounds - Fixed version -->
-    <svg class="svg-background tower-svg" viewBox="0 0 100 100">
-        <path d="M50,10 L60,30 L70,30 L65,50 L75,50 L70,70 L60,70 L55,90 L45,90 L40,70 L30,70 L25,50 L35,50 L30,30 L40,30 Z" 
-              fill="white" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
-    </svg>
-    
-    <svg class="svg-background signal-svg" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="white" stroke-width="0.5" stroke-dasharray="5,5"/>
-        <circle cx="50" cy="50" r="25" fill="none" stroke="white" stroke-width="0.5" stroke-dasharray="3,3"/>
-        <circle cx="50" cy="50" r="10" fill="rgba(255,255,255,0.2)"/>
-    </svg>
-    
     <div class="container position-relative z-1">
         <div class="row align-items-center">
             <div class="col-lg-6 slide-up">
-                <div class="d-flex align-items-center mb-4">
+                <div class="d-flex align-items-center mb-3">
                     <div class="feature-icon delivery-executive me-3">
-                        <i class="fas fa-bolt"></i>
+                        <i class="fas fa-badge-check"></i>
                     </div>
-                    <span class="badge bg-white text-primary fs-6 px-4 py-2 rounded-pill shadow-sm">
-                        <i class="fas fa-trophy me-2"></i>India's #1 SIM Delivery
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                        <i class="fas fa-bolt me-2"></i>India's First & Fastest Online SIM Delivery
                     </span>
                 </div>
                 
-                <h1 class="display-4 fw-bold mb-4 gradient-text">SIM Delivered in <span class="text-warning">2 Hours!</span></h1>
-                <p class="lead mb-4">Experience lightning-fast SIM delivery with our professional service. Choose, upload, and receive - all from your doorstep.</p>
+                <h1 class="display-4 fw-bold mb-4">Get Your <span class="text-warning">SIM Delivered</span> in 2 Hours!</h1>
+                <p class="lead mb-4">Experience India's fastest online SIM delivery service. Choose your number, upload documents online, and get doorstep delivery within hours.</p>
                 
-                <div class="row mb-4 g-3">
+                <div class="row mb-4">
                     <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="feature-icon delivery-executive mb-3 mx-auto">
-                                <i class="fas fa-truck-fast"></i>
+                        <div class="text-center mb-3">
+                            <div class="feature-icon delivery-executive mb-2">
+                                <i class="fas fa-truck"></i>
                             </div>
-                            <h6 class="mb-1">2-Hour Delivery</h6>
-                            <small class="text-white-50">Super fast service</small>
+                            <h6 class="mb-0">Professional Delivery</h6>
+                            <small class="text-white-50">Trained executives</small>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="feature-icon choose-number mb-3 mx-auto">
-                                <i class="fas fa-star"></i>
+                        <div class="text-center mb-3">
+                            <div class="feature-icon choose-number mb-2">
+                                <i class="fas fa-phone-alt"></i>
                             </div>
-                            <h6 class="mb-1">Fancy Numbers</h6>
-                            <small class="text-white-50">Choose at delivery</small>
+                            <h6 class="mb-0">Choose Number</h6>
+                            <small class="text-white-50">At delivery time</small>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-center">
-                            <div class="feature-icon safe-delivery mb-3 mx-auto">
-                                <i class="fas fa-shield-check"></i>
+                        <div class="text-center mb-3">
+                            <div class="feature-icon safe-delivery mb-2">
+                                <i class="fas fa-shield-alt"></i>
                             </div>
-                            <h6 class="mb-1">100% Secure</h6>
-                            <small class="text-white-50">Verified process</small>
+                            <h6 class="mb-0">Safe Delivery</h6>
+                            <small class="text-white-50">Minimum contact</small>
                         </div>
                     </div>
                 </div>
                 
-                <div class="d-flex flex-wrap gap-3 mb-4">
-                    <span class="badge bg-white bg-opacity-20 backdrop-blur border-0 rounded-pill px-4 py-2">
-                        <i class="fas fa-city me-2"></i>30+ Cities
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <span class="badge bg-light text-primary fs-6 px-3 py-2">
+                        <i class="fas fa-truck me-1"></i> Delivery in 30+ Cities
                     </span>
-                    <span class="badge bg-white bg-opacity-20 backdrop-blur border-0 rounded-pill px-4 py-2">
-                        <i class="fas fa-users me-2"></i>50K+ Customers
+                    <span class="badge bg-light text-primary fs-6 px-3 py-2">
+                        <i class="fas fa-shield-alt me-1"></i> 100% Safe & Secure
                     </span>
-                    <span class="badge bg-white bg-opacity-20 backdrop-blur border-0 rounded-pill px-4 py-2">
-                        <i class="fas fa-clock me-2"></i>24/7 Support
+                    <span class="badge bg-light text-primary fs-6 px-3 py-2">
+                        <i class="fas fa-phone me-1"></i> Choose Fancy Numbers
                     </span>
                 </div>
                 
-                <div class="d-flex flex-column flex-sm-row gap-3">
-                    <a href="{% url 'new_connection' %}" class="btn btn-light btn-lg px-5 py-3 rounded-pill pulse shadow-lg">
-                        <i class="fas fa-bolt me-2"></i>Order SIM Now
+                <div class="d-flex gap-3">
+                    <a href="{% url 'new_connection' %}" class="btn btn-light btn-lg px-4 pulse">
+                        <i class="fas fa-bolt me-2"></i>Order New SIM
                     </a>
-                    <a href="#how-it-works" class="btn btn-outline-light btn-lg px-5 py-3 rounded-pill">
-                        <i class="fas fa-play-circle me-2"></i>See How it Works
+                    <a href="{% url 'sim_replacement_create' %}" class="btn btn-outline-light btn-lg px-4">
+                        <i class="fas fa-redo me-2"></i>Replace SIM
                     </a>
                 </div>
             </div>
             
             <div class="col-lg-6 mt-5 mt-lg-0">
-                <div class="position-relative text-center slide-up stagger-delay-1">
+                <div class="position-relative text-center slide-up" style="animation-delay: 0.2s;">
                     <div class="position-relative d-inline-block">
-                        <!-- Animated Mobile Device -->
-                        <div class="position-relative" style="width: 300px; margin: 0 auto;">
-                            <div class="feature-icon delivery-executive mb-4" 
-                                 style="width: 200px; height: 200px; margin: 0 auto; border-radius: 40px;">
-                                <i class="fas fa-mobile-alt fa-4x float-element"></i>
-                            </div>
-                            
-                            <!-- Floating SIM Cards -->
-                            <div class="position-absolute" style="top: 20%; left: 10%;">
-                                <div class="bg-white rounded-3 p-2 shadow-lg" style="width: 60px; height: 40px; transform: rotate(-15deg);">
-                                    <div class="bg-primary rounded-2 w-100 h-100"></div>
+                        <div class="feature-icon delivery-executive mb-3" style="width: 200px; height: 200px; margin: 0 auto;">
+                            <i class="fas fa-shipping-fast fa-5x"></i>
+                        </div>
+                        <div class="position-absolute bottom-0 start-50 translate-middle-x bg-white rounded-3 p-3 shadow-lg" style="width: 250px;">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-star text-warning me-2"></i>
+                                <i class="fas fa-star text-warning me-2"></i>
+                                <i class="fas fa-star text-warning me-2"></i>
+                                <i class="fas fa-star text-warning me-2"></i>
+                                <i class="fas fa-star text-warning me-2"></i>
+                                <div class="ms-2">
+                                    <h6 class="mb-0 text-dark">4.9/5</h6>
+                                    <small class="text-muted">Customer Rating</small>
                                 </div>
                             </div>
-                            <div class="position-absolute" style="top: 40%; right: 15%;">
-                                <div class="bg-white rounded-3 p-2 shadow-lg" style="width: 60px; height: 40px; transform: rotate(15deg);">
-                                    <div class="bg-success rounded-2 w-100 h-100"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Rating Badge -->
-                        <div class="position-absolute bottom-0 start-50 translate-middle-x bg-white rounded-4 p-3 shadow-lg" 
-                             style="width: 280px;">
-                            <div class="d-flex align-items-center justify-content-around">
-                                <div class="text-center">
-                                    <h3 class="mb-0 text-primary fw-bold">4.9</h3>
-                                    <div class="text-warning">
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                        <i class="fas fa-star"></i>
-                                    </div>
-                                    <small class="text-muted">Google Reviews</small>
-                                </div>
-                                <div class="vr"></div>
-                                <div class="text-center">
-                                    <h3 class="mb-0 text-success fw-bold">98%</h3>
-                                    <div class="text-success">
-                                        <i class="fas fa-thumbs-up fa-2x"></i>
-                                    </div>
-                                    <small class="text-muted">Satisfaction</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- How It Works -->
-<section id="how-it-works" class="py-5 grid-bg fade-in">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold mb-3 gradient-text">How It Works</h2>
-            <p class="lead text-muted">Get your SIM in 3 simple steps</p>
-        </div>
-        
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="service-card text-center p-5 h-100 slide-up stagger-delay-1">
-                    <div class="position-relative mb-4">
-                        <div class="feature-icon delivery-executive">
-                            <i class="fas fa-mobile-alt"></i>
-                        </div>
-                        <span class="position-absolute top-0 start-50 translate-middle badge bg-primary rounded-circle" 
-                              style="width: 40px; height: 40px; font-size: 1.2rem; transform: translate(-50%, -50%);">
-                            1
-                        </span>
-                    </div>
-                    <h4 class="fw-bold mb-3">Choose & Order</h4>
-                    <p class="text-muted mb-4">Select your preferred operator and plan, or choose a fancy number</p>
-                    <div class="mt-auto">
-                        <svg width="100" height="20" class="mx-auto">
-                            <line x1="0" y1="10" x2="100" y2="10" stroke="var(--gradient-primary)" stroke-width="2" stroke-dasharray="5,5"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="service-card text-center p-5 h-100 slide-up stagger-delay-2">
-                    <div class="position-relative mb-4">
-                        <div class="feature-icon safe-delivery">
-                            <i class="fas fa-upload"></i>
-                        </div>
-                        <span class="position-absolute top-0 start-50 translate-middle badge bg-primary rounded-circle" 
-                              style="width: 40px; height: 40px; font-size: 1.2rem; transform: translate(-50%, -50%);">
-                            2
-                        </span>
-                    </div>
-                    <h4 class="fw-bold mb-3">Upload Documents</h4>
-                    <p class="text-muted mb-4">Securely upload required documents through our verified platform</p>
-                    <div class="mt-auto">
-                        <svg width="100" height="20" class="mx-auto">
-                            <line x1="0" y1="10" x2="100" y2="10" stroke="var(--gradient-primary)" stroke-width="2" stroke-dasharray="5,5"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="service-card text-center p-5 h-100 slide-up stagger-delay-3">
-                    <div class="position-relative mb-4">
-                        <div class="feature-icon choose-number">
-                            <i class="fas fa-truck"></i>
-                        </div>
-                        <span class="position-absolute top-0 start-50 translate-middle badge bg-primary rounded-circle" 
-                              style="width: 40px; height: 40px; font-size: 1.2rem; transform: translate(-50%, -50%);">
-                            3
-                        </span>
-                    </div>
-                    <h4 class="fw-bold mb-3">Doorstep Delivery</h4>
-                    <p class="text-muted mb-4">Get SIM delivered by trained executive within 2-4 hours</p>
-                    <div class="mt-auto">
-                        <div class="feature-icon safe-delivery mt-3" style="width: 60px; height: 60px;">
-                            <i class="fas fa-check"></i>
                         </div>
                     </div>
                 </div>
@@ -645,89 +249,48 @@
 </section>
 
 <!-- Cities Section -->
-<section class="py-5 bg-light position-relative fade-in">
-    <!-- Simplified SVG Network Diagram -->
-    <svg class="svg-background network-svg" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="2" fill="#667eea"/>
-        <!-- Simplified pattern without complex calculations -->
-        <circle cx="20" cy="20" r="1" fill="#764ba2"/>
-        <circle cx="80" cy="20" r="1" fill="#764ba2"/>
-        <circle cx="20" cy="80" r="1" fill="#667eea"/>
-        <circle cx="80" cy="80" r="1" fill="#667eea"/>
-        <circle cx="50" cy="20" r="1" fill="#764ba2"/>
-        <circle cx="20" cy="50" r="1" fill="#667eea"/>
-        
-        <!-- Connection lines -->
-        <line x1="20" y1="20" x2="80" y2="20" stroke="rgba(102, 126, 234, 0.3)" stroke-width="0.3"/>
-        <line x1="20" y1="80" x2="80" y2="80" stroke="rgba(102, 126, 234, 0.3)" stroke-width="0.3"/>
-        <line x1="20" y1="20" x2="20" y2="80" stroke="rgba(102, 126, 234, 0.3)" stroke-width="0.3"/>
-        <line x1="80" y1="20" x2="80" y2="80" stroke="rgba(102, 126, 234, 0.3)" stroke-width="0.3"/>
-        <line x1="20" y1="20" x2="80" y2="80" stroke="rgba(102, 126, 234, 0.3)" stroke-width="0.3"/>
-        <line x1="80" y1="20" x2="20" y2="80" stroke="rgba(102, 126, 234, 0.3)" stroke-width="0.3"/>
-    </svg>
-    
-    <div class="container position-relative z-1">
+<section class="py-5 bg-light fade-in">
+    <div class="container">
         <div class="text-center mb-5">
-            <h2 class="fw-bold mb-3">Serving Across India</h2>
-            <p class="lead text-muted">Available in 30+ major cities and expanding</p>
+            <h2 class="fw-bold mb-3">Serving Proudly In</h2>
+            <p class="lead text-muted">Available in over 30 cities across India</p>
         </div>
         
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
+        <div class="row justify-content-center text-center">
+            <div class="col-md-10">
                 <div class="d-flex flex-wrap justify-content-center">
-                    {% for city in cities|slice:":18" %}
-                    <button class="city-badge border-0 shadow-sm">
-                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>
-                        <span class="fw-medium">{{ city }}</span>
-                    </button>
+                    {% for city in cities|slice:":15" %}
+                    <span class="city-badge">
+                        <i class="fas fa-map-marker-alt me-1 text-primary"></i> {{ city }}
+                    </span>
                     {% endfor %}
                 </div>
-                
-                {% if cities|length > 18 %}
-                <div class="text-center mt-4">
-                    <button class="btn btn-outline-primary rounded-pill px-4" 
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#moreCities">
-                        + {{ cities|length|add:"-18" }} More Cities
-                    </button>
-                    
-                    <div class="collapse mt-3" id="moreCities">
-                        <div class="d-flex flex-wrap justify-content-center">
-                            {% for city in cities|slice:"18:" %}
-                            <span class="city-badge">
-                                {{ city }}
-                            </span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
         
-        <!-- Stats with Gradient Backgrounds -->
+        <!-- Quick Stats -->
         <div class="row mt-5 g-4">
             <div class="col-md-3 col-6">
-                <div class="stats-box text-center" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))">
-                    <div class="feature-icon delivery-executive mb-3 mx-auto" style="width: 70px; height: 70px;">
-                        <i class="fas fa-sim-card fa-2x"></i>
+                <div class="stats-box text-center">
+                    <div class="feature-icon delivery-executive mb-3 mx-auto" style="width: 60px; height: 60px;">
+                        <i class="fas fa-box-open fa-2x"></i>
                     </div>
-                    <h3 class="fw-bold text-primary mb-2">50K+</h3>
+                    <h3 class="fw-bold text-primary mb-2">50,000+</h3>
                     <p class="text-muted mb-0">SIMs Delivered</p>
                 </div>
             </div>
             <div class="col-md-3 col-6">
-                <div class="stats-box text-center" style="background: linear-gradient(135deg, rgba(67, 233, 123, 0.1), rgba(56, 249, 215, 0.1))">
-                    <div class="feature-icon safe-delivery mb-3 mx-auto" style="width: 70px; height: 70px;">
+                <div class="stats-box text-center">
+                    <div class="feature-icon safe-delivery mb-3 mx-auto" style="width: 60px; height: 60px;">
                         <i class="fas fa-clock fa-2x"></i>
                     </div>
-                    <h3 class="fw-bold text-success mb-2">2-4 Hrs</h3>
-                    <p class="text-muted mb-0">Avg. Delivery</p>
+                    <h3 class="fw-bold text-success mb-2">2-4 Hours</h3>
+                    <p class="text-muted mb-0">Average Delivery Time</p>
                 </div>
             </div>
             <div class="col-md-3 col-6">
-                <div class="stats-box text-center" style="background: linear-gradient(135deg, rgba(250, 112, 154, 0.1), rgba(254, 225, 64, 0.1))">
-                    <div class="feature-icon choose-number mb-3 mx-auto" style="width: 70px; height: 70px;">
+                <div class="stats-box text-center">
+                    <div class="feature-icon choose-number mb-3 mx-auto" style="width: 60px; height: 60px;">
                         <i class="fas fa-star fa-2x"></i>
                     </div>
                     <h3 class="fw-bold text-warning mb-2">4.9★</h3>
@@ -735,8 +298,8 @@
                 </div>
             </div>
             <div class="col-md-3 col-6">
-                <div class="stats-box text-center" style="background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1))">
-                    <div class="feature-icon delivery-executive mb-3 mx-auto" style="width: 70px; height: 70px;">
+                <div class="stats-box text-center">
+                    <div class="feature-icon delivery-executive mb-3 mx-auto" style="width: 60px; height: 60px;">
                         <i class="fas fa-city fa-2x"></i>
                     </div>
                     <h3 class="fw-bold text-info mb-2">30+</h3>
@@ -748,28 +311,24 @@
 </section>
 
 <!-- Services Section -->
-<section class="py-5 position-relative grid-bg fade-in">
+<section class="py-5 fade-in">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="fw-bold mb-3 gradient-text">Our Services</h2>
-            <p class="lead text-muted">Comprehensive telecom solutions for everyone</p>
+            <h2 class="fw-bold mb-3">Our Services</h2>
+            <p class="lead text-muted">One-stop solution for all your telecom needs</p>
         </div>
         
         <div class="row g-4">
             {% for conn_type in connection_types %}
             <div class="col-lg-3 col-md-6">
-                <div class="service-card text-center p-4 h-100 slide-up" 
-                     style="animation-delay: {{ forloop.counter0|add:"0.1" }}s;">
-                    <div class="icon-xl rounded-3 mb-4 mx-auto p-3" 
-                         style="background: linear-gradient(135deg, var(--bs-{{ conn_type.color }}), rgba(var(--bs-{{ conn_type.color }}-rgb), 0.5))">
-                        <i class="{{ conn_type.icon }} fa-2x text-white"></i>
+                <div class="service-card text-center p-4 h-100 slide-up" style="animation-delay: {{ forloop.counter0|add:"0.1" }}s;">
+                    <div class="icon-xl bg-{{ conn_type.color }} bg-opacity-10 text-{{ conn_type.color }} rounded-circle mb-3 mx-auto">
+                        <i class="{{ conn_type.icon }} fa-2x"></i>
                     </div>
-                    <h5 class="card-title fw-bold mb-3">{{ conn_type.name }}</h5>
-                    <p class="card-text text-muted mb-4">{{ conn_type.description }}</p>
-                    <a href="{{ conn_type.url }}" 
-                       class="btn btn-primary btn-lg rounded-pill px-4 w-100"
-                       style="background: linear-gradient(135deg, var(--bs-{{ conn_type.color }}), rgba(var(--bs-{{ conn_type.color }}-rgb), 0.8))">
-                        Get Started <i class="fas fa-arrow-right ms-2"></i>
+                    <h5 class="card-title mb-2">{{ conn_type.name }}</h5>
+                    <p class="card-text small text-muted mb-3">{{ conn_type.description }}</p>
+                    <a href="{{ conn_type.url }}" class="btn btn-{{ conn_type.color }} btn-sm mt-2">
+                        Get Started <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
             </div>
@@ -778,78 +337,78 @@
     </div>
 </section>
 
-<!-- Testimonials Section -->
-<section class="py-5" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+<!-- Testimonials -->
+<section class="py-5 bg-light fade-in">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="fw-bold mb-3 gradient-text">Customer Love ❤️</h2>
-            <p class="lead text-muted">What our customers say about us</p>
+            <h2 class="fw-bold mb-3">Getting <span class="text-success">🟩</span> by Customers</h2>
+            <p class="lead text-muted">Is the favorite part of our work!</p>
         </div>
         
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="testimonial-card p-4 h-100 slide-up">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="feature-icon delivery-executive me-3" style="width: 60px; height: 60px;">
-                            <i class="fas fa-user-circle fa-2x"></i>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon delivery-executive me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-user fa-lg"></i>
                         </div>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1 text-white">Sanjay Singh</h6>
-                            <small class="text-white-50">New Delhi</small>
-                        </div>
-                        <div class="text-warning">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
+                        <div>
+                            <h6 class="mb-1">Sanjay Singh</h6>
+                            <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i> New Delhi</small>
                         </div>
                     </div>
-                    <p class="text-white mb-0">"I ordered in the morning and got my SIM in afternoon. Polite delivery executive and seamless process."</p>
+                    <div class="mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                    </div>
+                    <p class="mb-0">"I ordered in the morning and got my SIM in afternoon. Polite delivery executive and seamless process."</p>
                 </div>
             </div>
             
             <div class="col-md-4">
-                <div class="testimonial-card p-4 h-100 slide-up stagger-delay-1">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="feature-icon safe-delivery me-3" style="width: 60px; height: 60px;">
-                            <i class="fas fa-user-circle fa-2x"></i>
+                <div class="testimonial-card p-4 h-100 slide-up" style="animation-delay: 0.1s;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon safe-delivery me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-user fa-lg"></i>
                         </div>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1 text-white">Priya Sharma</h6>
-                            <small class="text-white-50">Mumbai</small>
-                        </div>
-                        <div class="text-warning">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
+                        <div>
+                            <h6 class="mb-1">Priya Sharma</h6>
+                            <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i> Mumbai</small>
                         </div>
                     </div>
-                    <p class="text-white mb-0">"SIM replacement was done within 3 hours! The executive helped me choose a fancy number. Excellent service!"</p>
+                    <div class="mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                    </div>
+                    <p class="mb-0">"SIM replacement was done within 3 hours! The executive helped me choose a fancy number. Excellent service!"</p>
                 </div>
             </div>
             
             <div class="col-md-4">
-                <div class="testimonial-card p-4 h-100 slide-up stagger-delay-2">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="feature-icon choose-number me-3" style="width: 60px; height: 60px;">
-                            <i class="fas fa-user-circle fa-2x"></i>
+                <div class="testimonial-card p-4 h-100 slide-up" style="animation-delay: 0.2s;">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon choose-number me-3" style="width: 50px; height: 50px;">
+                            <i class="fas fa-user fa-lg"></i>
                         </div>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1 text-white">Rahul Verma</h6>
-                            <small class="text-white-50">Bangalore</small>
-                        </div>
-                        <div class="text-warning">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
+                        <div>
+                            <h6 class="mb-1">Rahul Verma</h6>
+                            <small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i> Bangalore</small>
                         </div>
                     </div>
-                    <p class="text-white mb-0">"Porting my number was hassle-free. Got same-day delivery with my chosen fancy number. Highly recommended!"</p>
+                    <div class="mb-3">
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                        <i class="fas fa-star text-warning"></i>
+                    </div>
+                    <p class="mb-0">"Porting my number was hassle-free. Got same-day delivery with my chosen fancy number. Highly recommended!"</p>
                 </div>
             </div>
         </div>
@@ -859,87 +418,62 @@
 <!-- Popular Plans Section -->
 <section class="py-5 fade-in">
     <div class="container">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-5">
-            <div class="mb-3 mb-md-0">
-                <h2 class="fw-bold mb-2 gradient-text">Most Popular Plans</h2>
-                <p class="text-muted">Top-rated plans from leading operators</p>
-            </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <a href="{% url 'plan_list' %}?sort_by=popularity" 
-                   class="btn btn-outline-primary btn-lg rounded-pill px-4">
-                    View All Plans <i class="fas fa-arrow-right ms-2"></i>
-                </a>
+                <h2 class="fw-bold mb-2">Popular Plans</h2>
+                <p class="text-muted">Best selling plans from top operators</p>
             </div>
+            <a href="{% url 'plan_list' %}?sort_by=popularity" class="btn btn-outline-primary">View All Plans</a>
         </div>
         
         <div class="row g-4">
             {% for plan in popular_plans %}
-            <div class="col-lg-3 col-md-6">
+            <div class="col-md-3">
                 <div class="plan-card h-100 slide-up" style="animation-delay: {{ forloop.counter0|add:"0.1" }}s;">
                     {% if plan.is_popular %}
-                    <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">
-                            <i class="fas fa-crown me-2"></i> Most Popular
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-warning text-dark px-3 py-2">
+                            <i class="fas fa-fire me-1"></i> Popular
                         </span>
                     </div>
                     {% endif %}
                     
                     <div class="card-body p-4">
-                        <div class="d-flex align-items-center mb-4">
-                            <img src="{{ plan.operator.logo.url }}" 
-                                 alt="{{ plan.operator.name }}" 
-                                 class="operator-logo rounded-3 me-3">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ plan.operator.logo.url }}" alt="{{ plan.operator.name }}" 
+                                 class="operator-logo rounded-circle me-3">
                             <div>
-                                <h6 class="mb-0 fw-bold">{{ plan.operator.name }}</h6>
+                                <h6 class="mb-0">{{ plan.operator.name }}</h6>
                                 <small class="text-muted">{{ plan.category.name }}</small>
                             </div>
                         </div>
                         
-                        <h5 class="card-title fw-bold mb-3">{{ plan.name }}</h5>
+                        <h5 class="card-title mb-3">{{ plan.name }}</h5>
                         <p class="card-text text-muted small mb-4">{{ plan.description|truncatechars:80 }}</p>
                         
                         <div class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted">Price</span>
-                                <h4 class="text-primary fw-bold mb-0">₹{{ plan.price }}</h4>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Price:</span>
+                                <h4 class="text-primary mb-0">₹{{ plan.price }}</h4>
                             </div>
-                            
-                            <div class="bg-light rounded-3 p-3 mb-3">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Validity</span>
-                                    <span class="fw-medium">{{ plan.get_full_validity }}</span>
-                                </div>
-                                {% if plan.data_allowance %}
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Data</span>
-                                    <span class="fw-bold text-primary">{{ plan.data_allowance }}</span>
-                                </div>
-                                {% endif %}
-                                {% if plan.calls %}
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted">Calls</span>
-                                    <span class="fw-medium">{{ plan.calls }}</span>
-                                </div>
-                                {% endif %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Validity:</span>
+                                <span>{{ plan.get_full_validity }}</span>
                             </div>
+                            {% if plan.data_allowance %}
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Data:</span>
+                                <span class="fw-bold">{{ plan.data_allowance }}</span>
+                            </div>
+                            {% endif %}
                         </div>
                         
                         <div class="d-grid gap-2">
-                            <a href="{% url 'plan_detail' plan.id %}" 
-                               class="btn btn-outline-primary btn-lg rounded-pill">
-                                View Details
-                            </a>
+                            <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary">View Details</a>
                             {% if user.is_authenticated %}
-                            <a href="#" 
-                               class="btn btn-primary btn-lg rounded-pill"
-                               style="background: linear-gradient(135deg, var(--gradient-primary))">
-                                <i class="fas fa-shopping-cart me-2"></i>Buy Now
-                            </a>
+                            <a href="#" class="btn btn-primary">Buy Now</a>
                             {% else %}
-                            <a href="{% url 'login' %}?next={{ request.path }}" 
-                               class="btn btn-primary btn-lg rounded-pill">
-                                Login to Purchase
-                            </a>
+                            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary">Login to Buy</a>
                             {% endif %}
                         </div>
                     </div>
@@ -951,21 +485,17 @@
 </section>
 
 <!-- Featured Operators -->
-<section class="py-5 bg-light position-relative fade-in">
+<section class="py-5 bg-light fade-in">
     <div class="container">
-        <h2 class="fw-bold text-center mb-5 gradient-text">Trusted by Major Operators</h2>
+        <h2 class="fw-bold text-center mb-5">Authorized Partner Of</h2>
         
         <div class="row justify-content-center g-4">
             {% for operator in featured_operators %}
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <div class="text-center p-4 bg-white rounded-4 shadow-sm h-100 slide-up"
-                     style="animation-delay: {{ forloop.counter0|add:"0.1" }}s;">
-                    <div class="mb-3">
-                        <img src="{{ operator.logo.url }}" 
-                             alt="{{ operator.name }}" 
-                             class="operator-logo mb-3">
-                    </div>
-                    <h6 class="fw-bold mb-1">{{ operator.name }}</h6>
+            <div class="col-md-2 col-4">
+                <div class="text-center p-3 bg-white rounded-3 shadow-sm h-100 slide-up" style="animation-delay: {{ forloop.counter0|add:"0.1" }}s;">
+                    <img src="{{ operator.logo.url }}" alt="{{ operator.name }}" 
+                         class="img-fluid mb-3" style="height: 50px; object-fit: contain;">
+                    <h6 class="mb-0">{{ operator.name }}</h6>
                     <small class="text-muted">{{ operator.get_operator_type_display }}</small>
                 </div>
             </div>
@@ -974,37 +504,72 @@
     </div>
 </section>
 
-<!-- CTA Section -->
-<section class="py-5 text-white" style="background: linear-gradient(135deg, #141e30 0%, #243b55 100%);">
+<!-- Media Presence -->
+<section class="py-5 fade-in">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h3 class="fw-bold mb-3">As Featured In</h3>
+        </div>
+        
+        <div class="row justify-content-center align-items-center">
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="media-logo-placeholder bg-light rounded-3 p-3 mx-auto" style="width: 120px; height: 60px;">
+                    <i class="fas fa-newspaper fa-2x text-muted"></i>
+                </div>
+                <p class="small mt-2 mb-0">Media 1</p>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="media-logo-placeholder bg-light rounded-3 p-3 mx-auto" style="width: 120px; height: 60px;">
+                    <i class="fas fa-tv fa-2x text-muted"></i>
+                </div>
+                <p class="small mt-2 mb-0">Media 2</p>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="media-logo-placeholder bg-light rounded-3 p-3 mx-auto" style="width: 120px; height: 60px;">
+                    <i class="fas fa-broadcast-tower fa-2x text-muted"></i>
+                </div>
+                <p class="small mt-2 mb-0">Media 3</p>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="media-logo-placeholder bg-light rounded-3 p-3 mx-auto" style="width: 120px; height: 60px;">
+                    <i class="fas fa-podcast fa-2x text-muted"></i>
+                </div>
+                <p class="small mt-2 mb-0">Media 4</p>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="media-logo-placeholder bg-light rounded-3 p-3 mx-auto" style="width: 120px; height: 60px;">
+                    <i class="fas fa-satellite-dish fa-2x text-muted"></i>
+                </div>
+                <p class="small mt-2 mb-0">Media 5</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Guarantee Section -->
+<section class="py-5 bg-primary text-white fade-in">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h2 class="display-5 fw-bold mb-3">Ready for Lightning-Fast SIM Delivery?</h2>
-                <p class="lead mb-4">Join 50,000+ satisfied customers who trust us for their telecom needs.</p>
-                
-                <div class="d-flex flex-wrap gap-3 mb-4">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-3">100% Refund Before Activation</h2>
+                <p class="lead mb-4">Not satisfied? Get full refund before SIM activation. Cancel anytime with zero questions asked.</p>
+                <div class="d-flex flex-wrap gap-3">
                     <div class="d-flex align-items-center">
-                        <div class="feature-icon safe-delivery me-3" style="width: 50px; height: 50px;">
-                            <i class="fas fa-check"></i>
-                        </div>
+                        <i class="fas fa-check-circle fa-2x text-success me-3"></i>
                         <div>
-                            <h6 class="mb-0">No Hidden Charges</h6>
-                            <small>Transparent pricing</small>
+                            <h6 class="mb-0">No Questions Asked</h6>
+                            <small>Easy cancellation</small>
                         </div>
                     </div>
                     <div class="d-flex align-items-center">
-                        <div class="feature-icon choose-number me-3" style="width: 50px; height: 50px;">
-                            <i class="fas fa-lock"></i>
-                        </div>
+                        <i class="fas fa-shield-alt fa-2x text-warning me-3"></i>
                         <div>
-                            <h6 class="mb-0">Secure Process</h6>
-                            <small>Encrypted documents</small>
+                            <h6 class="mb-0">Safe & Secure</h6>
+                            <small>Verified delivery executives</small>
                         </div>
                     </div>
                     <div class="d-flex align-items-center">
-                        <div class="feature-icon delivery-executive me-3" style="width: 50px; height: 50px;">
-                            <i class="fas fa-headset"></i>
-                        </div>
+                        <i class="fas fa-headset fa-2x text-info me-3"></i>
                         <div>
                             <h6 class="mb-0">24/7 Support</h6>
                             <small>Always available</small>
@@ -1012,60 +577,9 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="col-lg-4 text-center">
-                <div class="p-4 bg-white bg-opacity-10 backdrop-blur rounded-4">
-                    <div class="feature-icon safe-delivery mb-3 mx-auto" style="width: 100px; height: 100px;">
-                        <i class="fas fa-gift fa-3x"></i>
-                    </div>
-                    <h4 class="fw-bold mb-3">Free Delivery</h4>
-                    <p class="mb-4">No delivery charges on all orders</p>
-                    <a href="{% url 'new_connection' %}" 
-                       class="btn btn-light btn-lg rounded-pill px-5 w-100">
-                        <i class="fas fa-bolt me-2"></i>Order Now
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Guarantee Section -->
-<section class="py-5 fade-in">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <div class="p-5 rounded-4" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                    <div class="feature-icon safe-delivery mb-4" style="width: 120px; height: 120px; background: white; color: #43e97b;">
-                        <i class="fas fa-hand-holding-usd fa-3x"></i>
-                    </div>
-                    <h2 class="fw-bold text-white mb-3">100% Money Back Guarantee</h2>
-                    <p class="text-white mb-4">Not satisfied? Get full refund before SIM activation. No questions asked.</p>
-                    <ul class="list-unstyled text-white">
-                        <li class="mb-2"><i class="fas fa-check-circle me-2"></i> Full refund before activation</li>
-                        <li class="mb-2"><i class="fas fa-check-circle me-2"></i> No cancellation charges</li>
-                        <li><i class="fas fa-check-circle me-2"></i> Instant refund to original source</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="p-5 rounded-4" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                    <div class="feature-icon choose-number mb-4" style="width: 120px; height: 120px; background: white; color: #fa709a;">
-                        <i class="fas fa-award fa-3x"></i>
-                    </div>
-                    <h2 class="fw-bold text-white mb-3">Award Winning Service</h2>
-                    <p class="text-white mb-4">Recognized as India's fastest SIM delivery service by leading platforms.</p>
-                    <div class="row">
-                        <div class="col-6">
-                            <h3 class="fw-bold text-white">4.9★</h3>
-                            <small class="text-white">Google Rating</small>
-                        </div>
-                        <div class="col-6">
-                            <h3 class="fw-bold text-white">98%</h3>
-                            <small class="text-white">Customer Satisfaction</small>
-                        </div>
-                    </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon safe-delivery" style="width: 150px; height: 150px; margin: 0 auto;">
+                    <i class="fas fa-hand-holding-usd fa-4x"></i>
                 </div>
             </div>
         </div>
@@ -1075,12 +589,14 @@
 
 {% block extra_js %}
 <script>
-    // Enhanced animations and interactions
+    // Smooth animations on scroll
     document.addEventListener('DOMContentLoaded', function() {
-        // Intersection Observer for scroll animations
+        // Add scroll animations
+        const animatedElements = document.querySelectorAll('.fade-in, .slide-up');
+        
         const observerOptions = {
             threshold: 0.1,
-            rootMargin: '0px 0px -100px 0px'
+            rootMargin: '0px 0px -50px 0px'
         };
         
         const observer = new IntersectionObserver((entries) => {
@@ -1092,158 +608,35 @@
             });
         }, observerOptions);
         
-        // Observe all animated elements
-        document.querySelectorAll('.fade-in, .slide-up').forEach(element => {
+        animatedElements.forEach(element => {
             element.style.opacity = '0';
-            element.style.transform = 'translateY(30px)';
-            element.style.transition = 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            element.style.transform = 'translateY(20px)';
+            element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
             observer.observe(element);
         });
         
-        // Mobile menu toggle
-        const mobileMenuBtn = document.querySelector('.navbar-toggler');
-        if (mobileMenuBtn) {
-            mobileMenuBtn.addEventListener('click', function() {
-                document.body.classList.toggle('menu-open');
+        // Add hover effects to service cards
+        const serviceCards = document.querySelectorAll('.service-card');
+        serviceCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px)';
             });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Add pulse animation to CTA button
+        const ctaButton = document.querySelector('.pulse');
+        if (ctaButton) {
+            setInterval(() => {
+                ctaButton.classList.toggle('pulse');
+                setTimeout(() => {
+                    ctaButton.classList.toggle('pulse');
+                }, 100);
+            }, 2000);
         }
-        
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                if (targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-        
-        // Parallax effect for SVG backgrounds
-        window.addEventListener('scroll', function() {
-            const scrolled = window.pageYOffset;
-            const svgs = document.querySelectorAll('.svg-background');
-            
-            svgs.forEach(svg => {
-                const rate = scrolled * 0.5;
-                svg.style.transform = `translateY(${rate}px)`;
-            });
-        });
-        
-        // Add ripple effect to buttons
-        document.querySelectorAll('.btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                const ripple = document.createElement('span');
-                const rect = this.getBoundingClientRect();
-                const size = Math.max(rect.width, rect.height);
-                const x = e.clientX - rect.left - size / 2;
-                const y = e.clientY - rect.top - size / 2;
-                
-                ripple.style.cssText = `
-                    position: absolute;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.7);
-                    transform: scale(0);
-                    animation: ripple-animation 0.6s linear;
-                    width: ${size}px;
-                    height: ${size}px;
-                    top: ${y}px;
-                    left: ${x}px;
-                    pointer-events: none;
-                `;
-                
-                this.appendChild(ripple);
-                setTimeout(() => ripple.remove(), 600);
-            });
-        });
-        
-        // Add CSS for ripple animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes ripple-animation {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-            
-            .btn {
-                position: relative;
-                overflow: hidden;
-            }
-            
-            /* Mobile optimizations */
-            @media (max-width: 768px) {
-                .navbar-collapse {
-                    background: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin-top: 10px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-                }
-            }
-            
-            /* Network SVG Animation */
-            @keyframes pulse-node {
-                0%, 100% { r: 1; }
-                50% { r: 1.5; }
-            }
-            
-            .network-svg circle {
-                animation: pulse-node 2s infinite;
-            }
-            
-            .network-svg circle:nth-child(2) { animation-delay: 0.2s; }
-            .network-svg circle:nth-child(3) { animation-delay: 0.4s; }
-            .network-svg circle:nth-child(4) { animation-delay: 0.6s; }
-            .network-svg circle:nth-child(5) { animation-delay: 0.8s; }
-        `;
-        document.head.appendChild(style);
-        
-        // Touch feedback for mobile
-        document.querySelectorAll('.city-badge, .service-card, .plan-card').forEach(element => {
-            element.addEventListener('touchstart', function() {
-                this.style.transform = 'scale(0.95)';
-            });
-            
-            element.addEventListener('touchend', function() {
-                this.style.transform = '';
-            });
-        });
-        
-        // Lazy loading for images
-        if ('IntersectionObserver' in window) {
-            const imageObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        img.src = img.dataset.src;
-                        imageObserver.unobserve(img);
-                    }
-                });
-            });
-            
-            document.querySelectorAll('img[data-src]').forEach(img => {
-                imageObserver.observe(img);
-            });
-        }
-        
-        // Add loading animation for better UX
-        window.addEventListener('load', function() {
-            document.body.classList.add('loaded');
-        });
-        
-        // Add pulse animation to network nodes
-        const networkCircles = document.querySelectorAll('.network-svg circle');
-        networkCircles.forEach((circle, index) => {
-            circle.style.animationDelay = `${index * 0.5}s`;
-        });
     });
 </script>
 {% endblock %}
