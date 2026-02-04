@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    CustomLoginView, CustomLogoutView, RegisterView,
+    CustomLoginView, CustomLogoutView, MobileLoginView, OTPResendView, OTPVerificationView, PhoneVerificationView, RegisterView,
     ProfileView, ProfileUpdateView, DashboardView,
     PlanHistoryView, FavouritePlansView, delete_account, update_profile_picture
 )
@@ -12,6 +12,12 @@ urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', CustomLogoutView.as_view(), name='logout'),
     path('register/', RegisterView.as_view(), name='register'),
+
+    
+    path('mobile-login/', MobileLoginView.as_view(), name='mobile_login'),
+    path('verify-otp/', OTPVerificationView.as_view(), name='verify_otp'),
+    path('resend-otp/', OTPResendView.as_view(), name='resend_otp'),
+    path('verify-phone/', PhoneVerificationView.as_view(), name='verify_phone_otp'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('profile/update/', ProfileUpdateView.as_view(), name='profile_update'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),

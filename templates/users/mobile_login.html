@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mobile Login - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">Login with Mobile</h2>
+                    
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" id="mobileLoginForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_phone" class="form-label">Mobile Number</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.phone.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">Enter your registered mobile number</div>
+                        </div>
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">Send OTP</button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <hr class="my-4">
+                            <p class="text-muted">
+                                <a href="{% url 'login' %}" class="text-decoration-none">
+                                    <i class="fas fa-user me-1"></i>Login with username
+                                </a>
+                            </p>
+                            <p class="text-muted">Don't have an account? 
+                                <a href="{% url 'register' %}" class="text-decoration-none fw-bold">Sign up</a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-format phone number
+    const phoneInput = document.getElementById('id_phone');
+    
+    phoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        e.target.value = value;
+    });
+    
+    phoneInput.focus();
+});
+</script>
+{% endblock %}

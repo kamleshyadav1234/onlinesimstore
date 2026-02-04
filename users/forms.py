@@ -134,3 +134,104 @@ class ProfilePictureForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['profile_picture'].widget.attrs.update({'class': 'form-control-file'})
+
+
+
+
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from .models import CustomUser, OTP
+
+class MobileLoginForm(forms.Form):
+    phone = forms.CharField(
+        max_length=15,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your mobile number',
+            'pattern': '[0-9]{10,15}',
+            'title': 'Enter 10-15 digit mobile number'
+        })
+    )
+    
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        # Remove any non-digit characters
+        phone = ''.join(filter(str.isdigit, phone))
+        
+        if len(phone) < 10:
+            raise forms.ValidationError('Phone number must be at least 10 digits.')
+        
+        # Check if user exists with this phone
+        if not CustomUser.objects.filter(phone=phone).exists():
+            raise forms.ValidationError('No account found with this mobile number.')
+        
+        return phone
+
+class OTPVerificationForm(forms.Form):
+    otp = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control otp-input',
+            'placeholder': 'Enter 6-digit OTP',
+            'maxlength': '6',
+            'pattern': '[0-9]{6}'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.phone = kwargs.pop('phone', None)
+        self.otp_type = kwargs.pop('otp_type', 'login')
+        super().__init__(*args, **kwargs)
+    
+    def clean_otp(self):
+        otp = self.cleaned_data.get('otp')
+        
+        if not self.phone:
+            raise forms.ValidationError('Phone number is required.')
+        
+        # Verify OTP
+        is_valid, otp_obj = OTP.verify_otp(self.phone, otp, self.otp_type)
+        
+        if not is_valid:
+            raise forms.ValidationError('Invalid or expired OTP. Please try again.')
+        
+        return otp
+
+class PhoneRegistrationForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['phone', 'email']
+    
+    phone = forms.CharField(
+        max_length=15,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your mobile number',
+            'pattern': '[0-9]{10,15}'
+        })
+    )
+    
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your email (optional)'
+        })
+    )
+    
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        phone = ''.join(filter(str.isdigit, phone))
+        
+        if len(phone) < 10:
+            raise forms.ValidationError('Phone number must be at least 10 digits.')
+        
+        if CustomUser.objects.filter(phone=phone).exists():
+            raise forms.ValidationError('An account with this mobile number already exists.')
+        
+        return phone
+
+class OTPResendForm(forms.Form):
+    phone = forms.CharField(widget=forms.HiddenInput())
+    otp_type = forms.CharField(widget=forms.HiddenInput())

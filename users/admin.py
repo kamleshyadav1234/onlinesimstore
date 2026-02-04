@@ -4,3 +4,4 @@ from .models import *
 admin.site.register(UserPlanHistory)
 admin.site.register(CustomUser)
 admin.site.register(UserFavouritePlan)
+admin.site.register(OTP)
