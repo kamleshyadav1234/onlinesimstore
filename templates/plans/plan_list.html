@@ -183,123 +183,91 @@
 
     <!-- Plans Grid -->
     {% if plans %}
-    <div class="row g-4">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
         {% for plan in plans %}
-        <div class="col-xl-4 col-lg-6">
-            <div class="card border-0 shadow-sm h-100 plan-card {% if plan.is_popular %}border-warning border-2{% endif %} {% if plan.is_featured %}border-primary border-2{% endif %}">
+        <div class="col">
+            <div class="card border-0 shadow-sm h-100 plan-card-small {% if plan.is_popular %}border-warning border-2{% endif %} {% if plan.is_featured %}border-primary border-2{% endif %}">
                 <!-- Plan Badges -->
-                <div class="position-absolute top-0 end-0 m-3">
+                <div class="position-absolute top-0 end-0 m-2">
                     {% if plan.is_popular %}
                     <span class="badge bg-warning text-dark">
-                        <i class="fas fa-fire me-1"></i> Popular
+                        <i class="fas fa-fire me-1"></i>
                     </span>
                     {% endif %}
                     {% if plan.is_featured %}
                     <span class="badge bg-primary">
-                        <i class="fas fa-star me-1"></i> Featured
+                        <i class="fas fa-star me-1"></i>
                     </span>
                     {% endif %}
                 </div>
 
-                <div class="card-body p-4">
-                    <!-- Operator Header -->
+                <div class="card-body p-3 d-flex flex-column">
+                    <!-- Operator Header - Compact -->
                     <div class="d-flex align-items-center mb-3">
                         {% if plan.operator.logo %}
                         <img src="{{ plan.operator.logo.url }}" 
                              alt="{{ plan.operator.name }}"
-                             class="rounded-circle me-3"
-                             style="width: 50px; height: 50px; object-fit: contain;">
+                             class="rounded-circle me-2"
+                             style="width: 40px; height: 40px; object-fit: contain;">
                         {% else %}
-                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3"
-                             style="width: 50px; height: 50px;">
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2"
+                             style="width: 40px; height: 40px;">
                             <i class="fas fa-tower-cell text-primary"></i>
                         </div>
                         {% endif %}
-                        <div>
-                            <h5 class="fw-bold mb-0">{{ plan.operator.name }}</h5>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-0 text-truncate">{{ plan.operator.name }}</h6>
                             <small class="text-muted">
-                                <i class="fas fa-{{ plan.operator.operator_type|default:'mobile-alt' }} me-1"></i>
-                                {{ plan.operator.get_operator_type_display }}
+                                {{ plan.operator.get_operator_type_display|truncatechars:15 }}
                             </small>
                         </div>
                     </div>
 
                     <!-- Plan Name & Category -->
-                    <h4 class="fw-bold text-primary mb-2">{{ plan.name }}</h4>
-                    {% if plan.category %}
-                    <div class="mb-3">
-                        <span class="badge bg-light text-dark">
-                            <i class="{{ plan.category.icon|default:'fas fa-tag' }} me-1"></i>
-                            {{ plan.category.name }}
-                        </span>
-                    </div>
-                    {% endif %}
-
-                    <!-- Plan Description -->
-                    <p class="text-muted mb-4">{{ plan.description|truncatechars:120 }}</p>
-
-                    <!-- Plan Features -->
-                    <div class="mb-4">
+                    <h6 class="fw-bold text-primary mb-2 text-truncate">{{ plan.name }}</h6>
+                    
+                    <!-- Plan Features - Compact -->
+                    <div class="mb-3 flex-grow-1">
                         {% if plan.data_allowance %}
                         <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-database text-primary me-3" style="width: 20px;"></i>
-                            <span>{{ plan.data_allowance }}</span>
+                            <i class="fas fa-database text-primary me-2 fa-sm" style="width: 16px;"></i>
+                            <small class="text-truncate">{{ plan.data_allowance|truncatechars:20 }}</small>
                         </div>
                         {% endif %}
                         
                         {% if plan.voice_calls %}
                         <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-phone text-primary me-3" style="width: 20px;"></i>
-                            <span>{{ plan.voice_calls }}</span>
-                        </div>
-                        {% endif %}
-                        
-                        {% if plan.sms %}
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="fas fa-sms text-primary me-3" style="width: 20px;"></i>
-                            <span>{{ plan.sms }}</span>
+                            <i class="fas fa-phone text-primary me-2 fa-sm" style="width: 16px;"></i>
+                            <small class="text-truncate">{{ plan.voice_calls|truncatechars:20 }}</small>
                         </div>
                         {% endif %}
                         
                         <div class="d-flex align-items-center">
-                            <i class="fas fa-calendar text-primary me-3" style="width: 20px;"></i>
-                            <span>Validity: {{ plan.get_full_validity }}</span>
+                            <i class="fas fa-calendar text-primary me-2 fa-sm" style="width: 16px;"></i>
+                            <small>Validity: {{ plan.get_full_validity|truncatechars:15 }}</small>
                         </div>
                     </div>
 
-                    <!-- OTT Benefits -->
-                    {% if plan.ott_benefits %}
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-2">
-                            <i class="fas fa-tv me-2"></i> OTT Benefits
-                        </h6>
-                        <p class="small text-muted mb-0">{{ plan.ott_benefits|truncatechars:80 }}</p>
-                    </div>
-                    {% endif %}
-
-                    <!-- Price & Action -->
-                    <div class="mt-auto">
+                    <!-- Price & Action - Compact -->
+                    <div class="mt-auto pt-3 border-top">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <div class="display-6 fw-bold text-primary mb-0">₹{{ plan.price|intcomma }}</div>
-                                <small class="text-muted">Total Price</small>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-muted d-block">Per Day: ₹{{ plan.price_per_day|floatformat:2 }}</small>
+                                <h5 class="fw-bold text-primary mb-0">₹{{ plan.price|intcomma }}</h5>
+                                <small class="text-muted">Total</small>
                             </div>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary">
-                                <i class="fas fa-info-circle me-2"></i> View Details
+                            <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-info-circle me-1"></i> Details
                             </a>
                             {% if user.is_authenticated %}
-                            <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-primary">
-                                <i class="fas fa-shopping-cart me-2"></i> Buy Now
+                            <a href="{% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-shopping-cart me-1"></i> Buy
                             </a>
                             {% else %}
-                            <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-primary">
-                                <i class="fas fa-shopping-cart me-2"></i> Login to Buy
+                            <a href="{% url 'login' %}?next={% url 'process_payment' %}?plan_id={{ plan.id }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-shopping-cart me-1"></i> Login
                             </a>
                             {% endif %}
                         </div>
@@ -363,23 +331,42 @@
     </div>
     {% endif %}
 
+    <!-- Image Above Browse by Category -->
+    <div class="mt-5 pt-5">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <img src="{% static 'images/onlinesi.png' %}" 
+                     alt="Telecom Plans Categories"
+                     class="img-fluid rounded-3 shadow-sm"
+                     style="width: 100%; height: 200px; object-fit: cover;">
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="bg-primary text-white rounded-3 p-4 h-100 d-flex flex-column justify-content-center">
+                    <h3 class="fw-bold mb-3">Need Help Choosing?</h3>
+                    <p class="mb-4">Our experts can help you find the perfect plan for your needs.</p>
+                    <a href="#" class="btn btn-light">Get Expert Advice</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Categories Section -->
-    <div class="mt-5 pt-5 border-top">
+    <div class="mt-5 pt-4 border-top">
         <h3 class="fw-bold mb-4 text-center">Browse by Category</h3>
         <div class="row g-4">
             {% for category in categories %}
             <div class="col-md-3 col-6">
                 <a href="{% url 'plan_list' %}?category={{ category.id }}" class="text-decoration-none">
                     <div class="card border-0 shadow-sm text-center h-100 hover-lift">
-                        <div class="card-body p-4">
-                            <div class="mb-3">
+                        <div class="card-body p-3">
+                            <div class="mb-2">
                                 <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                                     style="width: 70px; height: 70px;">
-                                    <i class="{{ category.icon|default:'fas fa-tag' }} fa-2x text-primary"></i>
+                                     style="width: 50px; height: 50px;">
+                                    <i class="{{ category.icon|default:'fas fa-tag' }} text-primary"></i>
                                 </div>
                             </div>
-                            <h5 class="fw-bold mb-2">{{ category.name }}</h5>
-                            <p class="text-muted small mb-0">{{ category.description|truncatechars:60 }}</p>
+                            <h6 class="fw-bold mb-1">{{ category.name }}</h6>
+                            <p class="text-muted small mb-0">{{ category.description|truncatechars:40 }}</p>
                         </div>
                     </div>
                 </a>
@@ -391,419 +378,132 @@
 
 {% block extra_js %}
 <script>
-    // Plan comparison functionality
-let selectedPlans = [];
-
-function toggleCompare(checkbox) {
-    const planId = parseInt(checkbox.value);
-    const index = selectedPlans.indexOf(planId);
+    // ... (keep your existing JavaScript code, but update the plan card selectors)
+    // Update the plan card selectors in your JavaScript to use .plan-card-small
     
-    if (index === -1) {
-        if (selectedPlans.length < 4) {
-            selectedPlans.push(planId);
-            updateCompareButton();
-            highlightSelectedPlan(planId, true);
-        } else {
-            checkbox.checked = false;
-            alert('You can compare up to 4 plans at a time.');
-        }
-    } else {
-        selectedPlans.splice(index, 1);
-        updateCompareButton();
-        highlightSelectedPlan(planId, false);
-    }
-    
-    // Save selection to localStorage
-    saveSelectionToStorage();
-}
-
-function highlightSelectedPlan(planId, isSelected) {
-    const planCard = document.querySelector(`.plan-card[data-plan-id="${planId}"]`);
-    if (planCard) {
-        if (isSelected) {
-            planCard.classList.add('border-primary', 'border-3');
-        } else {
-            planCard.classList.remove('border-primary', 'border-3');
-        }
-    }
-}
-
-function updateCompareButton() {
-    const compareBtn = document.getElementById('compareBtn');
-    const compareCount = document.getElementById('compareCount');
-    
-    if (compareCount) {
-        compareCount.textContent = selectedPlans.length;
-    }
-    
-    if (selectedPlans.length > 1) {
-        compareBtn.innerHTML = `<i class="fas fa-balance-scale me-2"></i> Compare (${selectedPlans.length})`;
-        compareBtn.classList.remove('disabled', 'btn-secondary');
-        compareBtn.classList.add('btn-primary');
-        compareBtn.href = `/plans/compare/?plans=${selectedPlans.join(',')}`;
-        compareBtn.onclick = null; // Remove any previous click handler
-    } else {
-        compareBtn.innerHTML = '<i class="fas fa-balance-scale me-2"></i> Compare';
-        compareBtn.classList.add('disabled', 'btn-secondary');
-        compareBtn.classList.remove('btn-primary');
-        compareBtn.href = '#';
-        compareBtn.onclick = function(e) {
-            e.preventDefault();
-            if (selectedPlans.length === 1) {
-                alert('Select at least 2 plans to compare.');
-            } else {
-                alert('Select 2-4 plans to compare. Click the checkboxes on plan cards.');
-            }
-        };
-    }
-}
-
-function saveSelectionToStorage() {
-    localStorage.setItem('selectedPlans', JSON.stringify(selectedPlans));
-}
-
-function loadSelectionFromStorage() {
-    const saved = localStorage.getItem('selectedPlans');
-    if (saved) {
-        selectedPlans = JSON.parse(saved);
-        
-        // Update checkboxes
-        selectedPlans.forEach(planId => {
-            const checkbox = document.querySelector(`input[name="compare_${planId}"]`);
-            if (checkbox) {
-                checkbox.checked = true;
-                highlightSelectedPlan(planId, true);
-            }
-        });
-        
-        updateCompareButton();
-    }
-}
-
-function clearComparison() {
-    selectedPlans = [];
-    
-    // Uncheck all checkboxes
-    document.querySelectorAll('.compare-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    // Remove highlights
-    document.querySelectorAll('.plan-card').forEach(card => {
-        card.classList.remove('border-primary', 'border-3');
-    });
-    
-    updateCompareButton();
-    localStorage.removeItem('selectedPlans');
-}
-
-// Filter form auto-submit
-document.addEventListener('DOMContentLoaded', function() {
-    // Load saved selection
-    loadSelectionFromStorage();
-    
-    // Update compare button on page load
-    updateCompareButton();
-    
-    // Filter form auto-submit
-    const filterForm = document.getElementById('filterForm');
-    if (filterForm) {
-        filterForm.querySelectorAll('select, input').forEach(element => {
-            element.addEventListener('change', function() {
-                if (this.type !== 'checkbox' && this.type !== 'radio') {
-                    filterForm.submit();
-                }
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make all plan cards equal height
+        function setEqualCardHeight() {
+            const cards = document.querySelectorAll('.plan-card-small');
+            let maxHeight = 0;
+            
+            // Reset heights
+            cards.forEach(card => {
+                card.style.height = 'auto';
             });
-        });
-    }
-    
-    // Add compare checkboxes if not present
-    addCompareCheckboxes();
-    
-    // Add clear comparison button
-    addClearComparisonButton();
-});
-
-function addCompareCheckboxes() {
-    // Add checkboxes to plan cards if they don't exist
-    document.querySelectorAll('.plan-card').forEach(card => {
-        const planId = card.getAttribute('data-plan-id') || 
-                      card.id.replace('plan-', '') || 
-                      card.querySelector('a[href*="/plans/"]')?.href?.match(/\/plans\/(\d+)\//)?.[1];
-        
-        if (planId && !card.querySelector('.compare-checkbox')) {
-            const checkboxContainer = document.createElement('div');
-            checkboxContainer.className = 'form-check position-absolute top-0 start-0 m-3';
-            checkboxContainer.innerHTML = `
-                <input type="checkbox" 
-                       class="form-check-input compare-checkbox" 
-                       id="compare_${planId}"
-                       name="compare_${planId}"
-                       value="${planId}"
-                       onchange="toggleCompare(this)"
-                       style="width: 20px; height: 20px;">
-                <label class="form-check-label visually-hidden" for="compare_${planId}">
-                    Compare this plan
-                </label>
-            `;
-            card.style.position = 'relative';
-            card.setAttribute('data-plan-id', planId);
-            card.appendChild(checkboxContainer);
-        }
-    });
-}
-
-function addClearComparisonButton() {
-    const headerSection = document.querySelector('.row.mb-5 .col-lg-8');
-    if (headerSection && selectedPlans.length > 0) {
-        // Check if button already exists
-        if (!document.getElementById('clearCompareBtn')) {
-            const clearBtn = document.createElement('button');
-            clearBtn.id = 'clearCompareBtn';
-            clearBtn.className = 'btn btn-outline-danger btn-sm ms-3';
-            clearBtn.innerHTML = '<i class="fas fa-times me-1"></i> Clear Selection';
-            clearBtn.onclick = clearComparison;
-            headerSection.appendChild(clearBtn);
-        }
-    } else {
-        const clearBtn = document.getElementById('clearCompareBtn');
-        if (clearBtn) clearBtn.remove();
-    }
-}
-
-// Price per day calculation (improved version)
-function calculatePricePerDay() {
-    document.querySelectorAll('.plan-card').forEach(card => {
-        const priceElement = card.querySelector('.display-6, .h4, .h5, [class*="price"]');
-        if (priceElement) {
-            const priceText = priceElement.textContent;
-            const priceMatch = priceText.match(/₹?([\d,]+\.?\d*)/);
             
-            if (priceMatch) {
-                const price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                const validityElement = card.querySelector('[class*="validity"], .fa-calendar')?.parentElement;
-                
-                if (validityElement) {
-                    const validityText = validityElement.textContent;
-                    const validityMatch = validityText.match(/(\d+)/);
-                    
-                    if (validityMatch) {
-                        const validity = parseInt(validityMatch[1]);
-                        if (validity > 0) {
-                            const pricePerDay = price / validity;
-                            
-                            // Find or create price per day element
-                            let perDayElement = card.querySelector('.price-per-day');
-                            if (!perDayElement) {
-                                perDayElement = document.createElement('div');
-                                perDayElement.className = 'price-per-day small text-muted mt-1';
-                                const priceContainer = card.querySelector('.text-end') || 
-                                                      card.querySelector('.d-flex.justify-content-between');
-                                if (priceContainer) {
-                                    priceContainer.appendChild(perDayElement);
-                                }
-                            }
-                            
-                            perDayElement.textContent = `₹${pricePerDay.toFixed(2)}/day`;
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Add to favorites with feedback
-function toggleFavorite(planId) {
-    // Get current favorites from localStorage
-    let favorites = JSON.parse(localStorage.getItem('favoritePlans') || '[]');
-    const index = favorites.indexOf(planId);
-    const favoriteBtn = document.querySelector(`.favorite-btn[data-plan-id="${planId}"]`);
-    
-    if (index === -1) {
-        // Add to favorites
-        favorites.push(planId);
-        
-        // Visual feedback
-        if (favoriteBtn) {
-            favoriteBtn.innerHTML = '<i class="fas fa-heart text-danger"></i>';
-            favoriteBtn.title = 'Remove from favorites';
+            // Find max height
+            cards.forEach(card => {
+                maxHeight = Math.max(maxHeight, card.offsetHeight);
+            });
             
-            // Show toast notification
-            showToast('Plan added to favorites!', 'success');
+            // Set all cards to max height
+            cards.forEach(card => {
+                card.style.height = maxHeight + 'px';
+            });
         }
-    } else {
-        // Remove from favorites
-        favorites.splice(index, 1);
         
-        // Visual feedback
-        if (favoriteBtn) {
-            favoriteBtn.innerHTML = '<i class="far fa-heart"></i>';
-            favoriteBtn.title = 'Add to favorites';
-            
-            // Show toast notification
-            showToast('Plan removed from favorites.', 'info');
-        }
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('favoritePlans', JSON.stringify(favorites));
-    
-    // Update favorite count if exists
-    updateFavoriteCount();
-}
-
-function updateFavoriteCount() {
-    const favorites = JSON.parse(localStorage.getItem('favoritePlans') || '[]');
-    const favoriteCountElement = document.getElementById('favoriteCount');
-    if (favoriteCountElement) {
-        favoriteCountElement.textContent = favorites.length;
-    }
-}
-
-function showToast(message, type = 'info') {
-    // Create toast container if not exists
-    let toastContainer = document.getElementById('toastContainer');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toastContainer';
-        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Create toast
-    const toastId = 'toast_' + Date.now();
-    const toast = document.createElement('div');
-    toast.id = toastId;
-    toast.className = `toast align-items-center text-bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
-    toastContainer.appendChild(toast);
-    
-    // Show toast
-    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
-    bsToast.show();
-    
-    // Remove toast after hiding
-    toast.addEventListener('hidden.bs.toast', function() {
-        toast.remove();
+        // Call initially and on window resize
+        setEqualCardHeight();
+        window.addEventListener('resize', setEqualCardHeight);
+        
+        // Your existing JavaScript code...
+        loadSelectionFromStorage();
+        updateCompareButton();
     });
-}
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Calculate price per day
-    calculatePricePerDay();
-    
-    // Update favorite count
-    updateFavoriteCount();
-    
-    // Add Bootstrap if not present for toast functionality
-    if (typeof bootstrap === 'undefined') {
-        console.warn('Bootstrap not loaded. Toast notifications may not work.');
-    }
-});
-
-// Add CSS styles for better UX
-const style = document.createElement('style');
-style.textContent = `
-    .plan-card.border-primary {
-        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
-    }
-    
-    .compare-checkbox {
-        cursor: pointer;
-        opacity: 0.7;
-        transition: opacity 0.2s;
-    }
-    
-    .compare-checkbox:hover {
-        opacity: 1;
-        transform: scale(1.1);
-    }
-    
-    .compare-checkbox:checked {
-        opacity: 1;
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-    
-    .toast {
-        min-width: 250px;
-    }
-    
-    .favorite-btn {
-        cursor: pointer;
-        transition: transform 0.2s;
-    }
-    
-    .favorite-btn:hover {
-        transform: scale(1.2);
-    }
-    
-    #clearCompareBtn {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-    }
-    
-    @media (max-width: 768px) {
-        .compare-checkbox {
-            width: 24px !important;
-            height: 24px !important;
-        }
-    }
-`;
-document.head.appendChild(style);
 </script>
 
 <style>
-    .plan-card {
-        transition: all 0.3s ease;
+    /* Small Plan Card Styles */
+    .plan-card-small {
         border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        height: 320px; /* Fixed height for equal cards */
     }
     
-    .plan-card:hover {
+    .plan-card-small:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
     }
     
-    .hover-lift:hover {
+    /* Ensure equal card sizes */
+    .row-cols-1 > .col,
+    .row-cols-md-2 > .col,
+    .row-cols-lg-3 > .col,
+    .row-cols-xl-4 > .col {
+        display: flex;
+    }
+    
+    .plan-card-small {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .plan-card-small .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Compact text styles */
+    .plan-card-small h6 {
+        font-size: 0.95rem;
+    }
+    
+    .plan-card-small small {
+        font-size: 0.8rem;
+    }
+    
+    .plan-card-small .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    
+    /* Category card styles */
+    .card.hover-lift:hover {
         transform: translateY(-3px);
         transition: transform 0.2s ease;
     }
     
-    .page-item.active .page-link {
-        background-color: var(--bs-primary);
-        border-color: var(--bs-primary);
-    }
-    
-    .form-select:focus {
-        border-color: var(--bs-primary);
-        box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
-    }
-    
-    .badge {
-        font-weight: 500;
-        letter-spacing: 0.3px;
-    }
-    
+    /* Responsive adjustments */
     @media (max-width: 768px) {
-        .display-6 {
-            font-size: 1.8rem;
+        .plan-card-small {
+            height: 300px;
         }
         
-        .card-body {
-            padding: 1.5rem !important;
+        .plan-card-small h6 {
+            font-size: 0.9rem;
         }
+    }
+    
+    @media (max-width: 576px) {
+        .plan-card-small {
+            height: 280px;
+        }
+        
+        .card-body.p-3 {
+            padding: 15px !important;
+        }
+    }
+    
+    /* Image banner styles */
+    .img-fluid.rounded-3 {
+        border: 1px solid #e0e0e0;
+    }
+    
+    /* If you don't have the category-banner.jpg image, use a placeholder */
+    .img-fluid[alt="Telecom Plans Categories"] {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
     }
 </style>
 {% endblock %}

@@ -59,16 +59,67 @@
         transform: translateY(-2px);
     }
     
-    .plan-card {
+    /* Updated: Square Plan Card Styles */
+    .plan-card-square {
         border-radius: 15px;
         overflow: hidden;
-        border: 1px solid #e0e0e0;
+        border: 1px solid #5c6fc3;
         transition: all 0.3s ease;
+        height: 320px; /* Fixed square height */
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
     }
     
-    .plan-card:hover {
+    .plan-card-square:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* Carousel Styles */
+    .plans-carousel {
+        position: relative;
+        overflow: hidden;
+        padding: 20px 0;
+    }
+    
+    .plans-track {
+        display: flex;
+        gap: 20px;
+        transition: transform 0.5s ease;
+    }
+    
+    .carousel-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: white;
+        border: 2px solid #667eea;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .carousel-nav:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .carousel-prev {
+        left: -5px;
+    }
+    
+    .carousel-next {
+        right: -20px;
     }
     
     .pulse {
@@ -148,6 +199,26 @@
     @keyframes slideUp {
         from { transform: translateY(30px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .carousel-nav {
+            width: 35px;
+            height: 35px;
+        }
+        
+        .carousel-prev {
+            left: -15px;
+        }
+        
+        .carousel-next {
+            right: -15px;
+        }
+        
+        .plan-card-square {
+            height: 280px;
+        }
     }
 </style>
 {% endblock %}
@@ -415,7 +486,7 @@
     </div>
 </section>
 
-<!-- Popular Plans Section -->
+<!-- Popular Plans Section - Updated to Carousel -->
 <section class="py-5 fade-in">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -426,10 +497,19 @@
             <a href="{% url 'plan_list' %}?sort_by=popularity" class="btn btn-outline-primary">View All Plans</a>
         </div>
         
-        <div class="row g-4">
-            {% for plan in popular_plans %}
-            <div class="col-md-3">
-                <div class="plan-card h-100 slide-up" style="animation-delay: {{ forloop.counter0|add:"0.1" }}s;">
+        <div class="plans-carousel position-relative">
+            <!-- Carousel Navigation -->
+            <button class="carousel-nav carousel-prev">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-nav carousel-next">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            
+            <!-- Carousel Track -->
+            <div class="plans-track" id="plansTrack">
+                {% for plan in popular_plans %}
+                <div class="plan-card-square slide-up" style="animation-delay: {{ forloop.counter0|add:"0.1" }}s; min-width: 300px;">
                     {% if plan.is_popular %}
                     <div class="position-absolute top-0 end-0 m-2">
                         <span class="badge bg-warning text-dark px-3 py-2">
@@ -438,48 +518,68 @@
                     </div>
                     {% endif %}
                     
-                    <div class="card-body p-4">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <!-- Operator Info -->
                         <div class="d-flex align-items-center mb-3">
                             <img src="{{ plan.operator.logo.url }}" alt="{{ plan.operator.name }}" 
-                                 class="operator-logo rounded-circle me-3">
+                                 class="operator-logo rounded-circle me-3" style="width: 40px; height: 40px;">
                             <div>
                                 <h6 class="mb-0">{{ plan.operator.name }}</h6>
                                 <small class="text-muted">{{ plan.category.name }}</small>
                             </div>
                         </div>
                         
-                        <h5 class="card-title mb-3">{{ plan.name }}</h5>
-                        <p class="card-text text-muted small mb-4">{{ plan.description|truncatechars:80 }}</p>
+                        <!-- Plan Name -->
+                        <h5 class="card-title mb-3 flex-grow-1">{{ plan.name }}</h5>
                         
+                        <!-- Plan Details -->
                         <div class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <!-- Price -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
                                 <span class="text-muted">Price:</span>
                                 <h4 class="text-primary mb-0">₹{{ plan.price }}</h4>
                             </div>
+                            
+                            <!-- Validity -->
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Validity:</span>
-                                <span>{{ plan.get_full_validity }}</span>
+                                <span class="fw-bold">{{ plan.get_full_validity }}</span>
                             </div>
+                            
+                            <!-- Data -->
                             {% if plan.data_allowance %}
-                            <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-between mb-3">
                                 <span class="text-muted">Data:</span>
                                 <span class="fw-bold">{{ plan.data_allowance }}</span>
                             </div>
                             {% endif %}
+                            
+                            <!-- Benefits -->
+                            {% if plan.benefits %}
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-1">Benefits:</small>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for benefit in plan.benefits|slice:":3" %}
+                                    <span class="badge bg-light text-dark border">{{ benefit }}</span>
+                                    {% endfor %}
+                                    {% if plan.benefits|length > 3 %}
+                                    <span class="badge bg-light text-dark border">+{{ plan.benefits|length|add:"-3" }} more</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                         
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary">View Details</a>
-                            {% if user.is_authenticated %}
-                            <a href="#" class="btn btn-primary">Buy Now</a>
-                            {% else %}
-                            <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary">Login to Buy</a>
-                            {% endif %}
+                        <!-- View Details Button Only -->
+                        <div class="mt-auto">
+                            <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
                         </div>
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
 </section>
@@ -636,6 +736,100 @@
                     ctaButton.classList.toggle('pulse');
                 }, 100);
             }, 2000);
+        }
+        
+        // Carousel Functionality
+        const carouselTrack = document.getElementById('plansTrack');
+        const carouselPrev = document.querySelector('.carousel-prev');
+        const carouselNext = document.querySelector('.carousel-next');
+        const planCards = document.querySelectorAll('.plan-card-square');
+        
+        if (carouselTrack && planCards.length > 0) {
+            const cardWidth = planCards[0].offsetWidth + 20; // card width + gap
+            const visibleCards = Math.floor(carouselTrack.parentElement.offsetWidth / cardWidth);
+            const maxScroll = (planCards.length - visibleCards) * cardWidth;
+            let currentPosition = 0;
+            
+            function updateCarousel() {
+                carouselTrack.style.transform = `translateX(-${currentPosition}px)`;
+                
+                // Disable/enable buttons based on position
+                carouselPrev.disabled = currentPosition === 0;
+                carouselNext.disabled = currentPosition >= maxScroll;
+                
+                if (carouselPrev.disabled) {
+                    carouselPrev.style.opacity = '0.5';
+                    carouselPrev.style.cursor = 'not-allowed';
+                } else {
+                    carouselPrev.style.opacity = '1';
+                    carouselPrev.style.cursor = 'pointer';
+                }
+                
+                if (carouselNext.disabled) {
+                    carouselNext.style.opacity = '0.5';
+                    carouselNext.style.cursor = 'not-allowed';
+                } else {
+                    carouselNext.style.opacity = '1';
+                    carouselNext.style.cursor = 'pointer';
+                }
+            }
+            
+            carouselPrev.addEventListener('click', function() {
+                if (currentPosition > 0) {
+                    currentPosition = Math.max(0, currentPosition - cardWidth);
+                    updateCarousel();
+                }
+            });
+            
+            carouselNext.addEventListener('click', function() {
+                if (currentPosition < maxScroll) {
+                    currentPosition = Math.min(maxScroll, currentPosition + cardWidth);
+                    updateCarousel();
+                }
+            });
+            
+            // Auto-scroll every 5 seconds
+            let autoScrollInterval = setInterval(() => {
+                if (currentPosition >= maxScroll) {
+                    currentPosition = 0;
+                } else {
+                    currentPosition = Math.min(maxScroll, currentPosition + cardWidth);
+                }
+                updateCarousel();
+            }, 5000);
+            
+            // Pause auto-scroll on hover
+            carouselTrack.addEventListener('mouseenter', () => {
+                clearInterval(autoScrollInterval);
+            });
+            
+            carouselTrack.addEventListener('mouseleave', () => {
+                autoScrollInterval = setInterval(() => {
+                    if (currentPosition >= maxScroll) {
+                        currentPosition = 0;
+                    } else {
+                        currentPosition = Math.min(maxScroll, currentPosition + cardWidth);
+                    }
+                    updateCarousel();
+                }, 5000);
+            });
+            
+            // Initialize carousel
+            updateCarousel();
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const newCardWidth = planCards[0].offsetWidth + 20;
+                const newVisibleCards = Math.floor(carouselTrack.parentElement.offsetWidth / newCardWidth);
+                const newMaxScroll = (planCards.length - newVisibleCards) * newCardWidth;
+                
+                // Adjust current position proportionally
+                if (maxScroll > 0) {
+                    currentPosition = (currentPosition / maxScroll) * newMaxScroll;
+                }
+                
+                updateCarousel();
+            });
         }
     });
 </script>
