@@ -135,7 +135,7 @@
                     <h5 class="mb-0">Personal Information</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
+                    <form method="POST" action="{% url 'profile_update' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         
                         <div class="row">

@@ -1,0 +1,489 @@
+<!-- templates/users/auth.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}TelecomPedia - Login with OTP{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding: 40px 0;
+    }
+    
+    .auth-card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        background: white;
+        max-width: 450px;
+        margin: 0 auto;
+    }
+    
+    .auth-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+        border-radius: 0 !important;
+        padding: 2.5rem 2rem;
+    }
+    
+    .phone-input-container {
+        position: relative;
+    }
+    
+    .country-code {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: 500;
+        color: #666;
+        z-index: 1;
+    }
+    
+    .phone-input {
+        padding-left: 70px;
+        font-size: 18px;
+        letter-spacing: 1px;
+        height: 60px;
+    }
+    
+    .otp-input-container {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 20px 0;
+    }
+    
+    .otp-input {
+        width: 50px;
+        height: 60px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .otp-input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        outline: none;
+    }
+    
+    .timer {
+        font-size: 14px;
+        color: #666;
+        text-align: center;
+        margin: 10px 0;
+    }
+    
+    .masked-phone {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .benefits {
+        background: rgba(13, 110, 253, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+    
+    .benefit-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .benefit-item i {
+        color: #0d6efd;
+        margin-right: 10px;
+        font-size: 18px;
+    }
+    
+    .btn-verify {
+        background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 15px;
+        font-size: 18px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-verify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(13, 110, 253, 0.3);
+    }
+    
+    .btn-verify:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade {
+        animation: fadeIn 0.5s ease-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-5 animate-fade">
+                <div class="auth-card">
+                    <div class="card-header text-center text-white">
+                        <div class="d-flex align-items-center justify-content-center mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-sign-in-alt fa-3x"></i>
+                            </div>
+                            <div class="text-start">
+                                <h1 class="mb-1">Welcome Back</h1>
+                                <p class="mb-0 opacity-75">Login with Mobile OTP</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-4 p-md-5">
+                        {% if messages %}
+                        <div class="mb-4">
+                            {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Phone Input Section -->
+                        <div id="phoneSection" {% if show_otp %}class="d-none"{% endif %}>
+                            <h4 class="text-center mb-4">
+                                <i class="fas fa-mobile-alt text-primary me-2"></i>
+                                Enter Your Mobile Number
+                            </h4>
+                            
+                            <p class="text-center text-muted mb-4">
+                                We'll send an OTP to verify your number
+                            </p>
+                            
+                            <form method="post" id="phoneForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="send_otp">
+                                
+                                <div class="mb-4">
+                                    <div class="phone-input-container">
+                                        <span class="country-code">+91</span>
+                                        <input type="tel" 
+                                               class="form-control phone-input" 
+                                               name="phone" 
+                                               id="phone" 
+                                               placeholder="Enter 10-digit mobile number"
+                                               maxlength="10"
+                                               pattern="[0-9]{10}"
+                                               value="{{ phone }}"
+                                               required>
+                                    </div>
+                                    <div class="form-text text-center">
+                                        <small>Enter your 10-digit mobile number</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid mb-4">
+                                    <button type="submit" class="btn btn-primary btn-lg btn-verify" id="sendOtpBtn">
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        Send OTP
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <div class="benefits">
+                                <h6 class="text-center mb-3">
+                                    <i class="fas fa-bolt text-warning me-2"></i>
+                                    Why Use TelecomPedia?
+                                </h6>
+                                <div class="benefit-item">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <span>2-Hour SIM Delivery</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <span>Choose Fancy Numbers</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <span>100% Secure & Verified</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- OTP Verification Section -->
+                        <div id="otpSection" {% if not show_otp %}class="d-none"{% endif %}>
+                            <h4 class="text-center mb-4">
+                                <i class="fas fa-key text-primary me-2"></i>
+                                Enter OTP
+                            </h4>
+                            
+                            <p class="text-center mb-4">
+                                OTP sent to <span class="masked-phone" id="displayPhone">+91 {{ phone|slice:"0:3" }}****{{ phone|slice:"7:10" }}</span>
+                                <br>
+                                <small class="text-muted">Valid for 10 minutes</small>
+                            </p>
+                            
+                            <form method="post" id="otpForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="verify_otp">
+                                <input type="hidden" name="phone" value="{{ phone }}">
+                                
+                                <div class="mb-4">
+                                    <div class="otp-input-container" id="otpContainer">
+                                        <input type="text" class="otp-input" maxlength="1" data-index="1" autocomplete="off">
+                                        <input type="text" class="otp-input" maxlength="1" data-index="2" autocomplete="off">
+                                        <input type="text" class="otp-input" maxlength="1" data-index="3" autocomplete="off">
+                                        <input type="text" class="otp-input" maxlength="1" data-index="4" autocomplete="off">
+                                        <input type="text" class="otp-input" maxlength="1" data-index="5" autocomplete="off">
+                                        <input type="text" class="otp-input" maxlength="1" data-index="6" autocomplete="off">
+                                    </div>
+                                    <input type="hidden" name="otp" id="hiddenOtp">
+                                    <div class="form-text text-center">
+                                        <small>Enter the 6-digit OTP received on your phone</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <div class="text-center">
+                                        <p class="timer mb-2">
+                                            <i class="fas fa-clock me-2"></i>
+                                            <span id="countdown">10:00</span>
+                                        </p>
+                                        <button type="button" class="btn btn-link p-0" id="resendOtpBtn" disabled>
+                                            Resend OTP
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success btn-lg btn-verify" id="verifyOtpBtn" disabled>
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        Verify & Continue
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="backToPhoneBtn">
+                                        <i class="fas fa-arrow-left me-2"></i>
+                                        Change Number
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="text-center mt-4 pt-3 border-top">
+                            <p class="text-muted small mb-0">
+                                By continuing, you agree to our 
+                                <a href="#" class="text-primary">Terms of Service</a> and 
+                                <a href="#" class="text-primary">Privacy Policy</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // DOM Elements
+        const phoneSection = document.getElementById('phoneSection');
+        const otpSection = document.getElementById('otpSection');
+        const phoneInput = document.getElementById('phone');
+        const otpInputs = document.querySelectorAll('.otp-input');
+        const hiddenOtpInput = document.getElementById('hiddenOtp');
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const backToPhoneBtn = document.getElementById('backToPhoneBtn');
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
+        const countdownElement = document.getElementById('countdown');
+        const displayPhone = document.getElementById('displayPhone');
+        
+        let countdownInterval;
+        let countdownTime = 600; // 10 minutes in seconds
+        
+        // Check if we should show OTP section
+        {% if show_otp %}
+        startCountdown();
+        {% endif %}
+        
+        // Phone input validation
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 10) {
+                this.value = this.value.slice(0, 10);
+            }
+            
+            // Update button state
+            sendOtpBtn.disabled = this.value.length !== 10;
+        });
+        
+        // OTP input handling
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', function() {
+                // Allow only numbers
+                this.value = this.value.replace(/[^0-9]/g, '');
+                
+                // Move to next input
+                if (this.value.length === 1 && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+                
+                // Update hidden OTP value
+                updateHiddenOtp();
+                
+                // Enable verify button if all digits filled
+                const allFilled = Array.from(otpInputs).every(input => input.value.length === 1);
+                verifyOtpBtn.disabled = !allFilled;
+            });
+            
+            // Handle backspace
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value.length === 0 && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+            
+            // Handle paste
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text');
+                const numbers = pastedData.replace(/[^0-9]/g, '');
+                
+                // Fill OTP inputs with pasted numbers
+                for (let i = 0; i < Math.min(numbers.length, 6); i++) {
+                    otpInputs[i].value = numbers[i];
+                }
+                
+                // Focus last filled input
+                const lastIndex = Math.min(numbers.length, 6) - 1;
+                if (lastIndex >= 0) {
+                    otpInputs[lastIndex].focus();
+                }
+                
+                updateHiddenOtp();
+                verifyOtpBtn.disabled = !Array.from(otpInputs).every(input => input.value.length === 1);
+            });
+        });
+        
+        function updateHiddenOtp() {
+            // Combine all OTP digits
+            const otpValue = Array.from(otpInputs)
+                .map(input => input.value)
+                .join('');
+            hiddenOtpInput.value = otpValue;
+        }
+        
+        // Back to phone input
+        backToPhoneBtn.addEventListener('click', function() {
+            otpSection.classList.add('d-none');
+            phoneSection.classList.remove('d-none');
+            clearInterval(countdownInterval);
+            phoneInput.focus();
+            
+            // Clear session (optional - you might want to keep it)
+            fetch('{% url "auth" %}?clear_session=true')
+                .then(() => {
+                    // Session cleared
+                });
+        });
+        
+        // Resend OTP
+        resendOtpBtn.addEventListener('click', function() {
+            if (this.disabled) return;
+            
+            // Show loading state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Resending...';
+            this.disabled = true;
+            
+            // Submit the phone form again
+            document.getElementById('phoneForm').submit();
+        });
+        
+        // Countdown timer
+        function startCountdown() {
+            clearInterval(countdownInterval);
+            countdownTime = 600; // Reset to 10 minutes
+            
+            countdownInterval = setInterval(() => {
+                countdownTime--;
+                
+                const minutes = Math.floor(countdownTime / 60);
+                const seconds = countdownTime % 60;
+                
+                countdownElement.textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Enable resend button when time is up
+                if (countdownTime <= 0) {
+                    clearInterval(countdownInterval);
+                    resendOtpBtn.disabled = false;
+                    resendOtpBtn.innerHTML = 'Click to resend OTP';
+                } else {
+                    resendOtpBtn.disabled = true;
+                    resendOtpBtn.innerHTML = 'Resend OTP';
+                }
+            }, 1000);
+        }
+        
+        // Auto-focus first OTP input if showing OTP section
+        {% if show_otp %}
+        if (otpInputs.length > 0) {
+            otpInputs[0].focus();
+        }
+        {% else %}
+        // Auto-focus phone input
+        phoneInput.focus();
+        {% endif %}
+        
+        // Form submission enhancements
+        const phoneForm = document.getElementById('phoneForm');
+        const otpForm = document.getElementById('otpForm');
+        
+        phoneForm.addEventListener('submit', function(e) {
+            // Add loading state
+            sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+            sendOtpBtn.disabled = true;
+        });
+        
+        otpForm.addEventListener('submit', function(e) {
+            // Ensure OTP is complete
+            const otpValue = hiddenOtpInput.value;
+            if (otpValue.length !== 6) {
+                e.preventDefault();
+                alert('Please enter complete 6-digit OTP');
+                return;
+            }
+            
+            // Add loading state
+            verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
+            verifyOtpBtn.disabled = true;
+        });
+    });
+</script>
+{% endblock %}

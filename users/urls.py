@@ -1,23 +1,24 @@
 from django.urls import path
 from .views import (
-    CustomLoginView, CustomLogoutView, MobileLoginView, OTPResendView, OTPVerificationView, PhoneVerificationView, RegisterView,
+   CustomLogoutView,
     ProfileView, ProfileUpdateView, DashboardView,
-    PlanHistoryView, FavouritePlansView, delete_account, update_profile_picture
+    PlanHistoryView, FavouritePlansView, UnifiedAuthView, delete_account, update_profile_picture
 )
 
 from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
-    path('login/', CustomLoginView.as_view(), name='login'),
-    path('logout/', CustomLogoutView.as_view(), name='logout'),
-    path('register/', RegisterView.as_view(), name='register'),
-
+    path('auth/', UnifiedAuthView.as_view(), name='auth'),
+    path('login/', UnifiedAuthView.as_view(), name='login'),  # Alias for backward compatibility
+    # path('send-otp/', OTPSendView.as_view(), name='send_otp'),
+    # path('verify-otp/', OTPVerifyView.as_view(), name='verify_otp'),
+    # path('resend-otp/', OTPResendView.as_view(), name='resend_otp'),
+    path('logout/',CustomLogoutView.as_view(), name='logout'),
     
-    path('mobile-login/', MobileLoginView.as_view(), name='mobile_login'),
-    path('verify-otp/', OTPVerificationView.as_view(), name='verify_otp'),
-    path('resend-otp/', OTPResendView.as_view(), name='resend_otp'),
-    path('verify-phone/', PhoneVerificationView.as_view(), name='verify_phone_otp'),
+    # Dashboard
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    
     path('profile/', ProfileView.as_view(), name='profile'),
     path('profile/update/', ProfileUpdateView.as_view(), name='profile_update'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),

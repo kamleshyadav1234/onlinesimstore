@@ -27,12 +27,34 @@ class CustomUser(AbstractUser):
     phone_verified = models.BooleanField(default=False)
     kyc_completed = models.BooleanField(default=False)
     
-    # Agent specific fields
-    agent_id = models.CharField(max_length=20, blank=True, unique=True)
-    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
     
     def __str__(self):
-        return f"{self.username} - {self.get_user_type_display()}"
+        return f"{self.phone} - {self.get_user_type_display()}"
+    
+    def save(self, *args, **kwargs):
+        if not self.username:
+            self.username = f'user_{self.phone}'
+        
+        if self.user_type == 'agent' and not self.agent_id:
+            import uuid
+            self.agent_id = f'AGT{str(uuid.uuid4().int)[:8].upper()}'
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def display_name(self):
+        if self.first_name:
+            if self.last_name:
+                return f"{self.first_name} {self.last_name}".strip()
+            return self.first_name.strip()
+        return self.phone
+    
+    @property
+    def short_phone(self):
+        if len(self.phone) > 6:
+            return f"{self.phone[:3]}****{self.phone[-3:]}"
+        return self.phone
+
 
 class UserPlanHistory(models.Model):
     user = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)

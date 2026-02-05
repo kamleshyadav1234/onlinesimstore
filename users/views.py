@@ -29,322 +29,184 @@ from .forms import CustomUserCreationForm, CustomUserChangeForm, ProfilePictureF
 from .models import CustomUser, UserPlanHistory, UserFavouritePlan
 from payments.models import Payment  # Make sure this import exists
 
-# Authentication Views
-class CustomLoginView(LoginView):
-    template_name = 'users/login.html'
-    redirect_authenticated_user = True
-    
-    def get_success_url(self):
-        return reverse_lazy('dashboard')
-
-class CustomLogoutView(LogoutView):
-    next_page = reverse_lazy('home')
-
-
-
-
-
-
-class RegisterView(CreateView):
-    form_class = CustomUserCreationForm
-    template_name = 'users/register.html'
-    success_url = reverse_lazy('dashboard')
-    
-    def form_valid(self, form):
-        print("=" * 50)
-        print("DEBUG: Form is VALID")
-        print("DEBUG: Form cleaned data:", form.cleaned_data)
-        
-        try:
-            # Save the user
-            user = form.save()
-            print(f"DEBUG: User created - ID: {user.id}, Username: {user.username}")
-            print(f"DEBUG: User email: {user.email}, phone: {user.phone}")
-            
-            # Log the user in
-            login(self.request, user)
-            print("DEBUG: User logged in successfully")
-            
-            # Add success message
-            messages.success(self.request, 'Registration successful! Welcome to TelecomPedia.')
-            print("DEBUG: Success message added")
-            
-        except Exception as e:
-            print(f"DEBUG: ERROR during user creation: {str(e)}")
-            messages.error(self.request, f'Error creating account: {str(e)}')
-            return self.form_invalid(form)
-        
-        print("=" * 50)
-        return super().form_valid(form)
-    
-    def form_invalid(self, form):
-        print("=" * 50)
-        print("DEBUG: Form is INVALID")
-        print("DEBUG: Form errors:", form.errors)
-        print("DEBUG: Form non-field errors:", form.non_field_errors())
-        print("DEBUG: POST data:", self.request.POST)
-        
-        # Add error messages for each field
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(self.request, f'{field}: {error}')
-        
-        print("=" * 50)
-        return super().form_invalid(form)
-    
-    def get(self, request, *args, **kwargs):
-        print("DEBUG: GET request to register page")
-        return super().get(request, *args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        print("DEBUG: POST request to register page")
-        print("DEBUG: Raw POST data:", dict(request.POST))
-        return super().post(request, *args, **kwargs)
-
-
-
-# Add these imports
+# views.py
 import json
+from django.shortcuts import render, redirect
+from django.views import View
+from django.contrib.auth import login
+from django.contrib.auth.views import LogoutView
+from django.contrib import messages
+from django.urls import reverse_lazy
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.contrib.auth import login, authenticate
-from .forms import MobileLoginForm, OTPVerificationForm, PhoneRegistrationForm, OTPResendForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
+from .models import CustomUser, OTP
+from .forms import OTPVerificationForm
 
-# OTP Login Views
-class MobileLoginView(View):
-    template_name = 'users/mobile_login.html'
+class UnifiedAuthView(View):
+    """Unified authentication view - single screen for OTP login/registration"""
+    template_name = 'users/auth.html'
     
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('dashboard')
         
-        form = MobileLoginForm()
-        return render(request, self.template_name, {'form': form})
-    
-    def post(self, request, *args, **kwargs):
-        form = MobileLoginForm(request.POST)
+        # Check if phone is in session (coming back after OTP failure)
+        phone = request.session.get('auth_phone', '')
         
-        if form.is_valid():
-            phone = form.cleaned_data['phone']
-            
-            # Get user
-            try:
-                user = CustomUser.objects.get(phone=phone)
-            except CustomUser.DoesNotExist:
-                messages.error(request, 'No account found with this mobile number.')
-                return render(request, self.template_name, {'form': form})
-            
-            # Generate OTP (simulate sending)
-            otp_obj = OTP.create_otp(phone=phone, otp_type='login', user=user)
-            
-            # In production, you would send OTP via SMS here
-            # For now, we'll just show it in messages (remove in production)
-            messages.info(request, f'Demo OTP sent to {phone}: {otp_obj.otp}')
-            
-            # Store phone in session for verification
-            request.session['login_phone'] = phone
-            request.session['login_user_id'] = user.id
-            
-            return redirect('verify_otp')
-        
-        return render(request, self.template_name, {'form': form})
-
-class OTPVerificationView(View):
-    template_name = 'users/otp_verification.html'
-    
-    def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            return redirect('dashboard')
-        
-        phone = request.session.get('login_phone')
-        user_id = request.session.get('login_user_id')
-        
-        if not phone or not user_id:
-            messages.error(request, 'Session expired. Please login again.')
-            return redirect('mobile_login')
-        
-        form = OTPVerificationForm(initial={'phone': phone})
         context = {
-            'form': form,
             'phone': phone,
-            'masked_phone': self.mask_phone(phone)
+            'show_otp': bool(phone),  # Show OTP section if phone exists
         }
         return render(request, self.template_name, context)
     
     def post(self, request, *args, **kwargs):
-        phone = request.session.get('login_phone')
-        user_id = request.session.get('login_user_id')
+        """Handle both OTP sending and verification"""
+        action = request.POST.get('action', 'send_otp')
         
-        if not phone or not user_id:
-            messages.error(request, 'Session expired. Please login again.')
-            return redirect('mobile_login')
-        
-        form = OTPVerificationForm(request.POST, phone=phone, otp_type='login')
-        
-        if form.is_valid():
-            # Get user
-            try:
-                user = CustomUser.objects.get(id=user_id, phone=phone)
-            except CustomUser.DoesNotExist:
-                messages.error(request, 'User not found.')
-                return redirect('mobile_login')
-            
-            # Login the user
-            login(request, user)
-            
-            # Clear session data
-            if 'login_phone' in request.session:
-                del request.session['login_phone']
-            if 'login_user_id' in request.session:
-                del request.session['login_user_id']
-            
-            messages.success(request, 'Login successful!')
-            return redirect('dashboard')
-        
-        context = {
-            'form': form,
-            'phone': phone,
-            'masked_phone': self.mask_phone(phone)
-        }
-        return render(request, self.template_name, context)
+        if action == 'send_otp':
+            return self.handle_send_otp(request)
+        elif action == 'verify_otp':
+            return self.handle_verify_otp(request)
+        else:
+            messages.error(request, 'Invalid action')
+            return redirect('auth')
     
-    def mask_phone(self, phone):
-        """Mask phone number for display"""
-        if len(phone) > 6:
-            return f"{phone[:3]}****{phone[-3:]}"
-        return phone
-
-class OTPResendView(View):
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        phone = data.get('phone')
-        otp_type = data.get('otp_type', 'login')
+    def handle_send_otp(self, request):
+        """Handle OTP sending"""
+        phone = request.POST.get('phone', '').strip()
         
-        if not phone:
-            return JsonResponse({'success': False, 'error': 'Phone number required'})
+        if not phone or len(phone) != 10:
+            messages.error(request, 'Please enter a valid 10-digit mobile number')
+            return redirect('auth')
         
-        # Get user if exists
-        user = None
+        # Check if user exists or create new one
         try:
             user = CustomUser.objects.get(phone=phone)
+            is_new_user = False
         except CustomUser.DoesNotExist:
-            pass
+            # Create new user automatically
+            user = CustomUser.objects.create(
+                phone=phone,
+                username=f'user_{phone}',
+                is_active=True  # Auto-activate for OTP login
+            )
+            is_new_user = True
         
-        # Generate new OTP
-        otp_obj = OTP.create_otp(phone=phone, otp_type=otp_type, user=user)
+        # Generate and send OTP
+        otp_obj = OTP.create_otp(
+            phone=phone,
+            otp_type='auth',
+            user=user
+        )
+        
+        # Store in session
+        request.session['auth_phone'] = phone
+        request.session['auth_user_id'] = user.id
         
         # In production: Send OTP via SMS
-        # For demo, return OTP in response (remove in production)
-        return JsonResponse({
-            'success': True,
-            'message': f'OTP resent to {phone}',
-            'demo_otp': otp_obj.otp  # Remove this in production
-        })
-
-# Update your existing RegisterView to use phone OTP
-class RegisterView(CreateView):
-    form_class = CustomUserCreationForm
-    template_name = 'users/register.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('dashboard')
-    
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        user = form.save()
+        # For demo, show OTP in message
+        if is_new_user:
+            messages.info(request, f'Welcome! New account created. OTP sent to {phone}: {otp_obj.otp}')
+        else:
+            messages.info(request, f'OTP sent to {phone}: {otp_obj.otp}')
         
-        # Generate and send OTP for phone verification
-        otp_obj = OTP.create_otp(phone=user.phone, otp_type='phone_verification', user=user)
-        
-        # Store user info in session for verification
-        self.request.session['verify_phone'] = user.phone
-        self.request.session['verify_user_id'] = user.id
-        
-        messages.info(self.request, f'Account created! Verification OTP sent to {user.phone}: {otp_obj.otp}')
-        
-        # Don't login automatically, redirect to OTP verification
-        return redirect('verify_phone_otp')
+        # Redirect back to same page (now showing OTP section)
+        return redirect('auth')
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Add phone registration form as alternative
-        context['phone_form'] = PhoneRegistrationForm()
-        return context
-
-class PhoneVerificationView(View):
-    template_name = 'users/phone_verification.html'
-    
-    def get(self, request, *args, **kwargs):
-        phone = request.session.get('verify_phone')
-        user_id = request.session.get('verify_user_id')
+    def handle_verify_otp(self, request):
+        """Handle OTP verification"""
+        phone = request.session.get('auth_phone')
+        user_id = request.session.get('auth_user_id')
+        otp = request.POST.get('otp', '').strip()
         
         if not phone or not user_id:
-            messages.error(request, 'Session expired. Please register again.')
-            return redirect('register')
+            messages.error(request, 'Session expired. Please try again.')
+            return redirect('auth')
         
-        form = OTPVerificationForm(initial={'phone': phone})
-        context = {
-            'form': form,
-            'phone': phone,
-            'masked_phone': self.mask_phone(phone),
-            'verification_type': 'phone_verification'
-        }
-        return render(request, self.template_name, context)
-    
-    def post(self, request, *args, **kwargs):
-        phone = request.session.get('verify_phone')
-        user_id = request.session.get('verify_user_id')
+        if not otp or len(otp) != 6:
+            messages.error(request, 'Please enter a valid 6-digit OTP')
+            return redirect('auth')
         
-        if not phone or not user_id:
-            messages.error(request, 'Session expired. Please register again.')
-            return redirect('register')
-        
-        form = OTPVerificationForm(request.POST, phone=phone, otp_type='phone_verification')
-        
-        if form.is_valid():
-            # Get and update user
+        # Verify OTP
+        try:
+            otp_obj = OTP.objects.get(
+                phone=phone,
+                otp=otp,
+                otp_type='auth',
+                is_used=False
+            )
+            
+            # Check if OTP is expired (10 minutes)
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            if otp_obj.created_at < timezone.now() - timedelta(minutes=10):
+                messages.error(request, 'OTP has expired. Please request a new one.')
+                return redirect('auth')
+            
+            # Mark OTP as verified
+            otp_obj.is_used = True
+            otp_obj.save()
+            
+            # Get user
             try:
                 user = CustomUser.objects.get(id=user_id, phone=phone)
+                
+                # Update user verification status
                 user.phone_verified = True
                 user.save()
                 
-                # Clear session
-                if 'verify_phone' in request.session:
-                    del request.session['verify_phone']
-                if 'verify_user_id' in request.session:
-                    del request.session['verify_user_id']
-                
                 # Login user
                 login(request, user)
-                messages.success(request, 'Phone verified successfully! Account is now active.')
+                
+                # Clear session
+                self.clear_auth_session(request)
+                
+                # Welcome message
+                if user.date_joined > timezone.now() - timedelta(minutes=5):
+                    messages.success(request, f'Welcome to TelecomPedia! Your account has been created.')
+                else:
+                    messages.success(request, f'Welcome back {user.display_name}!')
+                
                 return redirect('dashboard')
+                
             except CustomUser.DoesNotExist:
                 messages.error(request, 'User not found.')
-                return redirect('register')
-        
+                return redirect('auth')
+                
+        except OTP.DoesNotExist:
+            messages.error(request, 'Invalid OTP. Please try again.')
+            return redirect('auth')
+    
+    def clear_auth_session(self, request):
+        """Clear authentication session data"""
+        session_keys = ['auth_phone', 'auth_user_id']
+        for key in session_keys:
+            if key in request.session:
+                del request.session[key]
+
+class CustomLogoutView(LogoutView):
+    """Custom logout view"""
+    next_page = reverse_lazy('auth')
+    
+    def dispatch(self, request, *args, **kwargs):
+        messages.success(request, 'You have been successfully logged out.')
+        return super().dispatch(request, *args, **kwargs)
+
+class DashboardView(LoginRequiredMixin, View):
+    """Dashboard view for authenticated users"""
+    template_name = 'users/dashboard.html'
+    login_url = reverse_lazy('auth')
+    
+    def get(self, request, *args, **kwargs):
         context = {
-            'form': form,
-            'phone': phone,
-            'masked_phone': self.mask_phone(phone),
-            'verification_type': 'phone_verification'
+            'user': request.user,
+            'is_new_user': not request.user.phone_verified,
         }
         return render(request, self.template_name, context)
-    
-    def mask_phone(self, phone):
-        if len(phone) > 6:
-            return f"{phone[:3]}****{phone[-3:]}"
-        return phone
-
-# Update CustomLoginView to redirect to mobile login
-class CustomLoginView(View):
-    def get(self, request, *args, **kwargs):
-        # Redirect to mobile login by default
-        return redirect('mobile_login')
 
 
 # Profile Views
