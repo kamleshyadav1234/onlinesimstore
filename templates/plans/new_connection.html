@@ -811,78 +811,97 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // ✅ NEW: Handle online payment button click - SAVE FORM BEFORE PAYMENT
-    document.getElementById('onlinePaymentBtn').addEventListener('click', async function() {
-        const planId = document.getElementById('selectedPlanId').value;
+// ✅ UPDATED: Handle online payment button click - SAVE FORM BEFORE PAYMENT
+document.getElementById('onlinePaymentBtn').addEventListener('click', async function() {
+    const planId = document.getElementById('selectedPlanId').value;
+    
+    if (!planId) {
+        alert('Please select a plan first');
+        return;
+    }
+    
+    // Validate all steps before proceeding
+    if (!validateAllSteps()) {
+        alert('Please complete all required fields before proceeding to payment.');
+        return;
+    }
+    
+    // Show loading
+    const originalText = this.innerHTML;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving Request...';
+    this.disabled = true;
+    
+    try {
+        // Step 1: Create FormData object
+        const formData = new FormData(document.getElementById('newConnectionForm'));
         
-        if (!planId) {
-            alert('Please select a plan first');
-            return;
-        }
+        // Step 2: Submit form via AJAX to save NewConnectionRequest
+        const response = await fetch('{% url "new_connection" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'  // IMPORTANT: Tell Django this is AJAX
+            }
+        });
         
-        // Validate all steps before proceeding
-        if (!validateAllSteps()) {
-            alert('Please complete all required fields before proceeding to payment.');
-            return;
-        }
-        
-        // Show loading
-        const originalText = this.innerHTML;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving Request...';
-        this.disabled = true;
-        
+        // Parse JSON response
+        let responseData;
         try {
-            // Step 1: Create FormData object
-            const formData = new FormData(document.getElementById('newConnectionForm'));
+            responseData = await response.json();
+        } catch (jsonError) {
+            console.error('JSON parse error:', jsonError);
+            const text = await response.text();
+            console.error('Response text:', text.substring(0, 500));
+            throw new Error('Server returned invalid response. Please try again.');
+        }
+        
+        if (response.ok && responseData.success) {
+            // ✅ SUCCESS: Form saved, now redirect to payment
+            console.log('New connection request saved successfully:', responseData.tracking_id);
             
-            // Step 2: Submit form via AJAX to save NewConnectionRequest
-            const response = await fetch('{% url "new_connection" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            // Show success message
+            alert('Connection request saved successfully! Redirecting to payment...');
+            
+            // Get the redirect URL from response
+            let redirectUrl;
+            if (responseData.redirect_url) {
+                redirectUrl = responseData.redirect_url;
+            } else {
+                // Fallback URL
+                redirectUrl = `/payments/process/?plan_id=${planId}&new_connection=true&connection_request_id=${responseData.connection_request_id}`;
+            }
+            
+            // Redirect to payment page
+            window.location.href = redirectUrl;
+            
+        } else {
+            // Show error message
+            const errorMessage = responseData.error || responseData.message || 'Failed to save connection request. Please try again.';
+            
+            if (responseData.errors) {
+                // Show form errors
+                let errorList = 'Please correct the following errors:\n';
+                for (const field in responseData.errors) {
+                    errorList += `\n• ${field}: ${responseData.errors[field]}`;
                 }
-            });
-            
-            // Parse response
-            let responseData;
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                responseData = await response.json();
+                alert(errorList);
             } else {
-                // Try to get HTML response for debugging
-                const text = await response.text();
-                console.error('Non-JSON response:', text.substring(0, 500));
-                throw new Error('Server returned non-JSON response');
-            }
-            
-            if (response.ok && responseData.success) {
-                // Step 3: Get the connection request ID from response
-                const connectionRequestId = responseData.connection_request_id;
-                const trackingId = responseData.tracking_id;
-                
-                // ✅ SUCCESS: Form saved, now redirect to payment
-                console.log('New connection request saved successfully:', trackingId);
-                
-                // Redirect to payment page with connection request ID
-                window.location.href = `/payments/process/?plan_id=${planId}&new_connection=true&connection_request_id=${connectionRequestId}`;
-                
-            } else {
-                // Show error message
-                const errorMessage = responseData.error || responseData.message || 'Failed to save connection request. Please try again.';
                 alert('Error: ' + errorMessage);
-                console.error('Server error:', responseData);
-                this.innerHTML = originalText;
-                this.disabled = false;
             }
             
-        } catch (error) {
-            console.error('Error:', error);
-            alert('An error occurred while saving your request: ' + error.message);
+            console.error('Server error:', responseData);
             this.innerHTML = originalText;
             this.disabled = false;
         }
-    });
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while saving your request: ' + error.message);
+        this.innerHTML = originalText;
+        this.disabled = false;
+    }
+});
     
     // Update plan summary when plan is selected
     function updatePaymentSummary(planName, planPrice, planValidity, planData) {

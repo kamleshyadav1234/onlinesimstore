@@ -736,13 +736,20 @@ class UserNewConnectionHistoryView(LoginRequiredMixin, ListView):
     
 
 
-    
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
 class NewConnectionView(LoginRequiredMixin, CreateView):
     """View for creating new mobile connection request"""
     model = NewConnectionRequest
     form_class = NewConnectionForm
     template_name = 'plans/new_connection.html'
-    success_url = reverse_lazy('new_connection_status')
+    
+    def get_success_url(self):
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return None  # For AJAX requests, we return JSON
+        return reverse_lazy('new_connection_status')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -777,14 +784,25 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             # Set the object for CreateView
             self.object = connection_request
             
-            # Log the successful creation (instead of sending notifications)
             print(f"✅ New connection request created: {connection_request.tracking_id}")
             print(f"   User: {connection_request.user.email}")
             print(f"   Operator: {connection_request.operator.name}")
             print(f"   Plan: {connection_request.selected_plan.name}")
             print(f"   Status: {connection_request.status}")
             
-            # Success - redirect to status page
+            # Check if it's an AJAX request
+            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                # Return JSON response for AJAX
+                return JsonResponse({
+                    'success': True,
+                    'message': 'New connection request created successfully',
+                    'connection_request_id': connection_request.id,
+                    'tracking_id': connection_request.tracking_id,
+                    'plan_id': connection_request.selected_plan.id,
+                    'redirect_url': reverse('process_payment') + f'?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}'
+                })
+            
+            # Regular form submission
             messages.success(self.request, 
                 f"New connection request submitted successfully! Tracking ID: {connection_request.tracking_id}")
             
@@ -796,6 +814,15 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             print(f"❌ DEBUG: Error in form_valid: {str(e)}")
             import traceback
             traceback.print_exc()
+            
+            # Check if it's an AJAX request
+            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': str(e),
+                    'message': 'Failed to create connection request'
+                })
+            
             messages.error(self.request, f"Error: {str(e)}")
             return self.form_invalid(form)
     
@@ -809,6 +836,14 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         for field in form:
             if field.errors:
                 print(f"❌ DEBUG: Field '{field.name}' errors: {field.errors}")
+        
+        # Check if it's an AJAX request
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors,
+                'message': 'Please correct the errors below'
+            })
         
         messages.error(self.request, "Please correct the errors below.")
         return super().form_invalid(form)
