@@ -1,4 +1,4 @@
-<!-- templates/plans/port_number.html - FANCY SIMPLIFIED VERSION -->
+<!-- templates/plans/port_number.html - FANCY SIMPLIFIED VERSION WITH PAYMENTS -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -47,13 +47,13 @@
         border: 3px solid white;
     }
     
-    /* Fancy Progress Bar */
+    /* Fancy Progress Bar - UPDATED FOR 4 STEPS */
     .fancy-progress {
         height: 8px;
         background: rgba(255, 255, 255, 0.2);
         border-radius: 4px;
         margin: 2rem auto;
-        max-width: 400px;
+        max-width: 500px;
         position: relative;
     }
     
@@ -61,14 +61,14 @@
         height: 100%;
         background: white;
         border-radius: 4px;
-        width: 33%;
+        width: 25%;
         transition: width 0.5s ease;
     }
     
     .fancy-progress-steps {
         display: flex;
         justify-content: space-between;
-        max-width: 400px;
+        max-width: 500px;
         margin: 0 auto;
         position: relative;
         top: -25px;
@@ -95,7 +95,7 @@
         box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
     }
     
-    /* Step Content Styles - FIXED */
+    /* Step Content Styles */
     .step-content {
         display: none;
         opacity: 0;
@@ -153,6 +153,46 @@
     .fancy-form-label i {
         margin-right: 8px;
         color: #667eea;
+    }
+    
+    /* Payment Option Cards - NEW STYLES */
+    .payment-option-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        border: 2px solid #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .payment-option-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .payment-option-card.active {
+        border-color: #667eea;
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.15);
+    }
+    
+    .payment-option-card.active.border-success {
+        border-color: #28a745;
+        box-shadow: 0 15px 30px rgba(40, 167, 69, 0.15);
+    }
+    
+    .payment-option-card.active.border-primary {
+        border-color: #667eea;
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.15);
+    }
+    
+    .payment-icon {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2.5rem;
     }
     
     /* Operator Badge */
@@ -349,6 +389,17 @@
         transform: translateY(-1px);
     }
     
+    .fancy-btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+    }
+    
+    .fancy-btn-success:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(40, 167, 69, 0.4);
+    }
+    
     .fancy-btn-lg {
         padding: 16px 40px;
         font-size: 18px;
@@ -392,6 +443,31 @@
         border-top: 1px solid #eee;
     }
     
+    /* Payment Summary Styles */
+    .payment-summary-card {
+        background: white;
+        border: 2px solid #667eea;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.1);
+    }
+    
+    .payment-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .payment-summary-row:last-child {
+        border-bottom: none;
+        padding-top: 12px;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
     /* Responsive Design */
     @media (max-width: 768px) {
         .fancy-header {
@@ -418,6 +494,10 @@
         .nav-buttons .fancy-btn {
             width: 100%;
         }
+        
+        .payment-option-card {
+            margin-bottom: 1rem;
+        }
     }
 </style>
 {% endblock %}
@@ -434,7 +514,7 @@
             <p class="lead mb-0">Keep your number, switch to better operator with exclusive port-in offers</p>
         </div>
         
-        <!-- Fancy Progress Bar -->
+        <!-- Fancy Progress Bar - UPDATED FOR 4 STEPS -->
         <div class="fancy-progress">
             <div class="fancy-progress-bar" id="progressBar"></div>
         </div>
@@ -443,6 +523,7 @@
             <div class="fancy-step active" id="stepIndicator1">1</div>
             <div class="fancy-step" id="stepIndicator2">2</div>
             <div class="fancy-step" id="stepIndicator3">3</div>
+            <div class="fancy-step" id="stepIndicator4">4</div>
         </div>
     </div>
     
@@ -453,6 +534,8 @@
             
             <!-- Hidden field for selected plan -->
             <input type="hidden" name="selected_plan" id="selectedPlanId" value="">
+            <!-- Hidden field for payment method -->
+            <input type="hidden" name="payment_method" id="paymentMethodInput" value="cod">
             
             <!-- Step 1: Current Details -->
             <div class="step-content active" id="step1">
@@ -503,7 +586,6 @@
             
             <!-- Step 2: Choose Plan -->
             <div class="step-content" id="step2">
-
                 <h3 class="mb-4 text-center">Step 2: Choose Your New Plan</h3>
                 
                 <!-- Current Selection Display -->
@@ -547,8 +629,8 @@
                         <div class="row g-3">
                             {% for plan in port_plans %}
                             <div class="col-xl-4 col-lg-6 col-md-6">
-                                <div class="fancy-plan-card" onclick="selectPortPlan(this, {{ plan.id }})" 
-                                     data-plan='{"id": {{ plan.id }}, "name": "{{ plan.name|escapejs }}", "operator": "{{ plan.operator.name|escapejs }}", "price": {{ plan.price }}, "validity": "{{ plan.validity }}", "validity_unit": "{{ plan.validity_unit }}", "data_allowance": "{{ plan.data_allowance|default:'-'|escapejs }}", "voice_calls": "{{ plan.voice_calls|default:'-'|escapejs }}", "sms": "{{ plan.sms|default:'-'|escapejs }}", "port_in_bonus": "{{ plan.port_in_bonus|default:''|escapejs }}" }'>
+                                <div class="fancy-plan-card" onclick="selectPortPlan(this, {{ plan.id }}, '{{ plan.operator.id }}')" 
+                                     data-plan='{"id": {{ plan.id }}, "name": "{{ plan.name|escapejs }}", "operator": "{{ plan.operator.name|escapejs }}", "operator_id": {{ plan.operator.id }}, "price": {{ plan.price }}, "validity": "{{ plan.validity }}", "validity_unit": "{{ plan.validity_unit }}", "data_allowance": "{{ plan.data_allowance|default:'-'|escapejs }}", "voice_calls": "{{ plan.voice_calls|default:'-'|escapejs }}", "sms": "{{ plan.sms|default:'-'|escapejs }}", "port_in_bonus": "{{ plan.port_in_bonus|default:''|escapejs }}" }'>
                                     
                                     <div class="fancy-plan-header">
                                         <div class="fancy-plan-price">₹{{ plan.price }}</div>
@@ -730,8 +812,8 @@
                         <i class="fas fa-arrow-left me-2"></i>Back to Step 2
                     </button>
                     
-                    <button type="submit" class="btn fancy-btn fancy-btn-primary" id="submitBtn">
-                        <i class="fas fa-paper-plane me-2"></i>Submit Port Request
+                    <button type="button" class="btn fancy-btn fancy-btn-primary" id="continueStep3Btn" onclick="goToStep(4)">
+                        Continue to Payment <i class="fas fa-arrow-right ms-2"></i>
                     </button>
                 </div>
                 
@@ -739,6 +821,156 @@
                     <i class="fas fa-info-circle me-1"></i>
                     Documents will be verified by our delivery executive during SIM delivery
                 </p>
+            </div>
+            
+            <!-- Step 4: Payment Options -->
+            <div class="step-content" id="step4">
+                <h3 class="mb-4 text-center">Step 4: Payment Options</h3>
+                
+                <!-- Plan Summary Display -->
+                <div class="alert alert-info mb-4" style="border-radius: 12px;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">Plan Selected: <span id="paymentPlanName">-</span></h5>
+                            <p class="mb-0">Operator: <span id="paymentPlanOperator">-</span> | Price: <span id="paymentPlanPrice">₹0</span></p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="goToStep(2)">
+                                <i class="fas fa-edit me-1"></i> Change Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Method Selection -->
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3 text-center">Select Payment Method</h6>
+                    
+                    <div class="row g-4">
+                        <!-- Option 1: Cash on Delivery -->
+                        <div class="col-md-6">
+                            <div class="payment-option-card card h-100 border-success active" id="codCard">
+                                <div class="card-body text-center p-4">
+                                    <div class="payment-icon text-success">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                    <h5>Cash on Delivery</h5>
+                                    <p class="text-muted mb-3">Pay when porting is completed</p>
+                                    <div class="mb-3">
+                                        <h4 id="codAmountDisplay" class="text-success">₹0</h4>
+                                        <p class="small text-muted">Pay after successful porting</p>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method_radio" 
+                                               id="payment_cod" value="cod" checked>
+                                        <label class="form-check-label fw-bold" for="payment_cod">
+                                            Pay on Delivery
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Option 2: Pay Online Now -->
+                        <div class="col-md-6">
+                            <div class="payment-option-card card h-100 border-primary" id="onlineCard">
+                                <div class="card-body text-center p-4">
+                                    <div class="payment-icon text-primary">
+                                        <i class="fas fa-bolt"></i>
+                                    </div>
+                                    <h5>Pay Online Now</h5>
+                                    <p class="text-muted mb-3">Get priority processing</p>
+                                    <div class="mb-3">
+                                        <h4 id="onlineAmountDisplay" class="text-primary">₹0</h4>
+                                        <p class="small text-muted">Pay now, get priority service</p>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method_radio" 
+                                               id="payment_online" value="online">
+                                        <label class="form-check-label" for="payment_online">
+                                            Pay Now & Get Priority
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Summary -->
+                <div class="payment-summary-card">
+                    <h6 class="fw-bold mb-3">Order Summary</h6>
+                    <div class="payment-summary-row">
+                        <span>Plan Amount:</span>
+                        <span id="summaryPlanAmount">₹0</span>
+                    </div>
+                    <div class="payment-summary-row">
+                        <span>Tax (GST 18%):</span>
+                        <span id="summaryTaxAmount">₹0</span>
+                    </div>
+                    <div class="payment-summary-row" style="display: none;" id="simChargeRow">
+                        <span>SIM Card Charge:</span>
+                        <span id="simChargeAmount">₹49</span>
+                    </div>
+                    <div class="payment-summary-row">
+                        <span>Delivery Charge:</span>
+                        <span class="text-success">FREE</span>
+                    </div>
+                    <div class="payment-summary-row">
+                        <span>Total Amount:</span>
+                        <span id="summaryTotalAmount" class="text-primary fw-bold">₹0</span>
+                    </div>
+                </div>
+                
+                <!-- Online Payment Benefit Note -->
+                <div class="alert alert-success" id="onlineBenefitNote" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-crown me-3"></i>
+                        <div>
+                            <h6 class="alert-heading mb-1">Priority Processing Benefit</h6>
+                            <p class="mb-0">When you pay online, your port request gets priority processing and faster activation!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- COD Information Note -->
+                <div class="alert alert-warning" id="codInfoNote">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-3"></i>
+                        <div>
+                            <h6 class="alert-heading mb-1">Cash on Delivery Process</h6>
+                            <p class="mb-0">For COD, payment will be collected after successful porting. Standard processing time applies.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Final Terms Confirmation -->
+                <div class="form-check mt-4 mb-3">
+                    <input class="form-check-input" type="checkbox" id="finalTerms" required style="width: 20px; height: 20px;">
+                    <label class="form-check-label ms-2" for="finalTerms" style="font-size: 16px;">
+                        I confirm that all information is correct and I agree to proceed with the selected payment method
+                    </label>
+                </div>
+                
+                <!-- Navigation Buttons -->
+                <div class="nav-buttons">
+                    <button type="button" class="btn fancy-btn" onclick="goToStep(3)">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Details
+                    </button>
+                    
+                    <!-- Submit Buttons based on payment method -->
+                    <div id="submitButtons">
+                        <!-- COD Submit Button -->
+                        <button type="submit" class="btn fancy-btn fancy-btn-success" id="codSubmitBtn">
+                            <i class="fas fa-check-circle me-2"></i>Submit Port Request (COD)
+                        </button>
+                        
+                        <!-- Online Payment Button -->
+                        <button type="button" class="btn fancy-btn fancy-btn-primary" id="onlinePaymentBtn" style="display: none;">
+                            <i class="fas fa-lock me-2"></i>Pay Now & Complete
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
@@ -811,6 +1043,13 @@
                     <li>Delivery executive will collect required documents</li>
                     <li>KYC verification is mandatory for porting</li>
                 </ol>
+                <h6>Payment Terms</h6>
+                <ul>
+                    <li>Cash on Delivery: Pay after successful porting</li>
+                    <li>Online Payment: Get priority processing and faster activation</li>
+                    <li>All prices include applicable taxes</li>
+                    <li>Refunds processed within 5-7 business days for failed payments</li>
+                </ul>
                 <h6>Privacy Policy</h6>
                 <p>We respect your privacy. Your information will only be used for porting purposes and will not be shared with third parties without your consent.</p>
             </div>
@@ -820,16 +1059,22 @@
 
 {% block extra_js %}
 <script>
+// Global variables
+let currentStep = 1;
+let selectedPlanData = null;
+let formSubmitted = false;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the form
     initForm();
+    
     // Check Django context variable
     {% if show_step_3 %}
     goToStep(3);
     {% endif %}
+    
     function initForm() {
-        // Show only step 1 initially
-          // Show only step 1 initially (unless step 3 is already shown)
+        // Show only step 1 initially (unless step 3 is already shown)
         {% if not show_step_3 %}
         goToStep(1);
         {% endif %}
@@ -842,99 +1087,205 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('checkEligibilityBtn').addEventListener('click', checkEligibility);
         
         // New operator filter
-        // Replace the current new operator filter code with this:
-document.getElementById('newOperator').addEventListener('change', function() {
-    const operatorId = this.value;
-    
-    // Show loading
-    const plansContainer = document.querySelector('.row.g-3'); // Adjust selector as needed
-    if (plansContainer) {
-        plansContainer.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Loading plans...</p></div>';
+        document.getElementById('newOperator').addEventListener('change', function() {
+            const operatorId = this.value;
+            
+            // Show loading
+            const plansContainer = document.querySelector('.row.g-3');
+            if (plansContainer) {
+                plansContainer.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Loading plans...</p></div>';
+            }
+            
+            // Make AJAX request
+            fetch(window.location.pathname + '?ajax=1&new_operator=' + operatorId)
+                .then(response => response.json())
+                .then(data => {
+                    updatePlans(data.plans);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading plans. Please try again.');
+                });
+        });
+        
+        // Payment option selection
+        setupPaymentOptions();
+        
+        // Form submit handler for COD
+        document.getElementById('portForm').addEventListener('submit', handleFormSubmit);
+        
+        // Online payment button click handler
+        document.getElementById('onlinePaymentBtn').addEventListener('click', handleOnlinePayment);
+        
+        // Prevent duplicate submissions
+        window.addEventListener('beforeunload', function() {
+            if (formSubmitted) {
+                formSubmitted = false;
+            }
+        });
     }
     
-    // Make AJAX request
-    fetch(window.location.pathname + '?ajax=1&new_operator=' + operatorId)
-        .then(response => response.json())
-        .then(data => {
-            // Update plans dynamically
-            updatePlans(data.plans);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error loading plans. Please try again.');
+    function setupPaymentOptions() {
+        const codCard = document.getElementById('codCard');
+        const onlineCard = document.getElementById('onlineCard');
+        const codRadio = document.getElementById('payment_cod');
+        const onlineRadio = document.getElementById('payment_online');
+        
+        codCard.addEventListener('click', function() {
+            selectPaymentMethod('cod');
         });
-});
-
-function updatePlans(plans) {
-    const plansContainer = document.querySelector('.row.g-3');
-    if (!plansContainer) return;
-    
-    if (plans.length === 0) {
-        plansContainer.innerHTML = `
-            <div class="col-12">
-                <div class="text-center py-4">
-                    <div class="fancy-check-icon" style="background: #ff9800;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <h4 class="text-muted mb-3">No port-in plans available</h4>
-                    <p class="text-muted">Please check back later or select a different operator</p>
-                </div>
-            </div>
-        `;
-        return;
+        
+        onlineCard.addEventListener('click', function() {
+            selectPaymentMethod('online');
+        });
+        
+        codRadio.addEventListener('change', function() {
+            if (this.checked) selectPaymentMethod('cod');
+        });
+        
+        onlineRadio.addEventListener('change', function() {
+            if (this.checked) selectPaymentMethod('online');
+        });
     }
     
-    let plansHTML = '';
-    plans.forEach(plan => {
-        plansHTML += `
-            <div class="col-xl-4 col-lg-6 col-md-6">
-                <div class="fancy-plan-card" onclick="selectPortPlan(this, ${plan.id})" 
-                     data-plan='${JSON.stringify(plan)}'>
-                    
-                    <div class="fancy-plan-header">
-                        <div class="fancy-plan-price">₹${plan.price}</div>
-                        <div class="fancy-plan-validity">${plan.validity} ${plan.validity_unit}</div>
-                    </div>
-                    
-                    <div class="operator-badge mb-2">
-                        <span class="operator-name-small">${plan.operator_name}</span>
-                    </div>
-                    
-                    <div class="fancy-plan-features">
-                        <div class="fancy-feature-item">
-                            <span class="fancy-feature-label">Data</span>
-                            <span class="fancy-feature-value">${plan.data_allowance || 'Unlimited'}</span>
+    function selectPaymentMethod(method) {
+        const codCard = document.getElementById('codCard');
+        const onlineCard = document.getElementById('onlineCard');
+        const codSubmitBtn = document.getElementById('codSubmitBtn');
+        const onlinePaymentBtn = document.getElementById('onlinePaymentBtn');
+        const onlineBenefitNote = document.getElementById('onlineBenefitNote');
+        const codInfoNote = document.getElementById('codInfoNote');
+        
+        // Update card styling
+        codCard.classList.remove('active', 'border-success');
+        onlineCard.classList.remove('active', 'border-primary');
+        
+        // Update radio buttons
+        document.getElementById('payment_cod').checked = false;
+        document.getElementById('payment_online').checked = false;
+        
+        if (method === 'cod') {
+            codCard.classList.add('active', 'border-success');
+            document.getElementById('payment_cod').checked = true;
+            document.getElementById('paymentMethodInput').value = 'cod';
+            
+            // Show COD submit button, hide online payment button
+            codSubmitBtn.style.display = 'inline-block';
+            onlinePaymentBtn.style.display = 'none';
+            
+            // Show/hide notes
+            onlineBenefitNote.style.display = 'none';
+            codInfoNote.style.display = 'block';
+            
+            // Update summary for COD
+            updatePaymentSummary('cod');
+            
+        } else if (method === 'online') {
+            onlineCard.classList.add('active', 'border-primary');
+            document.getElementById('payment_online').checked = true;
+            document.getElementById('paymentMethodInput').value = 'online';
+            
+            // Show online payment button, hide COD submit button
+            codSubmitBtn.style.display = 'none';
+            onlinePaymentBtn.style.display = 'inline-block';
+            
+            // Show/hide notes
+            onlineBenefitNote.style.display = 'block';
+            codInfoNote.style.display = 'none';
+            
+            // Update summary for online payment
+            updatePaymentSummary('online');
+        }
+    }
+    
+    function updatePaymentSummary(paymentMethod) {
+        if (!selectedPlanData) return;
+        
+        const planAmount = parseFloat(selectedPlanData.price) || 0;
+        const taxAmount = planAmount * 0.18; // 18% GST
+        let totalAmount = planAmount + taxAmount;
+        
+        // Update displays
+        document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;
+        document.getElementById('summaryTaxAmount').textContent = `₹${taxAmount.toFixed(2)}`;
+        
+        if (paymentMethod === 'online') {
+            // Online payment: plan price + tax
+            document.getElementById('summaryTotalAmount').textContent = `₹${totalAmount.toFixed(2)}`;
+            document.getElementById('codAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
+            document.getElementById('onlineAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
+        } else {
+            // COD: same as online (no SIM charge for porting)
+            document.getElementById('summaryTotalAmount').textContent = `₹${totalAmount.toFixed(2)}`;
+            document.getElementById('codAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
+            document.getElementById('onlineAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
+        }
+    }
+    
+    function updatePlans(plans) {
+        const plansContainer = document.querySelector('.row.g-3');
+        if (!plansContainer) return;
+        
+        if (plans.length === 0) {
+            plansContainer.innerHTML = `
+                <div class="col-12">
+                    <div class="text-center py-4">
+                        <div class="fancy-check-icon" style="background: #ff9800;">
+                            <i class="fas fa-exclamation-triangle"></i>
                         </div>
-                        <div class="fancy-feature-item">
-                            <span class="fancy-feature-label">Calls</span>
-                            <span class="fancy-feature-value">${plan.voice_calls || 'Unlimited'}</span>
-                        </div>
-                        <div class="fancy-feature-item">
-                            <span class="fancy-feature-label">SMS</span>
-                            <span class="fancy-feature-value">${plan.sms || 'Unlimited'}</span>
-                        </div>
-                        <div class="fancy-feature-item">
-                            <span class="fancy-feature-label">Validity</span>
-                            <span class="fancy-feature-value">${plan.validity} ${plan.validity_unit}</span>
-                        </div>
-                        ${plan.port_in_bonus ? `
-                        <div class="fancy-bonus-badge mt-2">
-                            <i class="fas fa-gift me-1"></i> ${plan.port_in_bonus}
-                        </div>
-                        ` : ''}
+                        <h4 class="text-muted mb-3">No port-in plans available</h4>
+                        <p class="text-muted">Please check back later or select a different operator</p>
                     </div>
                 </div>
-            </div>
-        `;
-    });
-    
-    plansContainer.innerHTML = plansHTML;
-}
-        // Form submit handler
-        document.getElementById('portForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            handleFormSubmit();
+            `;
+            return;
+        }
+        
+        let plansHTML = '';
+        plans.forEach(plan => {
+            plansHTML += `
+                <div class="col-xl-4 col-lg-6 col-md-6">
+                    <div class="fancy-plan-card" onclick="selectPortPlan(this, ${plan.id}, ${plan.operator_id})" 
+                         data-plan='${JSON.stringify(plan)}'>
+                        
+                        <div class="fancy-plan-header">
+                            <div class="fancy-plan-price">₹${plan.price}</div>
+                            <div class="fancy-plan-validity">${plan.validity} ${plan.validity_unit}</div>
+                        </div>
+                        
+                        <div class="operator-badge mb-2">
+                            <span class="operator-name-small">${plan.operator_name}</span>
+                        </div>
+                        
+                        <div class="fancy-plan-features">
+                            <div class="fancy-feature-item">
+                                <span class="fancy-feature-label">Data</span>
+                                <span class="fancy-feature-value">${plan.data_allowance || 'Unlimited'}</span>
+                            </div>
+                            <div class="fancy-feature-item">
+                                <span class="fancy-feature-label">Calls</span>
+                                <span class="fancy-feature-value">${plan.voice_calls || 'Unlimited'}</span>
+                            </div>
+                            <div class="fancy-feature-item">
+                                <span class="fancy-feature-label">SMS</span>
+                                <span class="fancy-feature-value">${plan.sms || 'Unlimited'}</span>
+                            </div>
+                            <div class="fancy-feature-item">
+                                <span class="fancy-feature-label">Validity</span>
+                                <span class="fancy-feature-value">${plan.validity} ${plan.validity_unit}</span>
+                            </div>
+                            ${plan.port_in_bonus ? `
+                            <div class="fancy-bonus-badge mt-2">
+                                <i class="fas fa-gift me-1"></i> ${plan.port_in_bonus}
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
         });
+        
+        plansContainer.innerHTML = plansHTML;
     }
     
     // Update display fields
@@ -988,86 +1339,160 @@ function updatePlans(plans) {
         return true;
     }
     
-    // Handle form submission
-async function handleFormSubmit() {
-
-     // First check if mobile number already has active port request
-    const mobileNumber = document.getElementById('mobileNumberInput').value;
-    
-    // Check with server if number already has active request
-    try {
-        const response = await fetch(`/api/check-port-request/${mobileNumber}/`);
-        const data = await response.json();
+    // Handle form submission for COD
+    async function handleFormSubmit(e) {
+        e.preventDefault();
         
-        if (data.has_active_request) {
-            alert(`Mobile number ${mobileNumber} already has an active port request. Please use a different number or wait for the current request to complete.`);
+        const paymentMethod = document.getElementById('paymentMethodInput').value;
+        
+        // If online payment selected, don't submit form normally
+        if (paymentMethod === 'online') {
             return false;
         }
-    } catch (error) {
-        console.log('Could not check port request status, continuing...');
-    }
-    // Validate form
-    if (!validateStep3()) {
-        return false;
-    }
-    
-    const selectedPlan = document.getElementById('selectedPlanId').value;
-    if (!selectedPlan) {
-        alert('Please select a port-in plan');
-        goToStep(2);
-        return false;
-    }
-    
-    // Show loading
-    const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
-    submitBtn.disabled = true;
-    
-    try {
-        // Submit the form using FormData (proper way)
-        const form = document.getElementById('portForm');
-        const formData = new FormData(form);
         
-        // Add CSRF token if not already included
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        // Prevent duplicate submissions
+        if (formSubmitted) {
+            console.log('Form already submitted, preventing duplicate submission');
+            return false;
+        }
         
-        const response = await fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': csrfToken,
-            }
-        });
+        // Validate all steps
+        if (!validateAllSteps()) {
+            return false;
+        }
         
-        if (response.redirected) {
-            // If redirected, follow the redirect
-            window.location.href = response.url;
-        } else if (response.ok) {
-            // If response is OK but not redirected, submit normally
-            form.submit();
-        } else {
-            // Handle errors
+        // Validate final terms
+        const finalTerms = document.getElementById('finalTerms');
+        if (!finalTerms.checked) {
+            alert('Please confirm the terms before submitting');
+            finalTerms.focus();
+            return false;
+        }
+        
+        // Set submission flag
+        formSubmitted = true;
+        
+        // Show loading
+        const submitBtn = document.getElementById('codSubmitBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+        submitBtn.disabled = true;
+        
+        try {
+            // Submit the form normally for COD
+            const form = document.getElementById('portForm');
+            await form.submit();
+            
+        } catch (error) {
+            console.error('Error submitting form:', error);
             alert('Error submitting form. Please try again.');
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
+            formSubmitted = false;
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error: Please try again.');
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
     }
-}
     
-    // Validate step 3
-    function validateStep3() {
+    // Handle online payment
+    async function handleOnlinePayment(e) {
+        e.preventDefault();
+        
+        // Prevent duplicate clicks
+        if (this.dataset.processing === 'true') {
+            return;
+        }
+        
+        // Validate all steps
+        if (!validateAllSteps()) {
+            return;
+        }
+        
+        // Validate final terms
+        const finalTerms = document.getElementById('finalTerms');
+        if (!finalTerms.checked) {
+            alert('Please confirm the terms before proceeding to payment');
+            finalTerms.focus();
+            return;
+        }
+        
+        // Set processing flag
+        this.dataset.processing = 'true';
+        
+        // Show loading
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        this.disabled = true;
+        
+        try {
+            // Submit form via AJAX to create port request
+            const formData = new FormData(document.getElementById('portForm'));
+            
+            const response = await fetch('{% url "port_number" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Redirect to payment page
+                window.location.href = data.redirect_url;
+            } else {
+                const errorMessage = data.error || data.message || 'Failed to create port request';
+                alert('Error: ' + errorMessage);
+                
+                // Reset button state
+                this.innerHTML = originalText;
+                this.disabled = false;
+                this.dataset.processing = 'false';
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Network error. Please try again.');
+            
+            // Reset button state
+            this.innerHTML = originalText;
+            this.disabled = false;
+            this.dataset.processing = 'false';
+        }
+    }
+    
+    // Validate all steps
+    function validateAllSteps() {
+        // Validate step 1
+        const mobileNumber = document.getElementById('mobileNumberInput').value.trim();
+        const currentOperator = document.getElementById('currentOperatorSelect').value;
+        
+        if (!mobileNumber.match(/^[6-9]\d{9}$/)) {
+            alert('Please enter a valid 10-digit Indian mobile number starting with 6-9');
+            goToStep(1);
+            return false;
+        }
+        
+        if (!currentOperator) {
+            alert('Please select your current operator');
+            goToStep(1);
+            return false;
+        }
+        
+        // Validate step 2 (plan selection)
+        if (!selectedPlanData) {
+            alert('Please select a port-in plan');
+            goToStep(2);
+            return false;
+        }
+        
+        // Validate step 3 (personal details)
         const requiredFields = ['full_name', 'email', 'address', 'pincode', 'city', 'state'];
         for (const fieldName of requiredFields) {
             const field = document.querySelector(`[name="${fieldName}"]`);
             if (field && field.required && !field.value.trim()) {
                 alert(`Please fill in ${fieldName.replace('_', ' ')}`);
-                field.focus();
+                goToStep(3);
                 return false;
             }
         }
@@ -1076,14 +1501,15 @@ async function handleFormSubmit() {
         const pincode = document.getElementById('pincodeInput').value;
         if (!pincode.match(/^\d{6}$/)) {
             alert('Please enter a valid 6-digit pincode');
-            document.getElementById('pincodeInput').focus();
+            goToStep(3);
             return false;
         }
         
+        // Validate terms
         const termsCheckbox = document.getElementById('terms');
         if (!termsCheckbox.checked) {
             alert('Please agree to the Terms and Conditions');
-            termsCheckbox.focus();
+            goToStep(3);
             return false;
         }
         
@@ -1091,8 +1517,8 @@ async function handleFormSubmit() {
     }
 });
 
-// Update the selectPortPlan function:
-function selectPortPlan(cardElement, planId) {
+// Global function to select port plan
+function selectPortPlan(cardElement, planId, operatorId) {
     // Remove selected class from all cards
     document.querySelectorAll('.fancy-plan-card').forEach(card => {
         card.classList.remove('selected');
@@ -1102,25 +1528,30 @@ function selectPortPlan(cardElement, planId) {
     cardElement.classList.add('selected');
     
     // Get plan details from data attribute
-    const planData = JSON.parse(cardElement.getAttribute('data-plan'));
+    selectedPlanData = JSON.parse(cardElement.getAttribute('data-plan'));
     
     // Update selected plan summary
-    document.getElementById('summaryPlanPrice').textContent = `₹${planData.price}`;
-    document.getElementById('summaryPlanOperator').textContent = planData.operator;
-    document.getElementById('summaryPlanName').textContent = planData.name;
-    document.getElementById('summaryPlanValidity').textContent = `${planData.validity} ${planData.validity_unit}`;
-    document.getElementById('summaryPlanData').textContent = planData.data_allowance || 'Unlimited';
-    document.getElementById('summaryPlanCalls').textContent = planData.voice_calls || 'Unlimited';
-    document.getElementById('summaryPlanSMS').textContent = planData.sms || 'Unlimited';
+    document.getElementById('summaryPlanPrice').textContent = `₹${selectedPlanData.price}`;
+    document.getElementById('summaryPlanOperator').textContent = selectedPlanData.operator;
+    document.getElementById('summaryPlanName').textContent = selectedPlanData.name;
+    document.getElementById('summaryPlanValidity').textContent = `${selectedPlanData.validity} ${selectedPlanData.validity_unit}`;
+    document.getElementById('summaryPlanData').textContent = selectedPlanData.data_allowance || 'Unlimited';
+    document.getElementById('summaryPlanCalls').textContent = selectedPlanData.voice_calls || 'Unlimited';
+    document.getElementById('summaryPlanSMS').textContent = selectedPlanData.sms || 'Unlimited';
     
     // Update final display for step 3
-    document.getElementById('finalPlanName').textContent = planData.name;
-    document.getElementById('finalPlanOperator').textContent = planData.operator;
-    document.getElementById('finalPlanPrice').textContent = `₹${planData.price}`;
+    document.getElementById('finalPlanName').textContent = selectedPlanData.name;
+    document.getElementById('finalPlanOperator').textContent = selectedPlanData.operator;
+    document.getElementById('finalPlanPrice').textContent = `₹${selectedPlanData.price}`;
+    
+    // Update payment display for step 4
+    document.getElementById('paymentPlanName').textContent = selectedPlanData.name;
+    document.getElementById('paymentPlanOperator').textContent = selectedPlanData.operator;
+    document.getElementById('paymentPlanPrice').textContent = `₹${selectedPlanData.price}`;
     
     // Show bonus if exists
-    if (planData.port_in_bonus) {
-        document.getElementById('summaryPlanBonus').textContent = planData.port_in_bonus;
+    if (selectedPlanData.port_in_bonus) {
+        document.getElementById('summaryPlanBonus').textContent = selectedPlanData.port_in_bonus;
     } else {
         document.getElementById('summaryPlanBonus').textContent = 'None';
     }
@@ -1128,20 +1559,15 @@ function selectPortPlan(cardElement, planId) {
     // Set hidden field values
     document.getElementById('selectedPlanId').value = planId;
     
-    // IMPORTANT: Also get and set the operator ID from the plan
-    // You need to get the operator ID somehow - either from data-plan or another attribute
-    // Update your plan cards to include operator_id:
-    // data-plan='{"id": {{ plan.id }}, "operator_id": {{ plan.operator.id }}, ... }'
-    
-    // For now, let's assume we can get it from the selected plan display
-    // You'll need to update your template to pass operator_id in the data-plan attribute
-    
     // Show summary section
     const summaryElement = document.getElementById('selectedPlanSummary');
     summaryElement.style.display = 'block';
     
     // Enable continue button
     document.getElementById('continueBtn').disabled = false;
+    
+    // Update payment summary
+    updatePaymentSummary('cod'); // Default to COD
     
     // Smooth scroll to summary
     setTimeout(() => {
@@ -1152,8 +1578,10 @@ function selectPortPlan(cardElement, planId) {
     }, 300);
 }
 
-// Navigation function
+// Navigation function - UPDATED FOR 4 STEPS
 function goToStep(stepNumber) {
+    currentStep = stepNumber;
+    
     // Hide all steps
     document.querySelectorAll('.step-content').forEach(content => {
         content.classList.remove('active');
@@ -1170,12 +1598,41 @@ function goToStep(stepNumber) {
     // Show current step
     document.getElementById(`step${stepNumber}`).classList.add('active');
     
-    // Update progress bar
-    const progress = (stepNumber / 3) * 100;
+    // Update progress bar (now 4 steps total)
+    const progress = (stepNumber / 4) * 100;
     document.getElementById('progressBar').style.width = `${progress}%`;
+    
+    // If going to step 4, update payment display
+    if (stepNumber === 4 && selectedPlanData) {
+        const paymentMethod = document.getElementById('paymentMethodInput').value;
+        updatePaymentSummary(paymentMethod);
+        
+        // Ensure a payment method is selected
+        if (!document.querySelector('input[name="payment_method_radio"]:checked')) {
+            selectPaymentMethod('cod'); // Default to COD
+        }
+    }
     
     // Smooth scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Global function to update payment summary
+function updatePaymentSummary(paymentMethod) {
+    if (!selectedPlanData) return;
+    
+    const planAmount = parseFloat(selectedPlanData.price) || 0;
+    const taxAmount = planAmount * 0.18; // 18% GST
+    let totalAmount = planAmount + taxAmount;
+    
+    // Update displays
+    document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;
+    document.getElementById('summaryTaxAmount').textContent = `₹${taxAmount.toFixed(2)}`;
+    document.getElementById('summaryTotalAmount').textContent = `₹${totalAmount.toFixed(2)}`;
+    
+    // Update payment method specific displays
+    document.getElementById('codAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
+    document.getElementById('onlineAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
 }
 </script>
 {% endblock %}

@@ -48,6 +48,8 @@ class Payment(models.Model):
     razorpay_order_id = models.CharField(max_length=100, blank=True)
     razorpay_payment_id = models.CharField(max_length=100, blank=True)
     razorpay_signature = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes about the payment")
+
     
     # Bill details
     bill_number = models.CharField(max_length=50, unique=True)

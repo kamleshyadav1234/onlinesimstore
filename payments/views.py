@@ -18,7 +18,7 @@ from django.db.models import Sum
 from users.models import UserPlanHistory  # Add this import
 
 from .models import Payment, Coupon
-from plans.models import Plan, SIMReplacementRequest
+from plans.models import Plan, PortRequest, SIMReplacementRequest
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1139,3 +1139,67 @@ def payment_detail(request, bill_number):
     }
     
     return render(request, 'payments/detail.html', context)
+
+
+
+from django.db import transaction
+
+# payments/views.py
+@login_required
+@transaction.atomic
+def collect_cod_payment(request, port_request_id):
+    """Mark COD payment as collected and create UserPlanHistory"""
+    try:
+        port_request = get_object_or_404(PortRequest, id=port_request_id, user=request.user)
+        
+        # Find the COD payment
+        payment = Payment.objects.filter(
+            port_request=port_request,
+            user=request.user,
+            payment_method='cash',
+            payment_status='pending'
+        ).first()
+        
+        if not payment:
+            messages.error(request, 'No pending COD payment found.')
+            return redirect('port_request_status', tracking_id=port_request.tracking_id)
+        
+        # Update payment status
+        payment.payment_status = 'completed'
+        payment.payment_date = timezone.now()
+        payment.save()
+        
+        # ✅ CREATE USER PLAN HISTORY FOR COD PAYMENT
+        if payment.plan:
+            validity_days = payment.plan.validity
+            
+            if payment.plan.validity_unit == 'months':
+                validity_days = validity_days * 30
+            elif payment.plan.validity_unit == 'year':
+                validity_days = validity_days * 365
+            
+            UserPlanHistory.objects.create(
+                user=request.user,
+                plan=payment.plan,
+                purchased_on=payment.payment_date,
+                activated_on=timezone.now(),
+                expires_on=timezone.now() + timezone.timedelta(days=validity_days),
+                status='active',
+                transaction_id=payment.transaction_id,
+                port_request=port_request  # Link to port request
+            )
+            
+            print(f"✅ Created UserPlanHistory for COD port payment: {payment.bill_number}")
+        
+        # Update port request status
+        port_request.status = 'payment_completed'
+        port_request.save()
+        
+        messages.success(request, f'COD payment collected successfully! Plan activated.')
+        
+        return redirect('payment_success') + f'?payment_id={payment.id}'
+        
+    except Exception as e:
+        logger.error(f"Error collecting COD payment: {str(e)}")
+        messages.error(request, 'Error collecting payment. Please try again.')
+        return redirect('port_request_status', tracking_id=port_request.tracking_id)

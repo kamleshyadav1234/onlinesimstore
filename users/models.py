@@ -65,7 +65,8 @@ class UserPlanHistory(models.Model):
     status = models.CharField(max_length=20, default='active')
     transaction_id = models.CharField(max_length=100, blank=True)
     gateway_transaction_id = models.CharField(max_length=100, blank=True)  # Make it blank=True
-
+    port_request = models.ForeignKey('plans.PortRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='plan_history')
+    new_connection = models.ForeignKey('plans.NewConnectionRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='plan_history')
     class Meta:
         ordering = ['-purchased_on']
     

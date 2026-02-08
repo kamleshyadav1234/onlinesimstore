@@ -113,6 +113,8 @@ class PortRequest(models.Model):
         ('draft', 'Draft'),
         ('pending', 'Pending'),
         ('upc_sent', 'UPC Sent'),
+        ('payment_completed', 'Payment Completed'),  # ✅ ADD THIS
+
         ('documents_uploaded', 'Documents Uploaded'),
         ('processing', 'Processing'),
         ('completed', 'Ported Successfully'),
@@ -181,6 +183,15 @@ class PortRequest(models.Model):
         """Check if port request is still active"""
         active_statuses = ['draft', 'pending', 'upc_sent', 'documents_uploaded', 'processing']
         return self.status in active_statuses
+    
+
+    @property
+    def payment(self):
+        """Get associated payment if exists"""
+        try:
+            return self.payment_set.filter(payment_type='port_request').first()
+        except:
+            return None
 
 # NEW: New Connection Request Model
 class NewConnectionRequest(models.Model):

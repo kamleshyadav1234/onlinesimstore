@@ -11,4 +11,6 @@ urlpatterns = [
     path('history/', views.payment_history, name='payment_history'),
     path('detail/<str:bill_number>/', views.payment_detail, name='payment_detail'),
     path('webhook/', views.payment_webhook, name='payment_webhook'),
+    path('payments/collect-cod/<int:port_request_id>/', views.collect_cod_payment, name='collect_cod_payment'),
+
 ]

@@ -727,6 +727,43 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             return None
         return reverse_lazy('port_request_status')
     
+
+
+    def handle_ajax_request(self, request):
+        """Handle AJAX request for loading plans"""
+        new_operator_id = request.GET.get('new_operator')
+        
+        # Get port-in plans for the selected operator or all
+        port_plans = Plan.objects.filter(
+            plan_type='port_in',
+            is_active=True
+        ).select_related('operator')
+        
+        if new_operator_id:
+            port_plans = port_plans.filter(operator_id=new_operator_id)
+        
+        # Serialize plans data
+        plans_data = []
+        for plan in port_plans.order_by('operator__name', 'price'):
+            plans_data.append({
+                'id': plan.id,
+                'name': plan.name,
+                'operator_id': plan.operator.id,
+                'operator_name': plan.operator.name,
+                'price': str(plan.price),
+                'validity': plan.validity,
+                'validity_unit': plan.get_validity_unit_display(),
+                'data_allowance': plan.data_allowance or 'Unlimited',
+                'voice_calls': plan.voice_calls or 'Unlimited',
+                'sms': plan.sms or 'Unlimited',
+                'port_in_bonus': plan.port_in_bonus,
+            })
+        
+        return JsonResponse({
+            'plans': plans_data,
+            'count': len(plans_data)
+        })
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Port Your Number'
@@ -839,6 +876,7 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             port_request = form.save(commit=False)
             port_request.user = self.request.user
             port_request.new_operator = new_operator
+            port_request.selected_plan = selected_plan  # Make sure selected_plan is saved
             port_request.status = 'pending'
             
             # Generate tracking ID
@@ -859,6 +897,20 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             # ✅ CRITICAL: Handle payment based on payment method
             payment_method = self.request.POST.get('payment_method', 'cod')
             
+            # Create Payment record for COD
+            if payment_method == 'cod':
+                payment = self.create_cod_payment(port_request, selected_plan)
+                
+                # Store payment ID in session for later use
+                self.request.session['current_payment_id'] = payment.id
+                
+                # For COD, update port request status directly to payment_completed
+                port_request.status = 'payment_completed'
+                port_request.save()
+                
+                # Create plan history for COD
+                self.create_plan_history_for_cod(payment, selected_plan)
+            
             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': True,
@@ -875,6 +927,68 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             messages.error(self.request, f"Error: {str(e)}")
             self.request.session['show_step_3'] = True
             return self.form_invalid(form)
+    
+    def create_cod_payment(self, port_request, selected_plan):
+        """Create a COD payment record"""
+        from django.utils import timezone
+        
+        # Generate a unique transaction ID for COD
+        import uuid
+        transaction_id = f"COD-{uuid.uuid4().hex[:12].upper()}"
+        
+        # Generate bill number
+        from datetime import datetime
+        bill_number = f"BILL-COD-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        
+        # Create payment record
+        payment = Payment.objects.create(
+            user=self.request.user,
+            amount=selected_plan.price,
+            payment_method='cod',
+            payment_status='completed',  # COD is considered completed as user will pay later
+            transaction_id=transaction_id,
+            bill_number=bill_number,
+            payment_date=timezone.now(),
+            plan=selected_plan,
+            port_request=port_request,
+            notes="Cash on Delivery - Payment pending collection"
+        )
+        
+        return payment
+    
+    def create_plan_history_for_cod(self, payment, selected_plan):
+        """Create plan history entry for COD payments"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        validity_days = selected_plan.validity
+        
+        if selected_plan.validity_unit == 'months':
+            validity_days = validity_days * 30
+        elif selected_plan.validity_unit == 'year':
+            validity_days = validity_days * 365
+        
+        # Create plan history
+        UserPlanHistory.objects.create(
+            user=self.request.user,
+            plan=selected_plan,
+            purchased_on=payment.payment_date,
+            activated_on=timezone.now(),
+            expires_on=timezone.now() + timedelta(days=validity_days),
+            status='active',
+            transaction_id=payment.transaction_id,
+            port_request=payment.port_request
+        )
+        
+        # Update user's current plan
+        try:
+            if hasattr(self.request.user, 'profile'):
+                self.request.user.profile.current_plan = selected_plan
+                self.request.user.profile.plan_start_date = timezone.now()
+                self.request.user.profile.plan_expiry_date = timezone.now() + timedelta(days=validity_days)
+                self.request.user.profile.save()
+        except AttributeError:
+            pass  # No profile model
     
     def form_invalid(self, form):
         """Handle invalid form submission"""
@@ -943,7 +1057,13 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             next_number = 1
         
         return f'MNP{date_str}{next_number:04d}'
+    def get(self, request, *args, **kwargs):
+        """Handle AJAX requests for loading plans"""
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
+            return self.handle_ajax_request(request)
+        return super().get(request, *args, **kwargs)
     
+
     def generate_upc_code(self):
         """Generate Unique Porting Code"""
         import random
@@ -1013,6 +1133,179 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.db import IntegrityError
 import traceback
+# class NewConnectionView(LoginRequiredMixin, CreateView):
+#     """View for creating new mobile connection request"""
+#     model = NewConnectionRequest
+#     form_class = NewConnectionForm
+#     template_name = 'plans/new_connection.html'
+    
+#     def get_success_url(self):
+#         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#             return None  # For AJAX requests, we return JSON
+#         return reverse_lazy('new_connection_status')
+    
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['operators'] = TelecomOperator.objects.filter(is_active=True)
+#         return context
+    
+#     def get_initial(self):
+#         """Set initial values for the form"""
+#         initial = super().get_initial()
+#         initial['full_name'] = self.request.user.get_full_name()
+#         initial['email'] = self.request.user.email
+#         return initial
+    
+#     def form_valid(self, form):
+#         try:
+#             # Create new connection request
+#             connection_request = form.save(commit=False)
+#             connection_request.user = self.request.user
+#             connection_request.status = 'pending'
+            
+#             # ✅ IMPORTANT: Check for duplicate pending requests
+#             duplicate_check = NewConnectionRequest.objects.filter(
+#                 user=self.request.user,
+#                 operator=connection_request.operator,
+#                 selected_plan=connection_request.selected_plan,
+#                 full_name=connection_request.full_name,
+#                 email=connection_request.email,
+#                 status__in=['draft', 'pending']
+#             ).exclude(id=connection_request.id if connection_request.id else None).first()
+            
+#             if duplicate_check:
+#                 # Return existing request instead of creating new one
+#                 print(f"✅ Using existing request: {duplicate_check.tracking_id}")
+#                 if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#                     return JsonResponse({
+#                         'success': True,
+#                         'message': 'Using existing connection request',
+#                         'tracking_id': duplicate_check.tracking_id,
+#                         'connection_request_id': duplicate_check.id,
+#                         'redirect_url': self.get_payment_redirect_url(duplicate_check)
+#                     })
+#                 return self.payment_redirect(duplicate_check)
+            
+#             # Save the new request
+#             connection_request.save()
+            
+#             print(f"✅ New connection request created: {connection_request.tracking_id}")
+#             print(f"   User: {connection_request.email}")
+#             print(f"   Operator: {connection_request.operator}")
+#             print(f"   Plan: {connection_request.selected_plan}")
+#             print(f"   Status: {connection_request.status}")
+            
+#             # Handle AJAX request
+#             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#                 return JsonResponse({
+#                     'success': True,
+#                     'message': 'Connection request created successfully',
+#                     'tracking_id': connection_request.tracking_id,
+#                     'connection_request_id': connection_request.id,
+#                     'redirect_url': self.get_payment_redirect_url(connection_request)
+#                 })
+            
+#             # Handle regular form submission (COD)
+#             return self.payment_redirect(connection_request)
+            
+#         except IntegrityError as e:
+#             print(f"❌ IntegrityError in form_valid: {str(e)}")
+            
+#             # Handle duplicate tracking_id gracefully
+#             if 'tracking_id' in str(e):
+#                 # Get the latest request for this user
+#                 existing_request = NewConnectionRequest.objects.filter(
+#                     user=self.request.user
+#                 ).order_by('-created_at').first()
+                
+#                 if existing_request:
+#                     print(f"✅ Found existing request: {existing_request.tracking_id}")
+                    
+#                     if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#                         return JsonResponse({
+#                             'success': True,
+#                             'message': 'Using existing connection request',
+#                             'tracking_id': existing_request.tracking_id,
+#                             'connection_request_id': existing_request.id,
+#                             'redirect_url': self.get_payment_redirect_url(existing_request)
+#                         })
+#                     return self.payment_redirect(existing_request)
+            
+#             # Return error response
+#             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#                 return JsonResponse({
+#                     'success': False,
+#                     'error': 'Database error occurred. Please try again.'
+#                 })
+            
+#             messages.error(self.request, "Database error occurred. Please try again.")
+#             return self.form_invalid(form)
+            
+#         except Exception as e:
+#             print(f"❌ Error in form_valid: {str(e)}")
+#             import traceback
+#             print(traceback.format_exc())
+            
+#             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#                 return JsonResponse({
+#                     'success': False,
+#                     'error': str(e)
+#                 })
+            
+#             messages.error(self.request, f"Error creating connection request: {str(e)}")
+#             return self.form_invalid(form)
+    
+#     def form_invalid(self, form):
+#         """Handle invalid form submission"""
+#         print("❌ DEBUG: form_invalid method called!")
+#         print(f"❌ DEBUG: Form errors: {form.errors}")
+#         print(f"❌ DEBUG: Non-field errors: {form.non_field_errors()}")
+        
+#         # Check if it's an AJAX request
+#         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+#             # Convert form errors to JSON-friendly format
+#             error_dict = {}
+#             for field, errors in form.errors.items():
+#                 error_dict[field] = [str(error) for error in errors]
+            
+#             return JsonResponse({
+#                 'success': False,
+#                 'errors': error_dict,
+#                 'message': 'Please correct the errors below'
+#             }, status=400)
+        
+#         messages.error(self.request, "Please correct the errors below.")
+#         return super().form_invalid(form)
+    
+#     # ✅ FIXED METHOD: Use correct URL name 'process_payment' instead of 'payment_process'
+#     def payment_redirect(self, connection_request):
+#         """Redirect to appropriate page based on payment method"""
+#         payment_method = self.request.POST.get('payment_method', 'cod')
+        
+#         if payment_method == 'online':
+#             # ✅ CORRECTED: Use 'process_payment' URL name with query parameters
+#             return redirect('process_payment') + f'?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}'
+#         else:
+#             # Redirect to status page for COD
+#             messages.success(self.request, 
+#                            f"Connection request submitted successfully! Tracking ID: {connection_request.tracking_id}")
+#             return redirect('new_connection_status', tracking_id=connection_request.tracking_id)
+    
+#     # ✅ FIXED METHOD: Use correct URL name 'process_payment' instead of 'payment_process'
+#     def get_payment_redirect_url(self, connection_request):
+#         """Generate payment redirect URL for AJAX responses"""
+#         payment_method = self.request.POST.get('payment_method', 'cod')
+        
+#         if payment_method == 'online':
+#             # ✅ CORRECTED: Build URL with query parameters
+#             from django.urls import reverse
+#             base_url = reverse('process_payment')
+#             return f"{base_url}?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}"
+#         else:
+#             return reverse('new_connection_status', kwargs={
+#                 'tracking_id': connection_request.tracking_id
+#             })
+
 class NewConnectionView(LoginRequiredMixin, CreateView):
     """View for creating new mobile connection request"""
     model = NewConnectionRequest
@@ -1036,6 +1329,7 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         initial['email'] = self.request.user.email
         return initial
     
+    @transaction.atomic
     def form_valid(self, form):
         try:
             # Create new connection request
@@ -1056,6 +1350,12 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             if duplicate_check:
                 # Return existing request instead of creating new one
                 print(f"✅ Using existing request: {duplicate_check.tracking_id}")
+                
+                # ✅ CRITICAL: Handle payment for duplicate request
+                payment_method = self.request.POST.get('payment_method', 'cod')
+                if payment_method == 'cod':
+                    self.handle_cod_payment_for_duplicate(duplicate_check)
+                
                 if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
                     return JsonResponse({
                         'success': True,
@@ -1074,6 +1374,23 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             print(f"   Operator: {connection_request.operator}")
             print(f"   Plan: {connection_request.selected_plan}")
             print(f"   Status: {connection_request.status}")
+            
+            # ✅ CRITICAL: Handle payment based on payment method
+            payment_method = self.request.POST.get('payment_method', 'cod')
+            
+            # Create Payment record for COD
+            if payment_method == 'cod':
+                payment = self.create_cod_payment(connection_request)
+                
+                # Store payment ID in session for later use
+                self.request.session['current_payment_id'] = payment.id
+                
+                # For COD, update connection request status directly to payment_completed
+                connection_request.status = 'payment_completed'
+                connection_request.save()
+                
+                # Create plan history for COD
+                self.create_plan_history_for_cod(payment, connection_request.selected_plan)
             
             # Handle AJAX request
             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -1100,6 +1417,11 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
                 
                 if existing_request:
                     print(f"✅ Found existing request: {existing_request.tracking_id}")
+                    
+                    # ✅ CRITICAL: Handle payment for existing request
+                    payment_method = self.request.POST.get('payment_method', 'cod')
+                    if payment_method == 'cod':
+                        self.handle_cod_payment_for_duplicate(existing_request)
                     
                     if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
                         return JsonResponse({
@@ -1135,6 +1457,101 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             messages.error(self.request, f"Error creating connection request: {str(e)}")
             return self.form_invalid(form)
     
+    def handle_cod_payment_for_duplicate(self, connection_request):
+        """Handle COD payment for duplicate/new connection request"""
+        # Check if payment already exists
+        existing_payment = Payment.objects.filter(
+            new_connection=connection_request,
+            user=self.request.user,
+            payment_method='cod',
+            payment_status='completed'
+        ).first()
+        
+        if existing_payment:
+            print(f"✅ Using existing COD payment: {existing_payment.bill_number}")
+            self.request.session['current_payment_id'] = existing_payment.id
+            return
+        
+        # Create new COD payment
+        payment = self.create_cod_payment(connection_request)
+        
+        # Store payment ID in session
+        self.request.session['current_payment_id'] = payment.id
+        
+        # Update connection request status
+        connection_request.status = 'payment_completed'
+        connection_request.save()
+        
+        # Create plan history
+        self.create_plan_history_for_cod(payment, connection_request.selected_plan)
+    
+    def create_cod_payment(self, connection_request):
+        """Create a COD payment record for new connection"""
+        from django.utils import timezone
+        import uuid
+        from datetime import datetime
+        
+        # Generate a unique transaction ID for COD
+        transaction_id = f"NEW-COD-{uuid.uuid4().hex[:12].upper()}"
+        
+        # Generate bill number
+        bill_number = f"BILL-NEW-COD-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        
+        # Create payment record
+        payment = Payment.objects.create(
+            user=self.request.user,
+            amount=connection_request.selected_plan.price,
+            payment_method='cod',
+            payment_status='completed',  # COD is considered completed
+            transaction_id=transaction_id,
+            bill_number=bill_number,
+            payment_date=timezone.now(),
+            plan=connection_request.selected_plan,
+            new_connection=connection_request
+        )
+        
+        print(f"✅ Created COD payment for new connection: {payment.bill_number}")
+        return payment
+    
+    def create_plan_history_for_cod(self, payment, selected_plan):
+        """Create plan history entry for COD payments (new connection)"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        validity_days = selected_plan.validity
+        
+        if selected_plan.validity_unit == 'months':
+            validity_days = validity_days * 30
+        elif selected_plan.validity_unit == 'year':
+            validity_days = validity_days * 365
+        
+        # Create plan history
+        UserPlanHistory.objects.create(
+            user=self.request.user,
+            plan=selected_plan,
+            purchased_on=payment.payment_date,
+            activated_on=timezone.now(),
+            expires_on=timezone.now() + timedelta(days=validity_days),
+            status='active',
+            transaction_id=payment.transaction_id,
+            new_connection=payment.new_connection  # Link to new connection
+
+            # Note: new_connection field is not in UserPlanHistory model
+            # If you want to link it, you need to add the field to the model
+        )
+        
+        # Update user's current plan
+        try:
+            if hasattr(self.request.user, 'profile'):
+                self.request.user.profile.current_plan = selected_plan
+                self.request.user.profile.plan_start_date = timezone.now()
+                self.request.user.profile.plan_expiry_date = timezone.now() + timedelta(days=validity_days)
+                self.request.user.profile.save()
+        except AttributeError:
+            pass  # No profile model
+        
+        print(f"✅ Created UserPlanHistory for new connection COD payment: {payment.bill_number}")
+    
     def form_invalid(self, form):
         """Handle invalid form submission"""
         print("❌ DEBUG: form_invalid method called!")
@@ -1157,27 +1574,23 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         messages.error(self.request, "Please correct the errors below.")
         return super().form_invalid(form)
     
-    # ✅ FIXED METHOD: Use correct URL name 'process_payment' instead of 'payment_process'
     def payment_redirect(self, connection_request):
         """Redirect to appropriate page based on payment method"""
         payment_method = self.request.POST.get('payment_method', 'cod')
         
         if payment_method == 'online':
-            # ✅ CORRECTED: Use 'process_payment' URL name with query parameters
             return redirect('process_payment') + f'?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}'
         else:
-            # Redirect to status page for COD
+            # For COD, redirect to status page with success message
             messages.success(self.request, 
-                           f"Connection request submitted successfully! Tracking ID: {connection_request.tracking_id}")
+                           f"New connection request submitted successfully! Tracking ID: {connection_request.tracking_id}")
             return redirect('new_connection_status', tracking_id=connection_request.tracking_id)
     
-    # ✅ FIXED METHOD: Use correct URL name 'process_payment' instead of 'payment_process'
     def get_payment_redirect_url(self, connection_request):
         """Generate payment redirect URL for AJAX responses"""
         payment_method = self.request.POST.get('payment_method', 'cod')
         
         if payment_method == 'online':
-            # ✅ CORRECTED: Build URL with query parameters
             from django.urls import reverse
             base_url = reverse('process_payment')
             return f"{base_url}?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}"
@@ -1185,6 +1598,17 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             return reverse('new_connection_status', kwargs={
                 'tracking_id': connection_request.tracking_id
             })
+
+
+
+
+
+
+
+
+
+
+
 
 class PortRequestStatusView(LoginRequiredMixin, DetailView):
     """View to check port request status"""
@@ -1276,7 +1700,6 @@ class NewConnectionStatusView(LoginRequiredMixin, DetailView):
              'description': 'Number activated and ready to use'},
         ]
         return steps
-
 class PlanListView(ListView):
     """View to list all plans with filtering"""
     model = Plan
@@ -1288,14 +1711,20 @@ class PlanListView(ListView):
         queryset = Plan.objects.filter(is_active=True).select_related('operator', 'category')
         
         # Apply filters
-        plan_type = self.request.GET.get('plan_type')
+        plan_type_filter = self.request.GET.get('plan_type_filter', 'new_connection')  # Default to new_connection
         operator = self.request.GET.get('operator')
         category = self.request.GET.get('category')
         min_price = self.request.GET.get('min_price')
         max_price = self.request.GET.get('max_price')
         
-        if plan_type:
-            queryset = queryset.filter(plan_type=plan_type)
+        # Apply Plan Type filter
+        if plan_type_filter == 'new_connection':
+            queryset = queryset.filter(plan_type='new_connection')
+        elif plan_type_filter == 'port_in':
+            queryset = queryset.filter(plan_type='port_in')
+        elif plan_type_filter == '' or plan_type_filter is None:
+            # Show all plans if empty or None
+            pass
         
         if operator:
             queryset = queryset.filter(operator_id=operator)
@@ -1309,14 +1738,32 @@ class PlanListView(ListView):
         if max_price:
             queryset = queryset.filter(price__lte=max_price)
         
-        # Apply sorting
-        sort_by = self.request.GET.get('sort_by')
-        if sort_by == 'price_low':
+        # Data filter handling
+        data_filter = self.request.GET.getlist('data')
+        if data_filter:
+            data_q = Q()
+            if 'unlimited' in data_filter:
+                data_q |= Q(data_allowance__icontains='unlimited')
+            if '2gb+' in data_filter:
+                data_q |= Q(data_allowance__icontains='2gb') | Q(data_allowance__icontains='2 gb')
+            if '1gb+' in data_filter:
+                data_q |= Q(data_allowance__icontains='1gb') | Q(data_allowance__icontains='1 gb')
+            queryset = queryset.filter(data_q)
+        
+        # Apply sorting (using the 'sort' parameter from the template)
+        sort_by = self.request.GET.get('sort')
+        if sort_by == 'price':
             queryset = queryset.order_by('price')
-        elif sort_by == 'price_high':
+        elif sort_by == '-price':
             queryset = queryset.order_by('-price')
         elif sort_by == 'validity':
+            queryset = queryset.order_by('validity')
+        elif sort_by == '-validity':
             queryset = queryset.order_by('-validity')
+        elif sort_by == 'popular':
+            queryset = queryset.order_by('-is_popular', 'price')
+        elif sort_by == 'featured':
+            queryset = queryset.order_by('-is_featured', 'price')
         else:
             queryset = queryset.order_by('-is_popular', 'price')
         
@@ -1324,18 +1771,11 @@ class PlanListView(ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['operators'] = TelecomOperator.objects.filter(is_active=True)
+        context['all_operators'] = TelecomOperator.objects.filter(is_active=True)
         context['categories'] = PlanCategory.objects.all()
         
-        # Add filter values to context
-        context['current_filters'] = {
-            'plan_type': self.request.GET.get('plan_type', ''),
-            'operator': self.request.GET.get('operator', ''),
-            'category': self.request.GET.get('category', ''),
-            'min_price': self.request.GET.get('min_price', ''),
-            'max_price': self.request.GET.get('max_price', ''),
-            'sort_by': self.request.GET.get('sort_by', ''),
-        }
+        # Add plan type filter value to context
+        context['plan_type_filter'] = self.request.GET.get('plan_type_filter', 'new_connection')
         
         return context
 
