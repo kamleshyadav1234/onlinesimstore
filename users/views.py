@@ -9,7 +9,7 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import login
 from .models import CustomUser, UserPlanHistory, UserFavouritePlan
-from plans.models import Plan
+from plans.models import Plan, SIMReplacementRequest
 from payments.models import Payment
 from .forms import *
 from django.views.generic import (
@@ -260,7 +260,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         messages.error(self.request, 'Please correct the errors below.')
         return super().form_invalid(form)
 
-# Dashboard Views
+# users/views.py
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'users/dashboard.html'
     
@@ -279,13 +279,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             plan__isnull=False
         ).select_related('plan', 'plan__operator')[:5]
         
-        # Get recent payments (if Payment model exists)
-        try:
-            context['recent_payments'] = Payment.objects.filter(
-                user=user
-            ).order_by('-payment_date')[:5]
-        except:
-            context['recent_payments'] = []
+        # Get recent payments
+        context['recent_payments'] = Payment.objects.filter(
+            user=user
+        ).order_by('-payment_date')[:5]
+        
+        # Calculate payment statistics
+        completed_payments = Payment.objects.filter(
+            user=user, 
+            payment_status='completed'
+        )
+        pending_payments = Payment.objects.filter(
+            user=user, 
+            payment_status='pending'
+        )
+        
+        context['completed_payments_count'] = completed_payments.count()
+        context['pending_payments_count'] = pending_payments.count()
+        context['total_spent'] = completed_payments.aggregate(
+            total=Sum('amount')
+        )['total'] or 0
         
         # Get active plans
         context['active_plans'] = UserPlanHistory.objects.filter(
@@ -297,10 +310,48 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['active_plans_count'] = context['active_plans'].count()
         context['favourite_plans_count'] = UserFavouritePlan.objects.filter(user=user).count()
         
+        # Recommended plans (based on user's previous purchases)
+        try:
+            # Get user's most purchased operator
+            user_plans = UserPlanHistory.objects.filter(user=user)
+            if user_plans.exists():
+                from django.db.models import Count
+                from plans.models import Plan
+                
+                # Get top operator
+                top_operator = user_plans.values('plan__operator').annotate(
+                    count=Count('plan__operator')
+                ).order_by('-count').first()
+                
+                if top_operator and top_operator['plan__operator']:
+                    # Get plans from top operator
+                    context['recommended_plans'] = Plan.objects.filter(
+                        operator_id=top_operator['plan__operator'],
+                        is_active=True
+                    )[:4]
+                else:
+                    # Show popular plans
+                    context['recommended_plans'] = Plan.objects.filter(
+                        is_active=True
+                    ).order_by('-popularity_score')[:4]
+            else:
+                # Show popular plans for new users
+                context['recommended_plans'] = Plan.objects.filter(
+                    is_active=True
+                ).order_by('-popularity_score')[:4]
+        except:
+            context['recommended_plans'] = []
+        
         return context
 
 from django.db.models import Sum, Q
 from datetime import datetime, timedelta
+
+from datetime import datetime
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView
+from django.db.models import Sum
+from django.shortcuts import render
 
 class PlanHistoryView(LoginRequiredMixin, ListView):
     model = UserPlanHistory
@@ -348,7 +399,7 @@ class PlanHistoryView(LoginRequiredMixin, ListView):
         active_plans_count = all_plans.filter(status='active').count()
         expired_plans_count = all_plans.filter(status='expired').count()
         
-        # Calculate total spent
+        # Calculate total spent on plans
         total_spent = all_plans.aggregate(
             total=Sum('plan__price')
         )['total'] or 0
@@ -364,13 +415,43 @@ class PlanHistoryView(LoginRequiredMixin, ListView):
                 plan._calculated_days_remaining = None
                 plan._calculated_is_expired = False
         
+        # SIM REPLACEMENT DATA
+        # Get all SIM replacement requests for the user
+        sim_requests = SIMReplacementRequest.objects.filter(user=user).order_by('-created_at')
+        
+        # Calculate SIM replacement statistics
+        completed_sim_requests = sim_requests.filter(status='delivered')
+        pending_sim_requests = sim_requests.filter(status__in=['pending', 'processing', 'approved', 'dispatched'])
+        rejected_sim_requests = sim_requests.filter(status='rejected')
+        
+        # Calculate total spent on SIM replacements
+        sim_total_spent = sim_requests.aggregate(
+            total=Sum('amount_paid')
+        )['total'] or 0
+        
         context.update({
             'active_plans_count': active_plans_count,
             'expired_plans_count': expired_plans_count,
             'total_spent': total_spent,
+            
+            # SIM replacement context
+            'sim_requests': sim_requests,
+            'completed_sim_requests': completed_sim_requests,
+            'pending_sim_requests': pending_sim_requests,
+            'rejected_sim_requests': rejected_sim_requests,
+            'sim_total_spent': sim_total_spent,
         })
         
         return context
+    
+    # Optional: You might need this if SIM replacement has its own separate list view
+    def get(self, request, *args, **kwargs):
+        # Check if we need to show SIM tab by default
+        tab_param = request.GET.get('tab')
+        if tab_param == 'sim-history':
+            # For SIM tab, we don't need pagination for plans
+            self.paginate_by = None
+        return super().get(request, *args, **kwargs)
 
 class FavouritePlansView(LoginRequiredMixin, ListView):
     model = UserFavouritePlan

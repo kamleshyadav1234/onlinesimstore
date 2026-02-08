@@ -64,12 +64,23 @@ class UserPlanHistory(models.Model):
     expires_on = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, default='active')
     transaction_id = models.CharField(max_length=100, blank=True)
-    
+    gateway_transaction_id = models.CharField(max_length=100, blank=True)  # Make it blank=True
+
     class Meta:
         ordering = ['-purchased_on']
     
     def __str__(self):
         return f"{self.user.username} - {self.plan.name if self.plan else 'No Plan'}"
+    
+
+    def save(self, *args, **kwargs):
+        # Set default values if not provided
+        if not self.transaction_id:
+            import uuid
+            self.transaction_id = f"TXN{uuid.uuid4().hex[:10].upper()}"
+        if not self.gateway_transaction_id and hasattr(self, 'payment'):
+            self.gateway_transaction_id = self.payment.transaction_id
+        super().save(*args, **kwargs)
     
     @property
     def is_active(self):

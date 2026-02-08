@@ -47,7 +47,7 @@ urlpatterns = [
     path('sim-replacement/status/', 
          SIMReplacementStatusView.as_view(), 
          name='sim_replacement_status'),
-    
+      path('sim-replacement/<int:pk>/', SIMReplacementStatusView.as_view(), name='sim_replacement_status'),
     path('sim-replacement/status/<str:request_id>/', 
          SIMReplacementStatusView.as_view(), 
          name='sim_replacement_status_detail'),

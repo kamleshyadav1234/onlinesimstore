@@ -6,6 +6,15 @@ from plans.models import Plan
 from users.models import CustomUser
 
 class Payment(models.Model):
+
+    PAYMENT_TYPES = [
+        ('plan', 'Plan Purchase'),
+        ('sim_replacement', 'SIM Replacement'),
+        ('new_connection', 'New Connection'),
+        ('port_request', 'Port Request'),  # ✅ ADD THIS
+
+    ]
+
     PAYMENT_STATUS = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
@@ -21,7 +30,14 @@ class Payment(models.Model):
         ('wallet', 'Wallet'),
         ('cash', 'Cash'),
     ]
-    
+        
+        
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, default='plan')
+    # For SIM replacement
+    sim_replacement = models.ForeignKey('plans.SIMReplacementRequest', on_delete=models.SET_NULL, null=True, blank=True)
+    port_request = models.ForeignKey('plans.PortRequest', on_delete=models.SET_NULL, null=True, blank=True)
+    # For new connection
+    new_connection = models.ForeignKey('plans.NewConnectionRequest', on_delete=models.SET_NULL, null=True, blank=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     plan = models.ForeignKey(Plan, on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)

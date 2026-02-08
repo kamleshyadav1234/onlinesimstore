@@ -1,7 +1,16 @@
+<!-- templates/payments/process_payment.html -->
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Payment - {{ plan.name }} - TelecomPedia{% endblock %}
+{% block title %}
+    {% if payment_type == 'plan' and plan %}
+        Payment - {{ plan.name }} - TelecomPedia
+    {% elif payment_type == 'sim_replacement' and sim_request %}
+        Payment - SIM Replacement - TelecomPedia
+    {% else %}
+        Payment - TelecomPedia
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -14,9 +23,11 @@
                         <div class="text-center mx-4">
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" 
                                  style="width: 40px; height: 40px;">
-                                1
+                                {% if payment_type == 'plan' %}1{% elif payment_type == 'sim_replacement' %}1{% else %}1{% endif %}
                             </div>
-                            <span class="fw-bold">Select Plan</span>
+                            <span class="fw-bold">
+                                {% if payment_type == 'plan' %}Select Plan{% elif payment_type == 'sim_replacement' %}Fill Details{% else %}Step 1{% endif %}
+                            </span>
                         </div>
                         <div class="text-center mx-4">
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" 
@@ -46,48 +57,101 @@
                             </h4>
                         </div>
                         <div class="card-body">
-                            <!-- Plan Details -->
-                            <div class="mb-4">
-                                <h5 class="fw-bold">{{ plan.operator.name }}</h5>
-                                <h4 class="text-primary fw-bold">{{ plan.name }}</h4>
-                                <p class="text-muted">{{ plan.description }}</p>
-                                
-                                <div class="row g-2 mb-3">
-                                    <div class="col-6">
-                                        <div class="bg-light rounded p-3">
-                                            <small class="text-muted d-block">Data</small>
-                                            <strong>{{ plan.data_allowance|default:"-" }}</strong>
+                            {% if payment_type == 'plan' and plan %}
+                                <!-- Plan Details -->
+                                <div class="mb-4">
+                                    <h5 class="fw-bold">{{ plan.operator.name }}</h5>
+                                    <h4 class="text-primary fw-bold">{{ plan.name }}</h4>
+                                    <p class="text-muted">{{ plan.description }}</p>
+                                    
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Data</small>
+                                                <strong>{{ plan.data_allowance|default:"-" }}</strong>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="bg-light rounded p-3">
-                                            <small class="text-muted d-block">Validity</small>
-                                            <strong>{{ plan.get_full_validity }}</strong>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Validity</small>
+                                                <strong>{{ plan.get_full_validity }}</strong>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="bg-light rounded p-3">
-                                            <small class="text-muted d-block">Calls</small>
-                                            <strong>{{ plan.voice_calls|default:"-" }}</strong>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Calls</small>
+                                                <strong>{{ plan.voice_calls|default:"-" }}</strong>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="bg-light rounded p-3">
-                                            <small class="text-muted d-block">SMS</small>
-                                            <strong>{{ plan.sms|default:"-" }}</strong>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">SMS</small>
+                                                <strong>{{ plan.sms|default:"-" }}</strong>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                                
+                            {% elif payment_type == 'sim_replacement' and sim_request %}
+                                <!-- SIM Replacement Details -->
+                                <div class="mb-4">
+                                    <h5 class="fw-bold">{{ sim_request.get_operator_display }}</h5>
+                                    <h4 class="text-primary fw-bold">SIM Replacement</h4>
+                                    <p class="text-muted">Replace your lost/damaged SIM card</p>
+                                    
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Mobile Number</small>
+                                                <strong>{{ sim_request.mobile_number }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Request ID</small>
+                                                <strong>{{ sim_request.request_id }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Service Type</small>
+                                                <strong>
+                                                    {% if sim_request.service_type == 'fast' %}
+                                                        Fast Track (2-4 hours)
+                                                    {% else %}
+                                                        Standard (24-48 hours)
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Reason</small>
+                                                <strong>{{ sim_request.get_reason_display }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
 
                             <!-- Price Breakdown -->
                             <div class="border-top pt-3">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span>Plan Price</span>
-                                    <span class="fw-bold">₹{{ plan.price|floatformat:2 }}</span>
+                                    <span>
+                                        {% if payment_type == 'plan' %}
+                                            Plan Price
+                                        {% elif payment_type == 'sim_replacement' %}
+                                            Replacement Fee
+                                        {% else %}
+                                            Amount
+                                        {% endif %}
+                                    </span>
+                                    <span class="fw-bold">
+                                        ₹{% if payment_type == 'plan' %}{{ plan.price|floatformat:2 }}{% elif payment_type == 'sim_replacement' %}{{ final_amount|floatformat:2 }}{% else %}{{ final_amount|floatformat:2 }}{% endif %}
+                                    </span>
                                 </div>
                                 
-                                {% if discount > 0 %}
+                                {% if payment_type == 'plan' and discount > 0 %}
                                 <div class="d-flex justify-content-between mb-2 text-success">
                                     <span>Discount</span>
                                     <span class="fw-bold">-₹{{ discount|floatformat:2 }}</span>
@@ -99,10 +163,23 @@
                                     <span class="text-primary">₹{{ final_amount|floatformat:2 }}</span>
                                 </div>
                                 
-                                {% if discount > 0 %}
+                                {% if payment_type == 'plan' and discount > 0 %}
                                 <div class="text-center mt-3">
                                     <span class="badge bg-success">
                                         <i class="fas fa-tag me-1"></i> You save ₹{{ discount|floatformat:2 }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if payment_type == 'sim_replacement' %}
+                                <div class="text-center mt-3">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-info-circle me-1"></i> 
+                                        {% if sim_request.service_type == 'fast' %}
+                                            Fast delivery: 2-4 hours
+                                        {% else %}
+                                            Standard delivery: 24-48 hours
+                                        {% endif %}
                                     </span>
                                 </div>
                                 {% endif %}
@@ -133,14 +210,21 @@
                                             <small class="text-muted d-block">Email</small>
                                             <strong>{{ request.user.email }}</strong>
                                         </div>
+                                        {% if payment_type == 'plan' %}
                                         <div class="col-12">
                                             <small class="text-muted">Mobile number linked to this account will be recharged</small>
                                         </div>
+                                        {% elif payment_type == 'sim_replacement' %}
+                                        <div class="col-12">
+                                            <small class="text-muted">SIM replacement will be processed for: {{ sim_request.mobile_number }}</small>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Coupon Code -->
+                            {% if payment_type == 'plan' %}
+                            <!-- Coupon Code (Only for plan payments) -->
                             <div class="mb-4">
                                 <h6 class="fw-bold mb-2">Apply Coupon</h6>
                                 <div class="input-group">
@@ -158,12 +242,23 @@
                                 </div>
                                 <div id="couponMessage" class="mt-2"></div>
                             </div>
+                            {% endif %}
 
                             <!-- Payment Methods -->
                             <div class="mb-4">
                                 <h6 class="fw-bold mb-3">Select Payment Method</h6>
                                 
                                 <div class="row g-3">
+                                    {% if payment_type == 'sim_replacement' %}
+                                    <!-- For SIM replacement, only online payments -->
+                                    <div class="col-12">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Online payment is required for SIM replacement. Cash on delivery is not available for this service.
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
                                     <div class="col-md-6">
                                         <div class="form-check border rounded p-3">
                                             <input class="form-check-input" 
@@ -262,6 +357,8 @@
                                         </div>
                                     </div>
                                     
+                                    {% if payment_type == 'plan' %}
+                                    <!-- Cash on delivery only for plan purchases -->
                                     <div class="col-md-6">
                                         <div class="form-check border rounded p-3">
                                             <input class="form-check-input" 
@@ -280,6 +377,7 @@
                                             </label>
                                         </div>
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -289,7 +387,11 @@
                                     <input class="form-check-input" type="checkbox" id="termsCheck" required>
                                     <label class="form-check-label" for="termsCheck">
                                         I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
+                                        {% if payment_type == 'plan' %}
                                         and confirm that I have entered the correct mobile number for recharge.
+                                        {% elif payment_type == 'sim_replacement' %}
+                                        and confirm that all SIM replacement details are correct.
+                                        {% endif %}
                                     </label>
                                 </div>
                             </div>
@@ -311,11 +413,21 @@
                                 </div>
                             </div>
 
-                            <!-- Cancel Button -->
+                            <!-- Cancel/Back Button -->
                             <div class="text-center mt-4">
+                                {% if payment_type == 'plan' and plan %}
                                 <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left me-2"></i> Back to Plan Details
                                 </a>
+                                {% elif payment_type == 'sim_replacement' and sim_request %}
+                                <a href="{% url 'sim_replacement_status' sim_request.id %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to SIM Replacement
+                                </a>
+                                {% else %}
+                                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                                </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -334,6 +446,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                {% if payment_type == 'plan' %}
                 <h6>Payment Terms:</h6>
                 <ul>
                     <li>All payments are processed through secure payment gateways</li>
@@ -349,6 +462,19 @@
                     <li>Data speeds may vary based on network conditions</li>
                     <li>All prices include applicable GST</li>
                 </ul>
+                
+                {% elif payment_type == 'sim_replacement' %}
+                <h6>SIM Replacement Terms:</h6>
+                <ul>
+                    <li>Online payment is mandatory for SIM replacement requests</li>
+                    <li>Replacement fee is non-refundable once processed</li>
+                    <li>Delivery time: 2-4 hours for Fast Track, 24-48 hours for Standard service</li>
+                    <li>You must present original documents (Aadhaar Card) when receiving SIM</li>
+                    <li>Your mobile number will remain the same</li>
+                    <li>Activation usually happens within 1-4 hours after delivery</li>
+                    <li>TelecomPedia acts as a facilitator, final approval rests with the operator</li>
+                </ul>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -359,11 +485,17 @@
 
 <script>
     let currentCoupon = '{{ coupon.code|default:"" }}';
-    let planId = {{ plan.id }};
+    let planId = '{{ plan.id|default:"" }}';
+    let simReplacementId = '{{ sim_request.id|default:"" }}';
+    let paymentType = '{{ payment_type }}';
     let finalAmount = {{ final_amount }};
     let razorpayKeyId = '{{ razorpay_key_id|default:"" }}';
+    let paymentId = '{{ payment_record.id|default:"" }}';
 
     function applyCoupon() {
+        // Only for plan payments
+        if (paymentType !== 'plan') return;
+        
         const couponCode = document.getElementById('couponCode').value.trim();
         const messageDiv = document.getElementById('couponMessage');
         
@@ -415,7 +547,13 @@
         
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
         
-        // For cash payments, redirect directly
+        // For SIM replacement, only online payments are allowed
+        if (paymentType === 'sim_replacement' && paymentMethod === 'cash') {
+            alert('Cash on delivery is not available for SIM replacement. Please select an online payment method.');
+            return;
+        }
+        
+        // For cash payments (only for plans)
         if (paymentMethod === 'cash') {
             if (confirm('Cash on Delivery selected. An executive will contact you within 24 hours for payment. Continue?')) {
                 processCashPayment();
@@ -434,18 +572,29 @@
         payButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
         payButton.disabled = true;
         
-        // Create payment
+        let requestData = {
+            payment_method: paymentMethod
+        };
+        
+        // Add appropriate data based on payment type
+        if (paymentType === 'plan') {
+            requestData.plan_id = planId;
+            requestData.coupon_code = currentCoupon;
+        } else if (paymentType === 'sim_replacement') {
+            requestData.sim_replacement_id = simReplacementId;
+            // Use existing payment ID if available
+            if (paymentId) {
+                requestData.payment_id = paymentId;
+            }
+        }
+        
         fetch('{% url "create_payment" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({
-                plan_id: planId,
-                payment_method: paymentMethod,
-                coupon_code: currentCoupon
-            })
+            body: JSON.stringify(requestData)
         })
         .then(response => response.json())
         .then(data => {
@@ -457,7 +606,7 @@
                         amount: data.amount * 100,
                         currency: 'INR',
                         name: 'TelecomPedia',
-                        description: 'Plan Purchase: {{ plan.name }}',
+                        description: paymentType === 'plan' ? 'Plan Purchase' : 'SIM Replacement',
                         order_id: data.razorpay_order_id,
                         handler: function(response) {
                             // Payment successful
@@ -502,6 +651,9 @@
     }
 
     function processCashPayment() {
+        // Only for plan payments
+        if (paymentType !== 'plan') return;
+        
         fetch('{% url "create_payment" %}', {
             method: 'POST',
             headers: {
@@ -527,9 +679,14 @@
         });
     }
 
-    // Auto-focus coupon input on page load
+    // Auto-focus coupon input on page load (only for plan payments)
     document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('couponCode').focus();
+        if (paymentType === 'plan') {
+            const couponInput = document.getElementById('couponCode');
+            if (couponInput) {
+                couponInput.focus();
+            }
+        }
     });
 </script>
 

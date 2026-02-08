@@ -162,41 +162,358 @@ import uuid
 
 
 
-# SIM Replacement Create View (Step 1)
+# # SIM Replacement Create View (Step 1)
+# class SIMReplacementCreateView(LoginRequiredMixin, CreateView):
+#     model = SIMReplacementRequest
+#     form_class = SIMReplacementForm
+#     template_name = 'plans/sim_replacement_create.html'
+#     success_url = reverse_lazy('sim_replacement_documents')
+    
+#     def form_valid(self, form):
+#         # Set user before saving
+#         form.instance.user = self.request.user
+        
+#         # Calculate amount based on service type
+#         if form.instance.service_type == 'fast':
+#             form.instance.amount_paid = 199.00
+#         else:
+#             form.instance.amount_paid = 99.00
+        
+#         # Generate request ID
+#         form.instance.request_id = f"SIM{str(uuid.uuid4())[:8].upper()}"
+        
+#         # Convert date objects to string for JSON serialization
+#         form_data = form.cleaned_data.copy()
+#         if form_data.get('date_of_birth'):
+#             form_data['date_of_birth'] = form_data['date_of_birth'].isoformat()
+        
+#         # Store in session for document upload step
+#         self.request.session['sim_request_data'] = {
+#             'form_data': form_data,  # Use the converted copy
+#             'amount_paid': str(form.instance.amount_paid),
+#             'request_id': form.instance.request_id
+#         }
+        
+#         messages.success(self.request, 'Step 1 completed! Please upload required documents.')
+#         return redirect(self.success_url)
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+import json
+import random
+
+# telecom/views.py
+from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.urls import reverse
+from payments.models import Payment
+from django.db import transaction
+
 class SIMReplacementCreateView(LoginRequiredMixin, CreateView):
     model = SIMReplacementRequest
     form_class = SIMReplacementForm
     template_name = 'plans/sim_replacement_create.html'
-    success_url = reverse_lazy('sim_replacement_documents')
     
+    def dispatch(self, request, *args, **kwargs):
+        # Clean up any old locks
+        from django.db import connection
+        connection.close_if_unusable_or_obsolete()
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        # Check for pending requests
+        pending_requests = SIMReplacementRequest.objects.filter(
+            user=request.user,
+            status='pending',
+            created_at__gte=timezone.now() - timedelta(minutes=5)
+        )
+        
+        if pending_requests.exists():
+            latest_request = pending_requests.latest('created_at')
+            payment = Payment.objects.filter(
+                sim_replacement=latest_request,
+                user=request.user,
+                payment_status__in=['pending', 'completed']
+            ).first()
+            
+            if payment:
+                return redirect(reverse('process_payment') + f'?sim_replacement_id={latest_request.id}')
+        
+        return super().get(request, *args, **kwargs)
+    
+    @transaction.atomic
     def form_valid(self, form):
-        # Set user before saving
-        form.instance.user = self.request.user
+        try:
+            # Get form data
+            mobile_number = form.cleaned_data.get('mobile_number')
+            operator = form.cleaned_data.get('operator')
+            
+            # Check for recent pending requests
+            recent_pending = SIMReplacementRequest.objects.filter(
+                user=self.request.user,
+                mobile_number=mobile_number,
+                operator=operator,
+                status='pending',
+                created_at__gte=timezone.now() - timedelta(minutes=2)
+            ).exists()
+            
+            if recent_pending:
+                messages.warning(self.request, 'You already have a pending SIM replacement request.')
+                return redirect('sim_replacement_status')
+            
+            # Check for completed request in last 24 hours
+            recent_completed = SIMReplacementRequest.objects.filter(
+                user=self.request.user,
+                mobile_number=mobile_number,
+                operator=operator,
+                status='completed',
+                created_at__gte=timezone.now() - timedelta(hours=24)
+            ).exists()
+            
+            if recent_completed:
+                messages.warning(self.request, 'You already processed a SIM replacement for this number recently.')
+                return redirect('sim_replacement_status')
+            
+            # Create SIM replacement request
+            sim_request = form.save(commit=False)
+            sim_request.user = self.request.user
+            sim_request.status = 'pending'
+            
+            # Calculate amount
+            if sim_request.service_type == 'fast':
+                sim_request.amount_paid = 199
+            else:
+                sim_request.amount_paid = 99
+            
+            # Generate unique request ID
+            import random
+            while True:
+                request_id = f"SIM{random.randint(100000, 999999)}"
+                if not SIMReplacementRequest.objects.filter(request_id=request_id).exists():
+                    sim_request.request_id = request_id
+                    break
+            
+            # ✅ Save SIM request FIRST
+            sim_request.save()
+            
+            # Check for existing payment
+            existing_payment = Payment.objects.filter(
+                sim_replacement=sim_request,
+                user=self.request.user,
+                payment_status__in=['pending', 'completed']
+            ).first()
+            
+            if existing_payment:
+                payment = existing_payment
+                print(f"✅ Using existing payment: {payment.bill_number}")
+            else:
+                # Create payment with minimal operations
+                payment = Payment.objects.create(
+                    user=self.request.user,
+                    payment_type='sim_replacement',
+                    sim_replacement=sim_request,
+                    amount=sim_request.amount_paid,
+                    payment_method='razorpay',
+                    payment_status='pending',
+                    transaction_id=f"SIMPAY{random.randint(100000, 999999)}"
+                )
+                print(f"✅ Created new payment: {payment.bill_number}")
+            
+            # For AJAX requests
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'request_id': sim_request.request_id,
+                    'connection_request_id': sim_request.id,
+                    'payment_id': payment.id,
+                    'redirect_url': reverse('process_payment') + f'?sim_replacement_id={sim_request.id}',
+                    'message': 'SIM replacement request created successfully'
+                })
+            
+            # Redirect to payment page
+            return redirect(reverse('process_payment') + f'?sim_replacement_id={sim_request.id}')
+            
+        except Exception as e:
+            print(f"❌ Error in SIM replacement creation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Database error. Please try again.'
+                }, status=500)
+            
+            messages.error(self.request, 'An error occurred. Please try again.')
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            errors = {}
+            for field in form.errors:
+                errors[field] = form.errors[field]
+            
+            return JsonResponse({
+                'success': False,
+                'errors': errors,
+                'message': 'Please correct the form errors'
+            }, status=400)
         
-        # Calculate amount based on service type
-        if form.instance.service_type == 'fast':
-            form.instance.amount_paid = 199.00
-        else:
-            form.instance.amount_paid = 99.00
-        
-        # Generate request ID
-        form.instance.request_id = f"SIM{str(uuid.uuid4())[:8].upper()}"
-        
-        # Convert date objects to string for JSON serialization
-        form_data = form.cleaned_data.copy()
-        if form_data.get('date_of_birth'):
-            form_data['date_of_birth'] = form_data['date_of_birth'].isoformat()
-        
-        # Store in session for document upload step
-        self.request.session['sim_request_data'] = {
-            'form_data': form_data,  # Use the converted copy
-            'amount_paid': str(form.instance.amount_paid),
-            'request_id': form.instance.request_id
-        }
-        
-        messages.success(self.request, 'Step 1 completed! Please upload required documents.')
-        return redirect(self.success_url)
+        return super().form_invalid(form)
 
+
+# class SIMReplacementCreateView(LoginRequiredMixin, CreateView):
+#     model = SIMReplacementRequest
+#     form_class = SIMReplacementForm
+#     template_name = 'plans/sim_replacement_create.html'
+    
+#     def dispatch(self, request, *args, **kwargs):
+#         # Use atomic transaction to prevent race conditions
+#         from django.db import transaction
+#         return super().dispatch(request, *args, **kwargs)
+    
+#     def get(self, request, *args, **kwargs):
+#         # Check if user has a pending request in the last 5 minutes
+#         pending_requests = SIMReplacementRequest.objects.filter(
+#             user=request.user,
+#             status='pending',
+#             created_at__gte=timezone.now() - timedelta(minutes=5)
+#         )
+        
+#         if pending_requests.exists():
+#             latest_request = pending_requests.latest('created_at')
+#             # Check if there's a payment for this request
+#             payment = Payment.objects.filter(
+#                 sim_replacement=latest_request,
+#                 user=request.user,
+#                 payment_status__in=['pending', 'completed']
+#             ).first()
+            
+#             if payment:
+#                 messages.info(request, f'You have a pending SIM replacement request: {latest_request.request_id}')
+#                 return redirect(reverse('process_payment') + f'?sim_replacement_id={latest_request.id}')
+        
+#         return super().get(request, *args, **kwargs)
+    
+#     def form_valid(self, form):
+#         # Get form data
+#         mobile_number = form.cleaned_data.get('mobile_number')
+#         operator = form.cleaned_data.get('operator')
+        
+#         # ✅ CRITICAL: Use database lock to prevent race conditions
+#         from django.db import transaction
+#         with transaction.atomic():
+#             # Check for existing pending request in the last 2 minutes
+#             recent_pending = SIMReplacementRequest.objects.select_for_update().filter(
+#                 user=self.request.user,
+#                 mobile_number=mobile_number,
+#                 operator=operator,
+#                 status='pending',
+#                 created_at__gte=timezone.now() - timedelta(minutes=2)
+#             ).exists()
+            
+#             if recent_pending:
+#                 if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#                     return JsonResponse({
+#                         'success': False,
+#                         'message': 'You already have a pending SIM replacement request for this number. Please wait.'
+#                     }, status=400)
+#                 messages.warning(self.request, 'You already have a pending SIM replacement request.')
+#                 return redirect('sim_replacement_status')
+            
+#             # Check for completed request in last 24 hours
+#             recent_completed = SIMReplacementRequest.objects.filter(
+#                 user=self.request.user,
+#                 mobile_number=mobile_number,
+#                 operator=operator,
+#                 status='completed',
+#                 created_at__gte=timezone.now() - timedelta(hours=24)
+#             ).exists()
+            
+#             if recent_completed:
+#                 if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#                     return JsonResponse({
+#                         'success': False,
+#                         'message': 'You already processed a SIM replacement for this number in the last 24 hours.'
+#                     }, status=400)
+#                 messages.warning(self.request, 'You already processed a SIM replacement for this number recently.')
+#                 return redirect('sim_replacement_status')
+            
+#             # Create the SIM request
+#             sim_request = form.save(commit=False)
+#             sim_request.user = self.request.user
+#             sim_request.status = 'pending'
+            
+#             # Calculate amount
+#             if sim_request.service_type == 'fast':
+#                 sim_request.amount_paid = 199
+#             else:
+#                 sim_request.amount_paid = 99
+            
+#             # Generate unique request ID
+#             import random
+#             while True:
+#                 request_id = f"SIM{random.randint(100000, 999999)}"
+#                 if not SIMReplacementRequest.objects.filter(request_id=request_id).exists():
+#                     sim_request.request_id = request_id
+#                     break
+            
+#             # ✅ CRITICAL: Save to database immediately
+#             sim_request.save()
+            
+#             # Check if a payment already exists for this request
+#             existing_payment = Payment.objects.filter(
+#                 sim_replacement=sim_request,
+#                 user=self.request.user,
+#                 payment_status__in=['pending', 'completed']
+#             ).first()
+            
+#             if existing_payment:
+#                 # Use existing payment
+#                 payment = existing_payment
+#                 print(f"✅ Using existing payment: {payment.bill_number}")
+#             else:
+#                 # Create new payment record
+#                 payment = Payment.objects.create(
+#                     user=self.request.user,
+#                     payment_type='sim_replacement',
+#                     sim_replacement=sim_request,
+#                     amount=sim_request.amount_paid,
+#                     payment_method='razorpay',
+#                     payment_status='pending',
+#                     transaction_id=f"SIMPAY{random.randint(100000, 999999)}"
+#                 )
+#                 print(f"✅ Created new payment: {payment.bill_number}")
+        
+#         # For AJAX requests
+#         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#             return JsonResponse({
+#                 'success': True,
+#                 'request_id': sim_request.request_id,
+#                 'connection_request_id': sim_request.id,
+#                 'payment_id': payment.id,
+#                 'redirect_url': reverse('process_payment') + f'?sim_replacement_id={sim_request.id}',
+#                 'message': 'SIM replacement request created successfully'
+#             })
+        
+#         # For non-AJAX
+#         return redirect('process_payment') + f'?sim_replacement_id={sim_request.id}'
+    
+#     def form_invalid(self, form):
+#         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+#             errors = {}
+#             for field in form.errors:
+#                 errors[field] = form.errors[field]
+            
+#             return JsonResponse({
+#                 'success': False,
+#                 'errors': errors,
+#                 'message': 'Please correct the form errors'
+#             }, status=400)
+        
+#         return super().form_invalid(form)
+    
 
 # SIM Replacement Document Upload View (Step 2)
 class SIMReplacementDocumentView(LoginRequiredMixin, FormView):
@@ -394,12 +711,21 @@ from django.views.generic import CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 
+from django.db import transaction
+from plans.models import PortRequest
+from payments.models import Payment
+from users.models import UserPlanHistory
+
 class PortNumberView(LoginRequiredMixin, CreateView):
     """View for porting existing number"""
     model = PortRequest
     form_class = PortNumberForm
     template_name = 'plans/port_number.html'
-    success_url = reverse_lazy('port_request_status')
+    
+    def get_success_url(self):
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return None
+        return reverse_lazy('port_request_status')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -420,7 +746,6 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         ).select_related('operator').order_by('operator__name', 'price')
         
         if new_operator_id:
-            # Filter if operator is selected
             port_plans = port_plans.filter(operator_id=new_operator_id)
             try:
                 context['selected_operator'] = TelecomOperator.objects.get(id=new_operator_id, is_active=True)
@@ -436,49 +761,14 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             is_featured=True
         ).select_related('operator')[:6]
         
-        # Add form to context for error display
         if 'form' not in context:
             context['form'] = self.get_form()
         
-        # Check if we should show step 3 directly (when form submission failed)
+        # Check if we should show step 3 directly
         show_step_3 = self.request.session.pop('show_step_3', False)
         context['show_step_3'] = show_step_3
         
         return context
-    
-    def form_invalid(self, form):
-        """Handle invalid form submission"""
-        # Log form errors for debugging
-        print("Form errors:", form.errors)
-        print("Form non-field errors:", form.non_field_errors())
-        
-        messages.error(self.request, "Please correct the errors below.")
-        
-        # Always set flag to show step 3 when form is invalid
-        self.request.session['show_step_3'] = True
-        
-        # Preserve the form data including Step 1 data
-        self.request.session['form_data'] = {
-            'mobile_number': form.data.get('mobile_number', ''),
-            'current_operator': form.data.get('current_operator', ''),
-            'selected_plan': form.data.get('selected_plan', ''),
-            'full_name': form.data.get('full_name', ''),
-            'email': form.data.get('email', ''),
-            'address': form.data.get('address', ''),
-            'pincode': form.data.get('pincode', ''),
-            'city': form.data.get('city', ''),
-            'state': form.data.get('state', ''),
-        }
-        
-        # Also preserve Step 1 data separately for better restoration
-        if form.data.get('mobile_number') or form.data.get('current_operator'):
-            self.request.session['step1_data'] = {
-                'mobile_number': form.data.get('mobile_number', ''),
-                'current_operator': form.data.get('current_operator', ''),
-            }
-        
-        # Pass the form with errors back to template
-        return self.render_to_response(self.get_context_data(form=form))
     
     def get_initial(self):
         """Set initial values for the form"""
@@ -498,7 +788,6 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         form_data = self.request.session.get('form_data', {})
         if form_data:
             initial.update(form_data)
-            # Clear session data after using it
             if 'form_data' in self.request.session:
                 del self.request.session['form_data']
         
@@ -511,7 +800,7 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         
         return initial
     
-
+    @transaction.atomic
     def form_valid(self, form):
         """Handle valid form submission"""
         try:
@@ -522,7 +811,6 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             if len(mobile_number) != 10 or mobile_number[0] not in '6789':
                 form.add_error('mobile_number', 
                     "Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.")
-                # Set flag to show step 3 when validation fails
                 self.request.session['show_step_3'] = True
                 return self.form_invalid(form)
             
@@ -534,7 +822,6 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             ).exists():
                 form.add_error('mobile_number', 
                     f"Mobile number {mobile_number} already has an active port request.")
-                # Set flag to show step 3 when validation fails
                 self.request.session['show_step_3'] = True
                 return self.form_invalid(form)
             
@@ -542,7 +829,6 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             selected_plan = form.cleaned_data.get('selected_plan')
             if not selected_plan:
                 form.add_error('selected_plan', 'Please select a port-in plan.')
-                # Set flag to show step 3 when validation fails
                 self.request.session['show_step_3'] = True
                 return self.form_invalid(form)
             
@@ -552,7 +838,7 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             # Save the port request with user
             port_request = form.save(commit=False)
             port_request.user = self.request.user
-            port_request.new_operator = new_operator  # Set it here!
+            port_request.new_operator = new_operator
             port_request.status = 'pending'
             
             # Generate tracking ID
@@ -570,29 +856,82 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             # Set the object for CreateView
             self.object = port_request
             
-            # Send notifications
-            self.send_porting_notifications(port_request, upc_code)
+            # ✅ CRITICAL: Handle payment based on payment method
+            payment_method = self.request.POST.get('payment_method', 'cod')
             
-            # Success - redirect to status page
-            messages.success(self.request, 
-                f"Port request submitted successfully! Tracking ID: {tracking_id}")
+            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Port request created successfully',
+                    'tracking_id': tracking_id,
+                    'port_request_id': port_request.id,
+                    'redirect_url': self.get_payment_redirect_url(port_request, payment_method)
+                })
             
-            return redirect('port_request_status', tracking_id=tracking_id)
+            # Handle regular form submission
+            return self.payment_redirect(port_request, payment_method)
             
         except Exception as e:
             messages.error(self.request, f"Error: {str(e)}")
-            # Set flag to show step 3 when exception occurs
             self.request.session['show_step_3'] = True
             return self.form_invalid(form)
     
+    def form_invalid(self, form):
+        """Handle invalid form submission"""
+        print("Form errors:", form.errors)
+        print("Form non-field errors:", form.non_field_errors())
+        
+        messages.error(self.request, "Please correct the errors below.")
+        self.request.session['show_step_3'] = True
+        
+        # Preserve the form data including Step 1 data
+        self.request.session['form_data'] = {
+            'mobile_number': form.data.get('mobile_number', ''),
+            'current_operator': form.data.get('current_operator', ''),
+            'selected_plan': form.data.get('selected_plan', ''),
+            'full_name': form.data.get('full_name', ''),
+            'email': form.data.get('email', ''),
+            'address': form.data.get('address', ''),
+            'pincode': form.data.get('pincode', ''),
+            'city': form.data.get('city', ''),
+            'state': form.data.get('state', ''),
+        }
+        
+        # Also preserve Step 1 data separately
+        if form.data.get('mobile_number') or form.data.get('current_operator'):
+            self.request.session['step1_data'] = {
+                'mobile_number': form.data.get('mobile_number', ''),
+                'current_operator': form.data.get('current_operator', ''),
+            }
+        
+        return self.render_to_response(self.get_context_data(form=form))
     
+    def payment_redirect(self, port_request, payment_method):
+        """Redirect to appropriate page based on payment method"""
+        if payment_method == 'online':
+            return redirect('process_payment') + f'?plan_id={port_request.selected_plan.id}&port_request_id={port_request.id}'
+        else:
+            # For COD, redirect to status page
+            messages.success(self.request, 
+                           f"Port request submitted successfully! Tracking ID: {port_request.tracking_id}")
+            return redirect('port_request_status', tracking_id=port_request.tracking_id)
+    
+    def get_payment_redirect_url(self, port_request, payment_method):
+        """Generate payment redirect URL for AJAX responses"""
+        if payment_method == 'online':
+            from django.urls import reverse
+            base_url = reverse('process_payment')
+            return f"{base_url}?plan_id={port_request.selected_plan.id}&port_request_id={port_request.id}"
+        else:
+            return reverse('port_request_status', kwargs={
+                'tracking_id': port_request.tracking_id
+            })
     
     def generate_tracking_id(self):
         """Generate unique tracking ID"""
         today = datetime.now()
         date_str = today.strftime('%y%m%d')
         
-        # Get the last tracking ID for today
         last_request = PortRequest.objects.filter(
             tracking_id__startswith=f'MNP{date_str}'
         ).order_by('-tracking_id').first()
@@ -605,78 +944,11 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         
         return f'MNP{date_str}{next_number:04d}'
     
-    def is_valid_for_porting(self, mobile_number):
-        """Check if mobile number is eligible for porting"""
-        # Basic validation
-        if len(mobile_number) != 10:
-            return False
-        
-        if mobile_number[0] not in '6789':
-            return False
-        
-        # Check if number is already being ported
-        if PortRequest.objects.filter(
-            mobile_number=mobile_number,
-            user=self.request.user,
-            status__in=['pending', 'upc_sent', 'processing']
-        ).exists():
-            return False
-        
-        return True
-    
     def generate_upc_code(self):
         """Generate Unique Porting Code"""
+        import random
+        import string
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    
-    def send_porting_notifications(self, port_request, upc_code):
-        """Send notifications for port request"""
-        try:
-            # Just log for now
-            print(f"✅ Port request created: {port_request.tracking_id}")
-            print(f"   User: {port_request.user.email}")
-            print(f"   Mobile: {port_request.mobile_number}")
-            print(f"   Current Operator: {port_request.current_operator.name}")
-            print(f"   New Operator: {port_request.new_operator.name}")
-            print(f"   Selected Plan: {port_request.selected_plan.name}")
-            print(f"   UPC Code: {upc_code}")
-            print(f"   Status: {port_request.status}")
-        except Exception as e:
-            print(f"Error in notification: {e}")
-
-        # In PortNumberView
-    def get(self, request, *args, **kwargs):
-        # Check if it's an AJAX request
-        if request.GET.get('ajax') == '1':
-            new_operator_id = request.GET.get('new_operator')
-            
-            # Get filtered plans
-            port_plans = Plan.objects.filter(
-                plan_type='port_in',
-                is_active=True
-            ).select_related('operator')
-            
-            if new_operator_id:
-                port_plans = port_plans.filter(operator_id=new_operator_id)
-            
-            # Serialize plans for JSON response
-            plans_data = []
-            for plan in port_plans:
-                plans_data.append({
-                    'id': plan.id,
-                    'name': plan.name,
-                    'operator_name': plan.operator.name,
-                    'price': plan.price,
-                    'validity': plan.validity,
-                    'validity_unit': plan.get_validity_unit_display(),
-                    'data_allowance': plan.data_allowance,
-                    'voice_calls': plan.voice_calls,
-                    'sms': plan.sms,
-                    'port_in_bonus': plan.port_in_bonus,
-                })
-            
-            return JsonResponse({'plans': plans_data})
-        
-        return super().get(request, *args, **kwargs)
 
 
 # views.py
@@ -739,7 +1011,8 @@ class UserNewConnectionHistoryView(LoginRequiredMixin, ListView):
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-
+from django.db import IntegrityError
+import traceback
 class NewConnectionView(LoginRequiredMixin, CreateView):
     """View for creating new mobile connection request"""
     model = NewConnectionRequest
@@ -764,66 +1037,102 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         return initial
     
     def form_valid(self, form):
-        """Handle valid form submission"""
-        print("✅ DEBUG: form_valid method called!")
-        print(f"✅ DEBUG: Form is valid: {form.is_valid()}")
-        print(f"✅ DEBUG: Cleaned data: {form.cleaned_data}")
-        
         try:
-            # Set the user
+            # Create new connection request
             connection_request = form.save(commit=False)
             connection_request.user = self.request.user
-            
-            # Generate tracking ID
-            connection_request.tracking_id = self.generate_tracking_id()
             connection_request.status = 'pending'
             
-            # Save the instance
+            # ✅ IMPORTANT: Check for duplicate pending requests
+            duplicate_check = NewConnectionRequest.objects.filter(
+                user=self.request.user,
+                operator=connection_request.operator,
+                selected_plan=connection_request.selected_plan,
+                full_name=connection_request.full_name,
+                email=connection_request.email,
+                status__in=['draft', 'pending']
+            ).exclude(id=connection_request.id if connection_request.id else None).first()
+            
+            if duplicate_check:
+                # Return existing request instead of creating new one
+                print(f"✅ Using existing request: {duplicate_check.tracking_id}")
+                if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Using existing connection request',
+                        'tracking_id': duplicate_check.tracking_id,
+                        'connection_request_id': duplicate_check.id,
+                        'redirect_url': self.get_payment_redirect_url(duplicate_check)
+                    })
+                return self.payment_redirect(duplicate_check)
+            
+            # Save the new request
             connection_request.save()
             
-            # Set the object for CreateView
-            self.object = connection_request
-            
             print(f"✅ New connection request created: {connection_request.tracking_id}")
-            print(f"   User: {connection_request.user.email}")
-            print(f"   Operator: {connection_request.operator.name}")
-            print(f"   Plan: {connection_request.selected_plan.name}")
+            print(f"   User: {connection_request.email}")
+            print(f"   Operator: {connection_request.operator}")
+            print(f"   Plan: {connection_request.selected_plan}")
             print(f"   Status: {connection_request.status}")
             
-            # Check if it's an AJAX request
+            # Handle AJAX request
             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                # Return JSON response for AJAX
                 return JsonResponse({
                     'success': True,
-                    'message': 'New connection request created successfully',
-                    'connection_request_id': connection_request.id,
+                    'message': 'Connection request created successfully',
                     'tracking_id': connection_request.tracking_id,
-                    'plan_id': connection_request.selected_plan.id,
-                    'redirect_url': reverse('process_payment') + f'?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}'
+                    'connection_request_id': connection_request.id,
+                    'redirect_url': self.get_payment_redirect_url(connection_request)
                 })
             
-            # Regular form submission
-            messages.success(self.request, 
-                f"New connection request submitted successfully! Tracking ID: {connection_request.tracking_id}")
+            # Handle regular form submission (COD)
+            return self.payment_redirect(connection_request)
             
-            print(f"✅ DEBUG: Redirecting to status page with tracking ID: {connection_request.tracking_id}")
+        except IntegrityError as e:
+            print(f"❌ IntegrityError in form_valid: {str(e)}")
             
-            return redirect('new_connection_status', tracking_id=connection_request.tracking_id)
+            # Handle duplicate tracking_id gracefully
+            if 'tracking_id' in str(e):
+                # Get the latest request for this user
+                existing_request = NewConnectionRequest.objects.filter(
+                    user=self.request.user
+                ).order_by('-created_at').first()
+                
+                if existing_request:
+                    print(f"✅ Found existing request: {existing_request.tracking_id}")
+                    
+                    if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({
+                            'success': True,
+                            'message': 'Using existing connection request',
+                            'tracking_id': existing_request.tracking_id,
+                            'connection_request_id': existing_request.id,
+                            'redirect_url': self.get_payment_redirect_url(existing_request)
+                        })
+                    return self.payment_redirect(existing_request)
             
-        except Exception as e:
-            print(f"❌ DEBUG: Error in form_valid: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            
-            # Check if it's an AJAX request
+            # Return error response
             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': False,
-                    'error': str(e),
-                    'message': 'Failed to create connection request'
+                    'error': 'Database error occurred. Please try again.'
                 })
             
-            messages.error(self.request, f"Error: {str(e)}")
+            messages.error(self.request, "Database error occurred. Please try again.")
+            return self.form_invalid(form)
+            
+        except Exception as e:
+            print(f"❌ Error in form_valid: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            
+            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': str(e)
+                })
+            
+            messages.error(self.request, f"Error creating connection request: {str(e)}")
             return self.form_invalid(form)
     
     def form_invalid(self, form):
@@ -832,40 +1141,50 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         print(f"❌ DEBUG: Form errors: {form.errors}")
         print(f"❌ DEBUG: Non-field errors: {form.non_field_errors()}")
         
-        # Print each field's errors
-        for field in form:
-            if field.errors:
-                print(f"❌ DEBUG: Field '{field.name}' errors: {field.errors}")
-        
         # Check if it's an AJAX request
         if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            # Convert form errors to JSON-friendly format
+            error_dict = {}
+            for field, errors in form.errors.items():
+                error_dict[field] = [str(error) for error in errors]
+            
             return JsonResponse({
                 'success': False,
-                'errors': form.errors,
+                'errors': error_dict,
                 'message': 'Please correct the errors below'
-            })
+            }, status=400)
         
         messages.error(self.request, "Please correct the errors below.")
         return super().form_invalid(form)
     
-    def generate_tracking_id(self):
-        """Generate unique tracking ID for new connection"""
-        import datetime
-        today = datetime.datetime.now()
-        date_str = today.strftime('%y%m%d')
+    # ✅ FIXED METHOD: Use correct URL name 'process_payment' instead of 'payment_process'
+    def payment_redirect(self, connection_request):
+        """Redirect to appropriate page based on payment method"""
+        payment_method = self.request.POST.get('payment_method', 'cod')
         
-        # Get the last tracking ID for today
-        last_request = NewConnectionRequest.objects.filter(
-            tracking_id__startswith=f'NEW{date_str}'
-        ).order_by('-tracking_id').first()
-        
-        if last_request:
-            last_number = int(last_request.tracking_id[-4:])
-            next_number = last_number + 1
+        if payment_method == 'online':
+            # ✅ CORRECTED: Use 'process_payment' URL name with query parameters
+            return redirect('process_payment') + f'?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}'
         else:
-            next_number = 1
+            # Redirect to status page for COD
+            messages.success(self.request, 
+                           f"Connection request submitted successfully! Tracking ID: {connection_request.tracking_id}")
+            return redirect('new_connection_status', tracking_id=connection_request.tracking_id)
+    
+    # ✅ FIXED METHOD: Use correct URL name 'process_payment' instead of 'payment_process'
+    def get_payment_redirect_url(self, connection_request):
+        """Generate payment redirect URL for AJAX responses"""
+        payment_method = self.request.POST.get('payment_method', 'cod')
         
-        return f'NEW{date_str}{next_number:04d}'
+        if payment_method == 'online':
+            # ✅ CORRECTED: Build URL with query parameters
+            from django.urls import reverse
+            base_url = reverse('process_payment')
+            return f"{base_url}?plan_id={connection_request.selected_plan.id}&new_connection=true&connection_request_id={connection_request.id}"
+        else:
+            return reverse('new_connection_status', kwargs={
+                'tracking_id': connection_request.tracking_id
+            })
 
 class PortRequestStatusView(LoginRequiredMixin, DetailView):
     """View to check port request status"""
@@ -920,6 +1239,14 @@ class NewConnectionStatusView(LoginRequiredMixin, DetailView):
     context_object_name = 'connection_request'
     slug_field = 'tracking_id'
     slug_url_kwarg = 'tracking_id'
+
+
+    def get_queryset(self):
+        return NewConnectionRequest.objects.filter(user=self.request.user)
+    
+    def get_object(self):
+        tracking_id = self.kwargs.get('tracking_id')
+        return get_object_or_404(NewConnectionRequest, tracking_id=tracking_id, user=self.request.user)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

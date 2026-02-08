@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load custom_filters %}  <!-- Remove this line if you haven't created custom_filters.py -->
+{% load custom_filters %}
 
-{% block title %}Plan History - {{ user.username }} | TelecomPedia{% endblock %}
+{% block title %}Account History - {{ user.username }} | TelecomPedia{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col">
-            <h1 class="fw-bold">Plan Purchase History</h1>
-            <p class="text-muted">View all your telecom plan purchases</p>
+            <h1 class="fw-bold">Account History</h1>
+            <p class="text-muted">View your plan purchases and SIM replacement requests</p>
         </div>
         <div class="col-auto">
             <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
@@ -19,309 +19,575 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card border-primary border-2">
-                <div class="card-body text-center">
-                    <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
-                    <h5 class="card-title">Total Purchases</h5>
-                    <p class="display-6 fw-bold">{{ plan_history.count }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card border-success border-2">
-                <div class="card-body text-center">
-                    <i class="fas fa-bolt fa-2x text-success mb-3"></i>
-                    <h5 class="card-title">Active Plans</h5>
-                    <p class="display-6 fw-bold">{{ active_plans_count }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card border-warning border-2">
-                <div class="card-body text-center">
-                    <i class="fas fa-clock fa-2x text-warning mb-3"></i>
-                    <h5 class="card-title">Expired Plans</h5>
-                    <p class="display-6 fw-bold">{{ expired_plans_count }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card border-info border-2">
-                <div class="card-body text-center">
-                    <i class="fas fa-indian-rupee-sign fa-2x text-info mb-3"></i>
-                    <h5 class="card-title">Total Spent</h5>
-                    <p class="display-6 fw-bold">₹{{ total_spent|default:"0" }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Search and Filter -->
+    <!-- Tabs Navigation -->
     <div class="card shadow mb-4">
-        <div class="card-body">
-            <form method="GET" action="{% url 'plan_history' %}" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
-                        <option value="expired" {% if request.GET.status == 'expired' %}selected{% endif %}>Expired</option>
-                        <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">From Date</label>
-                    <input type="date" name="start_date" class="form-control" 
-                           value="{{ request.GET.start_date }}">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">To Date</label>
-                    <input type="date" name="end_date" class="form-control" 
-                           value="{{ request.GET.end_date }}">
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter"></i> Filter
+        <div class="card-body p-0">
+            <ul class="nav nav-tabs nav-fill" id="historyTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="plan-tab" data-bs-toggle="tab" data-bs-target="#plan-history" type="button" role="tab">
+                        <i class="fas fa-sim-card me-2"></i>Plan Purchases
+                        <span class="badge bg-primary ms-2">{{ plan_history.count }}</span>
                     </button>
-                </div>
-            </form>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sim-tab" data-bs-toggle="tab" data-bs-target="#sim-history" type="button" role="tab">
+                        <i class="fas fa-exchange-alt me-2"></i>SIM Replacements
+                        <span class="badge bg-primary ms-2">{{ sim_requests.count }}</span>
+                    </button>
+                </li>
+            </ul>
         </div>
     </div>
 
-    <!-- Plan History Table -->
-    <div class="card shadow">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Purchase History</h5>
-            <span class="badge bg-primary">{{ plan_history.count }} records</span>
-        </div>
+    <!-- Tabs Content -->
+    <div class="tab-content" id="historyTabsContent">
         
-        <div class="card-body">
-            {% if plan_history %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Plan Details</th>
-                            <th>Operator</th>
-                            <th>Price</th>
-                            <th>Purchase Date</th>
-                            <th>Expiry Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for history in plan_history %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-start">
-                                    <div class="me-3">
-                                        {% if history.plan and history.plan.operator.logo %}
-                                        <img src="{{ history.plan.operator.logo.url }}" 
-                                             alt="{{ history.plan.operator.name }}"
-                                             class="rounded-circle"
-                                             style="width: 40px; height: 40px; object-fit: cover;">
-                                        {% else %}
-                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
-                                             style="width: 40px; height: 40px;">
-                                            <i class="fas fa-sim-card text-secondary"></i>
+        <!-- Plan Purchase History Tab -->
+        <div class="tab-pane fade show active" id="plan-history" role="tabpanel" aria-labelledby="plan-tab">
+            <!-- Stats Cards for Plans -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-primary border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-shopping-cart fa-2x text-primary mb-3"></i>
+                            <h5 class="card-title">Total Purchases</h5>
+                            <p class="display-6 fw-bold">{{ plan_history.count }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-success border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-bolt fa-2x text-success mb-3"></i>
+                            <h5 class="card-title">Active Plans</h5>
+                            <p class="display-6 fw-bold">{{ active_plans_count }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-warning border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+                            <h5 class="card-title">Expired Plans</h5>
+                            <p class="display-6 fw-bold">{{ expired_plans_count }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-info border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-indian-rupee-sign fa-2x text-info mb-3"></i>
+                            <h5 class="card-title">Total Spent</h5>
+                            <p class="display-6 fw-bold">₹{{ total_spent|default:"0" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter for Plans -->
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <form method="GET" action="{% url 'plan_history' %}" class="row g-3">
+                        <input type="hidden" name="tab" value="plan-history">
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="expired" {% if request.GET.status == 'expired' %}selected{% endif %}>Expired</option>
+                                <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" name="start_date" class="form-control" 
+                                   value="{{ request.GET.start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" name="end_date" class="form-control" 
+                                   value="{{ request.GET.end_date }}">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Plan History Table -->
+            <div class="card shadow">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Purchase History</h5>
+                    <a href="{% url 'plan_list' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> Buy New Plan
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    {% if plan_history %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Plan Details</th>
+                                    <th>Operator</th>
+                                    <th>Price</th>
+                                    <th>Purchase Date</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for history in plan_history %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-start">
+                                            <div class="me-3">
+                                                {% if history.plan and history.plan.operator.logo %}
+                                                <img src="{{ history.plan.operator.logo.url }}" 
+                                                     alt="{{ history.plan.operator.name }}"
+                                                     class="rounded-circle"
+                                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                                {% else %}
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-sim-card text-secondary"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    {% if history.plan %}
+                                                        {{ history.plan.name }}
+                                                    {% else %}
+                                                        <span class="text-muted">Plan Deleted</span>
+                                                    {% endif %}
+                                                </h6>
+                                                {% if history.plan %}
+                                                <small class="text-muted">
+                                                    {{ history.plan.category.name|default:"" }}
+                                                </small>
+                                                <br>
+                                                <small class="text-muted">
+                                                    Validity: {{ history.plan.get_full_validity }}
+                                                </small>
+                                                {% endif %}
+                                            </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        {% if history.plan and history.plan.operator %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                {% if history.plan.operator.logo %}
+                                                <img src="{{ history.plan.operator.logo.url }}" 
+                                                     alt="{{ history.plan.operator.name }}"
+                                                     class="rounded-circle"
+                                                     style="width: 30px; height: 30px; object-fit: cover;">
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                {{ history.plan.operator.name }}
+                                                <br>
+                                                <small class="text-muted">{{ history.plan.operator.get_operator_type_display }}</small>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
                                         {% endif %}
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">
-                                            {% if history.plan %}
-                                                {{ history.plan.name }}
-                                            {% else %}
-                                                <span class="text-muted">Plan Deleted</span>
-                                            {% endif %}
-                                        </h6>
+                                    </td>
+                                    <td>
                                         {% if history.plan %}
-                                        <small class="text-muted">
-                                            {{ history.plan.category.name|default:"" }}
-                                        </small>
+                                        <strong class="text-primary">₹{{ history.plan.price }}</strong>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ history.purchased_on|date:"d M Y" }}
+                                        <br>
+                                        <small class="text-muted">{{ history.purchased_on|date:"h:i A" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if history.expires_on %}
+                                        {{ history.expires_on|date:"d M Y" }}
                                         <br>
                                         <small class="text-muted">
-                                            Validity: {{ history.plan.get_full_validity }}
+                                            {% if history.is_expired %}
+                                            <span class="text-danger">Expired</span>
+                                            {% else %}
+                                            In {{ history.days_remaining }} days
+                                            {% endif %}
+                                        </small>
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if history.status == 'active' %}success{% elif history.status == 'expired' %}warning{% else %}secondary{% endif %} p-2">
+                                            {{ history.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            {% if history.plan %}
+                                            <a href="{% url 'plan_detail' history.plan.id %}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="View Plan Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            {% if history.status == 'active' and history.plan %}
+                                            <button class="btn btn-sm btn-outline-success" 
+                                                    title="Renew Plan"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#renewModal{{ history.id }}">
+                                                <i class="fas fa-redo"></i>
+                                            </button>
+                                            {% endif %}
+                                            
+                                            <button class="btn btn-sm btn-outline-info" 
+                                                    title="View Invoice"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#invoiceModal{{ history.id }}">
+                                                <i class="fas fa-receipt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination for Plans -->
+                    {% if is_paginated %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1&tab=plan-history{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&tab=plan-history{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}&tab=plan-history{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ num }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}&tab=plan-history{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&tab=plan-history{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Last</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <!-- Empty State for Plans -->
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-shopping-cart fa-4x text-muted"></i>
+                        </div>
+                        <h4 class="text-muted mb-3">No Purchase History</h4>
+                        <p class="text-muted mb-4">You haven't purchased any plans yet.</p>
+                        <a href="{% url 'plan_list' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search"></i> Browse Plans
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row mt-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-question-circle fa-2x text-primary mb-3"></i>
+                            <h5>Need Help?</h5>
+                            <p class="text-muted">Having issues with your plans?</p>
+                            <a href="#" class="btn btn-outline-primary">Contact Support</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-redo fa-2x text-success mb-3"></i>
+                            <h5>Auto Renewal</h5>
+                            <p class="text-muted">Set up automatic renewal for active plans</p>
+                            <a href="#" class="btn btn-outline-success">Manage Renewal</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-download fa-2x text-info mb-3"></i>
+                            <h5>Export Data</h5>
+                            <p class="text-muted">Download your purchase history</p>
+                            <button class="btn btn-outline-info" onclick="exportPlanHistory()">Export CSV</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIM Replacement History Tab -->
+        <div class="tab-pane fade" id="sim-history" role="tabpanel" aria-labelledby="sim-tab">
+            <!-- Stats Cards for SIM Replacements -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-primary border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exchange-alt fa-2x text-primary mb-3"></i>
+                            <h5 class="card-title">Total Requests</h5>
+                            <p class="display-6 fw-bold">{{ sim_requests.count }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-success border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                            <h5 class="card-title">Completed</h5>
+                            <p class="display-6 fw-bold">{{ completed_sim_requests|length }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-warning border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-2x text-warning mb-3"></i>
+                            <h5 class="card-title">In Progress</h5>
+                            <p class="display-6 fw-bold">{{ pending_sim_requests|length }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-info border-2 h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-indian-rupee-sign fa-2x text-info mb-3"></i>
+                            <h5 class="card-title">Total Spent</h5>
+                            <p class="display-6 fw-bold">₹{{ sim_total_spent|default:"0" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIM Replacement History Table -->
+            <div class="card shadow">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">SIM Replacement Requests</h5>
+                    <a href="{% url 'sim_replacement_create' %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Request
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    {% if sim_requests %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Mobile Number</th>
+                                    <th>Operator</th>
+                                    <th>Service Type</th>
+                                    <th>Request Date</th>
+                                    <th>Status</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sim_request in sim_requests %}
+                                <tr>
+                                    <td>
+                                        <strong class="text-primary">{{ sim_request.request_id|truncatechars:10 }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ sim_request.mobile_number }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ sim_request.get_operator_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if sim_request.service_type == 'fast' %}
+                                        <span class="badge bg-warning text-dark">Fast Track</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Standard</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ sim_request.created_at|date:"d M Y" }}
+                                        <br>
+                                        <small class="text-muted">{{ sim_request.created_at|date:"h:i A" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if sim_request.status == 'delivered' %}success{% elif sim_request.status == 'approved' or sim_request.status == 'dispatched' %}info{% elif sim_request.status == 'processing' %}warning{% elif sim_request.status == 'rejected' %}danger{% else %}secondary{% endif %} p-2">
+                                            {{ sim_request.get_status_display }}
+                                        </span>
+                                        {% if sim_request.estimated_delivery and sim_request.status in 'approved,dispatched' %}
+                                        <br>
+                                        <small class="text-muted">
+                                            Est: {{ sim_request.estimated_delivery|date:"d M" }}
                                         </small>
                                         {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                {% if history.plan and history.plan.operator %}
-                                <div class="d-flex align-items-center">
-                                    <div class="me-2">
-                                        {% if history.plan.operator.logo %}
-                                        <img src="{{ history.plan.operator.logo.url }}" 
-                                             alt="{{ history.plan.operator.name }}"
-                                             class="rounded-circle"
-                                             style="width: 30px; height: 30px; object-fit: cover;">
-                                        {% endif %}
-                                    </div>
-                                    <div>
-                                        {{ history.plan.operator.name }}
-                                        <br>
-                                        <small class="text-muted">{{ history.plan.operator.get_operator_type_display }}</small>
-                                    </div>
-                                </div>
-                                {% else %}
-                                <span class="text-muted">N/A</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if history.plan %}
-                                <strong class="text-primary">₹{{ history.plan.price }}</strong>
-                                {% else %}
-                                <span class="text-muted">N/A</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {{ history.purchased_on|date:"d M Y" }}
-                                <br>
-                                <small class="text-muted">{{ history.purchased_on|date:"h:i A" }}</small>
-                            </td>
-                            <td>
-                                {% if history.expires_on %}
-                                {{ history.expires_on|date:"d M Y" }}
-                                <br>
-                                <small class="text-muted">
-                                    {% if history.is_expired %}
-                                    <span class="text-danger">Expired</span>
-                                    {% else %}
-                                    In {{ history.days_remaining }} days
-                                    {% endif %}
-                                </small>
-                                {% else %}
-                                <span class="text-muted">N/A</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge bg-{% if history.status == 'active' %}success{% elif history.status == 'expired' %}warning{% else %}secondary{% endif %} p-2">
-                                    {{ history.status|title }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    {% if history.plan %}
-                                    <a href="{% url 'plan_detail' history.plan.id %}" 
-                                       class="btn btn-sm btn-outline-primary" 
-                                       title="View Plan Details">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    {% endif %}
-                                    
-                                    {% if history.status == 'active' and history.plan %}
-                                    <button class="btn btn-sm btn-outline-success" 
-                                            title="Renew Plan"
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#renewModal{{ history.id }}">
-                                        <i class="fas fa-redo"></i>
-                                    </button>
-                                    {% endif %}
-                                    
-                                    <button class="btn btn-sm btn-outline-info" 
-                                            title="View Invoice"
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#invoiceModal{{ history.id }}">
-                                        <i class="fas fa-receipt"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">₹{{ sim_request.amount_paid }}</strong>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'sim_replacement_status' sim_request.id %}" 
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if sim_request.tracking_number %}
+                                            <button class="btn btn-sm btn-outline-warning" 
+                                                    title="Track Delivery"
+                                                    onclick="trackDelivery('{{ sim_request.tracking_number }}')">
+                                                <i class="fas fa-shipping-fast"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-            <!-- Pagination -->
-            {% if is_paginated %}
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">First</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Previous</a>
-                    </li>
+                    <!-- Status Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-8">
+                            <h6 class="text-primary mb-3">Status Overview:</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                {% with total=sim_requests.count %}
+                                {% if total > 0 %}
+                                {% with delivered=completed_sim_requests|length %}
+                                {% with pending=pending_sim_requests|length %}
+                                {% with rejected=rejected_sim_requests|length %}
+                                <div class="progress-bar bg-success" style="width: {% widthratio delivered total 100 %}%">
+                                    {{ delivered }}
+                                </div>
+                                <div class="progress-bar bg-info" style="width: {% widthratio pending total 100 %}%">
+                                    {{ pending }}
+                                </div>
+                                <div class="progress-bar bg-danger" style="width: {% widthratio rejected total 100 %}%">
+                                    {{ rejected }}
+                                </div>
+                                {% endwith %}
+                                {% endwith %}
+                                {% endwith %}
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>Completed: {{ completed_sim_requests|length }}</span>
+                                <span>In Progress: {{ pending_sim_requests|length }}</span>
+                                <span>Rejected: {{ rejected_sim_requests|length }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'sim_replacement_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> New Request
+                            </a>
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <!-- Empty State for SIM Replacements -->
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-exchange-alt fa-4x text-muted"></i>
+                        </div>
+                        <h4 class="text-muted mb-3">No SIM Replacement Requests</h4>
+                        <p class="text-muted mb-4">You haven't requested any SIM replacements yet.</p>
+                        <a href="{% url 'sim_replacement_create' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i> Request SIM Replacement
+                        </a>
+                    </div>
                     {% endif %}
-
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
-                        </li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ num }}</a>
-                        </li>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Next</a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">Last</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
-
-            {% else %}
-            <!-- Empty State -->
-            <div class="text-center py-5">
-                <div class="mb-4">
-                    <i class="fas fa-shopping-cart fa-4x text-muted"></i>
-                </div>
-                <h4 class="text-muted mb-3">No Purchase History</h4>
-                <p class="text-muted mb-4">You haven't purchased any plans yet.</p>
-                <a href="{% url 'plan_list' %}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-search"></i> Browse Plans
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="row mt-4">
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-question-circle fa-2x text-primary mb-3"></i>
-                    <h5>Need Help?</h5>
-                    <p class="text-muted">Having issues with your plans?</p>
-                    <a href="#" class="btn btn-outline-primary">Contact Support</a>
                 </div>
             </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-redo fa-2x text-success mb-3"></i>
-                    <h5>Auto Renewal</h5>
-                    <p class="text-muted">Set up automatic renewal for active plans</p>
-                    <a href="#" class="btn btn-outline-success">Manage Renewal</a>
+
+            <!-- SIM Replacement FAQ -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>SIM Replacement FAQ</h5>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-download fa-2x text-info mb-3"></i>
-                    <h5>Export Data</h5>
-                    <p class="text-muted">Download your purchase history</p>
-                    <a href="#" class="btn btn-outline-info">Export CSV</a>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Common Questions:</h6>
+                            <ul class="small">
+                                <li class="mb-2">
+                                    <strong>Q: How long does SIM replacement take?</strong><br>
+                                    <span class="text-muted">A: Standard: 3-5 days, Fast Track: 24-48 hours</span>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Q: What documents are needed?</strong><br>
+                                    <span class="text-muted">A: Aadhaar card and proof of address</span>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Q: Will my number remain the same?</strong><br>
+                                    <span class="text-muted">A: Yes, your mobile number remains unchanged</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Need Help?</h6>
+                            <ul class="small">
+                                <li class="mb-2">
+                                    <i class="fas fa-envelope text-primary me-2"></i>
+                                    <strong>Email:</strong> support@telecompedia.com
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-phone text-primary me-2"></i>
+                                    <strong>Phone:</strong> 1800-123-4567
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <strong>Hours:</strong> 9 AM - 9 PM, 7 days a week
+                                </li>
+                                <li>
+                                    <i class="fas fa-id-card text-primary me-2"></i>
+                                    <strong>Reference:</strong> Provide Request ID when contacting
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -468,7 +734,7 @@
                         </div>
                     </div>
                     
-                    <!-- Payment Summary - SIMPLIFIED to avoid custom filter errors -->
+                    <!-- Payment Summary -->
                     <div class="row">
                         <div class="col-md-8"></div>
                         <div class="col-md-4">
@@ -541,6 +807,27 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle tab switching based on URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    if (tabParam === 'sim-history') {
+        const simTab = document.getElementById('sim-tab');
+        if (simTab) {
+            new bootstrap.Tab(simTab).show();
+        }
+    }
+    
+    // Update URL when tab changes
+    document.querySelectorAll('#historyTabs button').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', event => {
+            const target = event.target.getAttribute('data-bs-target').replace('#', '');
+            const url = new URL(window.location);
+            url.searchParams.set('tab', target);
+            window.history.replaceState({}, '', url);
+        });
+    });
+    
     // Calculate tax and total for each invoice when modal opens
     document.querySelectorAll('[id^="invoiceModal"]').forEach(function(modal) {
         modal.addEventListener('show.bs.modal', function(event) {
@@ -572,6 +859,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Track delivery function
+    window.trackDelivery = function(trackingNumber) {
+        alert(`Tracking Number: ${trackingNumber}\n\nIn a real implementation, this would open the courier's tracking page.`);
+    };
+    
+    // Export plan history function
+    window.exportPlanHistory = function() {
+        alert('In a real implementation, this would download a CSV file of your plan history.');
+        // This would typically make an AJAX call to a view that generates CSV
+    };
     
     // Print invoice function
     window.printInvoice = function(modalId) {
@@ -617,15 +915,64 @@ document.addEventListener('DOMContentLoaded', function() {
         `);
         printWindow.document.close();
     };
-    
-    // Calculate days remaining for each plan
-    document.querySelectorAll('tr').forEach(function(row) {
-        const expiryDateText = row.querySelector('.expiry-date')?.textContent;
-        if (expiryDateText) {
-            // You can add JavaScript to calculate days remaining here
-            // This would require parsing the date from the text
-        }
-    });
 });
 </script>
+
+<style>
+/* Custom styles for better tab appearance */
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom: 3px solid #dee2e6;
+    color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom: 3px solid #0d6efd;
+    background-color: transparent;
+}
+
+.tab-content {
+    padding-top: 1.5rem;
+}
+
+/* Progress bar styles */
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+}
+
+/* Table row hover */
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Badge styles */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+</style>
 {% endblock %}

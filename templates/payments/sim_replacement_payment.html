@@ -1,0 +1,137 @@
+<!-- templates/payments/sim_replacement_payment.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SIM Replacement Payment - TelecomPedia{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment for SIM Replacement</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="icon-xl bg-primary bg-opacity-10 text-primary rounded-circle mb-3 mx-auto d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                            <i class="fas fa-sim-card fa-3x"></i>
+                        </div>
+                        <h3>Complete Your Payment</h3>
+                        <p class="text-muted">Request ID: {{ sim_request.request_id }}</p>
+                    </div>
+                    
+                    <div class="card border-primary mb-4">
+                        <div class="card-body">
+                            <h5>Payment Summary</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Service Type:</td>
+                                    <td class="text-end">
+                                        {% if sim_request.service_type == 'fast' %}
+                                        Fast Track Service
+                                        {% else %}
+                                        Standard Service
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Operator:</td>
+                                    <td class="text-end">{{ sim_request.get_operator_display }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mobile Number:</td>
+                                    <td class="text-end">{{ sim_request.mobile_number }}</td>
+                                </tr>
+                                <tr class="table-active">
+                                    <th>Total Amount:</th>
+                                    <th class="text-end text-primary">₹{{ amount }}</th>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Options (Simulated) -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">Choose Payment Method</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card border h-100 payment-option-card active">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-credit-card fa-2x text-primary mb-3"></i>
+                                        <h6>Credit/Debit Card</h6>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border h-100 payment-option-card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-university fa-2x text-success mb-3"></i>
+                                        <h6>Net Banking</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Simulated Payment Form -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Card Number</label>
+                            <input type="text" class="form-control" value="4111 1111 1111 1111" readonly>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Expiry Date</label>
+                                <input type="text" class="form-control" value="12/30" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CVV</label>
+                                <input type="text" class="form-control" value="123" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            This is a simulated payment page. In a real implementation, this would integrate with a payment gateway.
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-lock me-2"></i>Pay ₹{{ amount }}
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'sim_replacement_status' sim_request.id %}" class="text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Status
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-option-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.payment-option-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.payment-option-card.active {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+}
+.icon-xl {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}

@@ -321,8 +321,19 @@ class SIMReplacementRequest(models.Model):
         ('delivered', 'Delivered'),
         ('rejected', 'Rejected'),
     ]
-    
+    PAYMENT_METHOD_CHOICES = [  # ADD THIS
+        ('online', 'Online Payment'),
+        ('cod', 'Cash on Delivery'),
+        ('wallet', 'Wallet'),
+    ]
     # Request Information
+
+
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=PAYMENT_METHOD_CHOICES, 
+        default='online'  # Add default value
+    )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
 
     request_id = models.CharField(max_length=20, unique=True, editable=False)

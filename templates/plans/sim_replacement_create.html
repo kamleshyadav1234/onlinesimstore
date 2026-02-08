@@ -18,7 +18,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <div class="row text-center">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
                                  style="width: 50px; height: 50px;">
                                 1
@@ -26,26 +26,18 @@
                             <h6>Fill Details</h6>
                             <p class="small text-muted">Enter your information</p>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="step-number bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
                                  style="width: 50px; height: 50px;">
                                 2
                             </div>
-                            <h6>Upload Documents</h6>
-                            <p class="small text-muted">Upload required documents</p>
+                            <h6>Review & Pay</h6>
+                            <p class="small text-muted">Verify details and make payment</p>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="step-number bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
                                  style="width: 50px; height: 50px;">
                                 3
-                            </div>
-                            <h6>Make Payment</h6>
-                            <p class="small text-muted">Pay replacement fee</p>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="step-number bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
-                                 style="width: 50px; height: 50px;">
-                                4
                             </div>
                             <h6>Get New SIM</h6>
                             <p class="small text-muted">SIM delivered & activated</p>
@@ -64,7 +56,35 @@
                     <h4 class="mb-0"><i class="fas fa-sim-card me-2"></i>SIM Replacement Form</h4>
                 </div>
                 <div class="card-body p-4">
-                    <form method="POST">
+                    <!-- Payment Summary Section (Initially hidden) -->
+                    <div class="card border-primary mb-4" id="paymentSummaryCard" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Payment Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 id="summaryServiceType">Standard Service</h6>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">Delivery Time:</small>
+                                            <p class="mb-0 fw-bold" id="summaryDeliveryTime">24-48 hours</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Operator:</small>
+                                            <p class="mb-0 fw-bold" id="summaryOperator">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <h3 class="text-primary mb-0" id="summaryAmount">₹99</h3>
+                                    <p class="small text-muted mb-0">Replacement Fee</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" id="simReplacementForm">
                         {% csrf_token %}
                         
                         <!-- Display form errors -->
@@ -134,7 +154,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Select Operator *</label>
                                     <select class="form-select {% if form.operator.errors %}is-invalid{% endif %}" 
-                                            name="operator" required>
+                                            name="operator" id="operatorSelect" required>
                                         <option value="">Choose Operator</option>
                                         <option value="airtel" {% if form.operator.value == 'airtel' %}selected{% endif %}>Airtel</option>
                                         <option value="jio" {% if form.operator.value == 'jio' %}selected{% endif %}>Jio</option>
@@ -278,38 +298,85 @@
 
                         <!-- Service Details -->
                         <div class="mb-4">
-                            <h5 class="mb-3">5. Service Type</h5>
-                            <div class="row">
+                            <h5 class="mb-3">5. Service Type & Payment</h5>
+                            
+                            <!-- Service Type Cards -->
+                            <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <div class="card {% if form.service_type.value == 'fast' %}border-success{% else %}border{% endif %}">
-                                        <div class="card-body">
-                                            <h6 class="text-success"><i class="fas fa-bolt me-2"></i>Fast Track Service</h6>
-                                            <p class="mb-2"><strong>Delivery:</strong> 2-4 hours</p>
-                                            <p class="mb-0"><strong>Fee:</strong> ₹199</p>
+                                    <div class="card border h-100 payment-option-card" id="standardCard" data-amount="99">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <i class="fas fa-shipping-fast fa-3x text-primary"></i>
+                                            </div>
+                                            <h5>Standard Service</h5>
+                                            <p class="text-muted">Regular delivery</p>
+                                            <div class="mb-3">
+                                                <h4 class="text-primary">₹99</h4>
+                                                <p class="small text-muted">Delivery: 24-48 hours</p>
+                                            </div>
+                                            <input type="radio" name="service_type" 
+                                                   id="service_standard" value="standard" 
+                                                   {% if form.service_type.value == 'standard' %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="service_standard">
+                                                Choose Standard
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
+                                
                                 <div class="col-md-6">
-                                    <div class="card {% if form.service_type.value == 'standard' %}border-primary{% else %}border{% endif %}">
-                                        <div class="card-body">
-                                            <h6><i class="fas fa-shipping-fast me-2"></i>Standard Service</h6>
-                                            <p class="mb-2"><strong>Delivery:</strong> 24-48 hours</p>
-                                            <p class="mb-0"><strong>Fee:</strong> ₹99</p>
+                                    <div class="card border h-100 payment-option-card" id="fastCard" data-amount="199">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <i class="fas fa-bolt fa-3x text-success"></i>
+                                            </div>
+                                            <h5>Fast Track Service</h5>
+                                            <p class="text-muted">Priority delivery</p>
+                                            <div class="mb-3">
+                                                <h4 class="text-success">₹199</h4>
+                                                <p class="small text-muted">Delivery: 2-4 hours</p>
+                                            </div>
+                                            <input type="radio" name="service_type" 
+                                                   id="service_fast" value="fast"
+                                                   {% if form.service_type.value == 'fast' %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="service_fast">
+                                                Choose Fast Track
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-3">
-                                <label class="form-label">Select Service Type *</label>
-                                <select class="form-select {% if form.service_type.errors %}is-invalid{% endif %}" 
-                                        name="service_type" required>
-                                    <option value="">Select Service Type</option>
-                                    <option value="standard" {% if form.service_type.value == 'standard' %}selected{% endif %}>Standard Service (₹99)</option>
-                                    <option value="fast" {% if form.service_type.value == 'fast' %}selected{% endif %}>Fast Track Service (₹199)</option>
-                                </select>
-                                {% if form.service_type.errors %}
-                                <div class="invalid-feedback">{{ form.service_type.errors }}</div>
-                                {% endif %}
+                            
+                            <!-- Payment Method (Only Online) -->
+                            <div class="card border-success mt-3">
+                                <div class="card-body">
+                                    <h6 class="mb-3"><i class="fas fa-credit-card me-2"></i>Payment Method</h6>
+                                    <div class="alert alert-info">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-lock fa-2x me-3"></i>
+                                            <div>
+                                                <h6 class="alert-heading mb-1">Online Payment Required</h6>
+                                                <p class="mb-0">SIM replacement requires immediate online payment. Cash on delivery is not available for SIM replacement services.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Payment Summary -->
+                                    <div class="border rounded p-3 bg-light">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Order Summary</h6>
+                                                <p class="mb-1"><strong>Service Type:</strong> <span id="orderServiceType">Standard</span></p>
+                                                <p class="mb-1"><strong>Amount:</strong> <span id="orderAmount" class="text-primary fw-bold">₹99</span></p>
+                                                <p class="mb-0"><strong>Payment Method:</strong> Online Payment</p>
+                                            </div>
+                                            <div class="col-md-6 text-end">
+                                                <h4 class="text-success" id="totalAmountDisplay">₹99</h4>
+                                                <p class="small text-muted">Total Payable Amount</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -337,21 +404,48 @@
                             </div>
                         </div>
 
-                        <!-- Submit Button -->
+                        <!-- Submit Buttons -->
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="reset" class="btn btn-outline-secondary me-2">Reset Form</button>
-                            <button type="submit" class="btn btn-primary btn-lg px-5">
-                                <i class="fas fa-paper-plane me-2"></i>Continue to Step 2
+                            <button type="button" class="btn btn-primary btn-lg px-5" id="proceedToPaymentBtn">
+                                <i class="fas fa-lock me-2"></i>Proceed to Payment
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+            
+            <!-- Information Section -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5><i class="fas fa-info-circle me-2 text-primary"></i>Important Information</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mt-3">Payment Process:</h6>
+                            <ul class="mb-0">
+                                <li>Online payment is mandatory for SIM replacement</li>
+                                <li>Payment must be completed to process your request</li>
+                                <li>No cash on delivery available for this service</li>
+                                <li>Refunds processed as per terms and conditions</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mt-3">Delivery Process:</h6>
+                            <ul class="mb-0">
+                                <li>SIM will be delivered to your provided address</li>
+                                <li>Original documents required for verification</li>
+                                <li>Delivery executive will verify your identity</li>
+                                <li>Keep your ID proof ready for delivery</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Terms Modal (Add this at the bottom) -->
+<!-- Terms Modal -->
 <div class="modal fade" id="termsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -362,11 +456,13 @@
             <div class="modal-body">
                 <h6>SIM Replacement Terms</h6>
                 <p>1. You must be the rightful owner of the mobile number.</p>
-                <p>2. Replacement fee is non-refundable once processed.</p>
-                <p>3. Delivery time may vary based on location and operator.</p>
-                <p>4. You must present original documents when receiving SIM.</p>
-                <p>5. TelecomPedia acts as a facilitator, final approval rests with the operator.</p>
-                <p>6. Misuse of this service may lead to legal action.</p>
+                <p>2. Online payment is mandatory for SIM replacement requests.</p>
+                <p>3. Replacement fee is non-refundable once processed.</p>
+                <p>4. Delivery time may vary based on location and operator.</p>
+                <p>5. You must present original documents when receiving SIM.</p>
+                <p>6. TelecomPedia acts as a facilitator, final approval rests with the operator.</p>
+                <p>7. Misuse of this service may lead to legal action.</p>
+                <p>8. Cash on delivery is not available for SIM replacement services.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -375,6 +471,555 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== GLOBAL VARIABLES ==========
+    let formSubmissionInProgress = false;
+    let lastSubmitTime = 0;
+    
+    // ========== DOM ELEMENTS ==========
+    const standardCard = document.getElementById('standardCard');
+    const fastCard = document.getElementById('fastCard');
+    const standardRadio = document.getElementById('service_standard');
+    const fastRadio = document.getElementById('service_fast');
+    const paymentSummaryCard = document.getElementById('paymentSummaryCard');
+    const operatorSelect = document.getElementById('operatorSelect');
+    const proceedButton = document.getElementById('proceedToPaymentBtn');
+    const form = document.getElementById('simReplacementForm');
+    
+    // ========== INITIALIZATION ==========
+    if (form) {
+        // Prevent double form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
+    
+    // Initialize with default values
+    if (standardRadio && fastRadio) {
+        updateOrderSummary();
+        updateServiceCardStyles();
+    }
+    
+    // ========== SERVICE TYPE SELECTION ==========
+    if (standardCard) {
+        standardCard.addEventListener('click', function(e) {
+            if (e.target.type !== 'radio') {
+                standardRadio.checked = true;
+                updateServiceCardStyles();
+                updateOrderSummary();
+            }
+        });
+    }
+    
+    if (fastCard) {
+        fastCard.addEventListener('click', function(e) {
+            if (e.target.type !== 'radio') {
+                fastRadio.checked = true;
+                updateServiceCardStyles();
+                updateOrderSummary();
+            }
+        });
+    }
+    
+    if (standardRadio) {
+        standardRadio.addEventListener('change', function() {
+            updateServiceCardStyles();
+            updateOrderSummary();
+        });
+    }
+    
+    if (fastRadio) {
+        fastRadio.addEventListener('change', function() {
+            updateServiceCardStyles();
+            updateOrderSummary();
+        });
+    }
+    
+    // ========== OPERATOR SELECTION ==========
+    if (operatorSelect) {
+        operatorSelect.addEventListener('change', updateOrderSummary);
+    }
+    
+    // ========== BUTTON HANDLERS ==========
+    if (proceedButton) {
+        proceedButton.addEventListener('click', handleProceedClick);
+    }
+    
+    // ========== FUNCTIONS ==========
+    
+    // Update service card styles
+    function updateServiceCardStyles() {
+        if (!standardCard || !fastCard || !standardRadio || !fastRadio) return;
+        
+        if (standardRadio.checked) {
+            standardCard.classList.add('border-primary');
+            standardCard.classList.remove('border');
+            fastCard.classList.add('border');
+            fastCard.classList.remove('border-success');
+        } else if (fastRadio.checked) {
+            fastCard.classList.add('border-success');
+            fastCard.classList.remove('border');
+            standardCard.classList.add('border');
+            standardCard.classList.remove('border-primary');
+        }
+    }
+    
+    // Update order summary
+    function updateOrderSummary() {
+        if (!standardRadio || !fastRadio || !operatorSelect) return;
+        
+        let serviceType = 'Standard';
+        let amount = 99;
+        let deliveryTime = '24-48 hours';
+        
+        if (fastRadio.checked) {
+            serviceType = 'Fast Track';
+            amount = 199;
+            deliveryTime = '2-4 hours';
+        }
+        
+        // Update order summary
+        const orderServiceType = document.getElementById('orderServiceType');
+        const orderAmount = document.getElementById('orderAmount');
+        const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+        const summaryServiceType = document.getElementById('summaryServiceType');
+        const summaryAmount = document.getElementById('summaryAmount');
+        const summaryDeliveryTime = document.getElementById('summaryDeliveryTime');
+        const summaryOperator = document.getElementById('summaryOperator');
+        
+        if (orderServiceType) orderServiceType.textContent = serviceType;
+        if (orderAmount) orderAmount.textContent = `₹${amount}`;
+        if (totalAmountDisplay) totalAmountDisplay.textContent = `₹${amount}`;
+        
+        // Update payment summary card
+        if (summaryServiceType) summaryServiceType.textContent = `${serviceType} Service`;
+        if (summaryAmount) summaryAmount.textContent = `₹${amount}`;
+        if (summaryDeliveryTime) summaryDeliveryTime.textContent = deliveryTime;
+        
+        if (summaryOperator) {
+            const operatorText = operatorSelect.options[operatorSelect.selectedIndex]?.text || '-';
+            summaryOperator.textContent = operatorText;
+        }
+        
+        // Show payment summary card if operator is selected
+        if (paymentSummaryCard && operatorSelect.value) {
+            paymentSummaryCard.style.display = 'block';
+        }
+    }
+    
+    // Simple form data collection
+    function getFormData() {
+        if (!form) return new FormData();
+        
+        const formData = new FormData(form);
+        
+        // Debug: Log what we're collecting
+        console.log('Collected form data:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+        
+        return formData;
+    }
+    
+    // Validate form before submission
+    function validateForm() {
+        if (!form) return { valid: false, errors: ['Form not found'] };
+        
+        const errors = [];
+        
+        // Check required fields
+        const requiredFields = [
+            { name: 'reason', element: form.querySelector('input[name="reason"]:checked'), message: 'Reason for replacement is required' },
+            { name: 'operator', element: form.querySelector('select[name="operator"]'), message: 'Operator is required' },
+            { name: 'mobile_number', element: form.querySelector('input[name="mobile_number"]'), message: 'Mobile number is required' },
+            { name: 'old_sim_type', element: form.querySelector('select[name="old_sim_type"]'), message: 'Current SIM type is required' },
+            { name: 'new_sim_type', element: form.querySelector('select[name="new_sim_type"]'), message: 'New SIM type is required' },
+            { name: 'full_name', element: form.querySelector('input[name="full_name"]'), message: 'Full name is required' },
+            { name: 'email', element: form.querySelector('input[name="email"]'), message: 'Email is required' },
+            { name: 'alternate_contact', element: form.querySelector('input[name="alternate_contact"]'), message: 'Alternate contact is required' },
+            { name: 'address_line1', element: form.querySelector('input[name="address_line1"]'), message: 'Address line 1 is required' },
+            { name: 'city', element: form.querySelector('input[name="city"]'), message: 'City is required' },
+            { name: 'state', element: form.querySelector('select[name="state"]'), message: 'State is required' },
+            { name: 'pincode', element: form.querySelector('input[name="pincode"]'), message: 'Pincode is required' },
+            { name: 'service_type', element: form.querySelector('input[name="service_type"]:checked'), message: 'Service type is required' },
+            { name: 'terms_accepted', element: form.querySelector('#terms'), message: 'You must accept the terms and conditions' },
+            { name: 'declaration_accepted', element: form.querySelector('#declaration'), message: 'You must accept the declaration' }
+        ];
+        
+        requiredFields.forEach(field => {
+            if (!field.element || 
+                (field.element.type === 'checkbox' && !field.element.checked) ||
+                (field.element.tagName === 'SELECT' && field.element.value === '') ||
+                (field.element.type === 'text' && !field.element.value.trim())) {
+                
+                errors.push(field.message);
+                
+                // Highlight the field
+                if (field.element) {
+                    field.element.classList.add('is-invalid');
+                    
+                    // Add invalid feedback if not present
+                    let feedback = field.element.nextElementSibling;
+                    if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                        feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.textContent = field.message;
+                        field.element.parentNode.appendChild(feedback);
+                    }
+                    
+                    // Scroll to first error
+                    if (errors.length === 1) {
+                        field.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        field.element.focus();
+                    }
+                }
+            } else {
+                // Remove error styling if valid
+                if (field.element) {
+                    field.element.classList.remove('is-invalid');
+                    const feedback = field.element.nextElementSibling;
+                    if (feedback && feedback.classList.contains('invalid-feedback')) {
+                        feedback.remove();
+                    }
+                }
+            }
+        });
+        
+        // Validate mobile number format
+        const mobileInput = form.querySelector('input[name="mobile_number"]');
+        if (mobileInput && mobileInput.value) {
+            const mobileRegex = /^[6-9]\d{9}$/;
+            if (!mobileRegex.test(mobileInput.value)) {
+                errors.push('Mobile number must be 10 digits starting with 6-9');
+                mobileInput.classList.add('is-invalid');
+            }
+        }
+        
+        // Validate pincode format
+        const pincodeInput = form.querySelector('input[name="pincode"]');
+        if (pincodeInput && pincodeInput.value) {
+            const pincodeRegex = /^\d{6}$/;
+            if (!pincodeRegex.test(pincodeInput.value)) {
+                errors.push('Pincode must be 6 digits');
+                pincodeInput.classList.add('is-invalid');
+            }
+        }
+        
+        // Validate alternate contact format
+        const altContactInput = form.querySelector('input[name="alternate_contact"]');
+        if (altContactInput && altContactInput.value) {
+            const contactRegex = /^[6-9]\d{9}$/;
+            if (!contactRegex.test(altContactInput.value)) {
+                errors.push('Alternate contact must be 10 digits starting with 6-9');
+                altContactInput.classList.add('is-invalid');
+            }
+        }
+        
+        // Validate email format
+        const emailInput = form.querySelector('input[name="email"]');
+        if (emailInput && emailInput.value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailInput.value)) {
+                errors.push('Please enter a valid email address');
+                emailInput.classList.add('is-invalid');
+            }
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors: errors
+        };
+    }
+    
+    // Main click handler
+    async function handleProceedClick(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Prevent double clicks
+        const now = Date.now();
+        if (now - lastSubmitTime < 3000) {
+            console.log('Click prevented: Too fast after last click');
+            showToast('Please wait before clicking again', 'warning');
+            return;
+        }
+        lastSubmitTime = now;
+        
+        // Check if already processing
+        if (formSubmissionInProgress) {
+            console.log('Click prevented: Form submission already in progress');
+            showToast('Please wait, your request is being processed...', 'warning');
+            return;
+        }
+        
+        // Get fresh reference to button
+        const currentButton = document.getElementById('proceedToPaymentBtn');
+        if (!currentButton) return;
+        
+        // Validate form
+        const validation = validateForm();
+        if (!validation.valid) {
+            if (validation.errors.length === 1) {
+                showToast(validation.errors[0], 'error');
+            } else {
+                showValidationErrors(validation.errors);
+            }
+            return;
+        }
+        
+        // Set processing state
+        formSubmissionInProgress = true;
+        const originalText = currentButton.innerHTML;
+        currentButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        currentButton.disabled = true;
+        
+        try {
+            // Get form data
+            const formData = getFormData();
+            
+            // Show loading indicator
+            showLoadingOverlay();
+            
+            // Submit form via AJAX with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            
+            const response = await fetch('{% url "sim_replacement_create" %}', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal,
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            // Handle response
+            const contentType = response.headers.get('content-type');
+            
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text.substring(0, 500));
+                throw new Error('Server returned an invalid response');
+            }
+            
+            const responseData = await response.json();
+            
+            if (response.ok && responseData.success) {
+                // SUCCESS
+                console.log('✅ SIM replacement request created:', responseData.request_id);
+                
+                // Show success message
+                showToast('SIM replacement request created successfully! Redirecting...', 'success');
+                
+                // Add small delay to ensure everything is processed
+                setTimeout(() => {
+                    const redirectUrl = responseData.redirect_url || 
+                                      `/payments/process/?sim_replacement_id=${responseData.connection_request_id}`;
+                    window.location.href = redirectUrl;
+                }, 1500);
+                
+            } else {
+                // ERROR
+                let errorMessage = responseData.message || 'Failed to create SIM replacement request.';
+                
+                if (responseData.errors) {
+                    const errorList = Object.entries(responseData.errors)
+                        .map(([field, errors]) => {
+                            const errorText = Array.isArray(errors) ? errors.join(', ') : errors;
+                            return `• ${field}: ${errorText}`;
+                        })
+                        .join('\n');
+                    errorMessage = `Please correct the following errors:\n\n${errorList}`;
+                }
+                
+                throw new Error(errorMessage);
+            }
+            
+        } catch (error) {
+            console.error('❌ Submission error:', error);
+            
+            let userMessage = 'An error occurred. Please try again.';
+            
+            if (error.name === 'AbortError') {
+                userMessage = 'Request timed out. Please check your connection and try again.';
+            } else {
+                userMessage = error.message;
+            }
+            
+            showToast(userMessage, 'error');
+            
+        } finally {
+            // Reset button state
+            const resetButton = document.getElementById('proceedToPaymentBtn');
+            if (resetButton) {
+                resetButton.innerHTML = originalText;
+                resetButton.disabled = false;
+            }
+            
+            // Remove loading overlay
+            hideLoadingOverlay();
+            
+            // Reset processing state
+            formSubmissionInProgress = false;
+        }
+    }
+    
+    // ========== HELPER FUNCTIONS ==========
+    
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        return tokenInput ? tokenInput.value : '';
+    }
+    
+    function showLoadingOverlay() {
+        // Remove existing overlay if any
+        hideLoadingOverlay();
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'formLoadingOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        `;
+        
+        overlay.innerHTML = `
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-3">
+                <h5 class="text-primary">Processing Your Request</h5>
+                <p class="text-muted">Please wait while we create your SIM replacement request...</p>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function hideLoadingOverlay() {
+        const overlay = document.getElementById('formLoadingOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+        document.body.style.overflow = '';
+    }
+    
+    function showToast(message, type = 'info') {
+        // Remove existing toasts
+        const existingToasts = document.querySelectorAll('.custom-toast');
+        existingToasts.forEach(toast => toast.remove());
+        
+        const toast = document.createElement('div');
+        toast.className = `custom-toast alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            min-width: 300px;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            word-wrap: break-word;
+        `;
+        
+        toast.innerHTML = `
+            <strong>${type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Info'}</strong>
+            <div>${message}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+    
+    function showValidationErrors(errors) {
+        // Create modal for multiple errors
+        const modalHtml = `
+            <div class="modal fade" id="validationErrorsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title">Please fix the following errors:</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="list-group">
+                                ${errors.map(error => `<li class="list-group-item list-group-item-danger">${error}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal
+        const existingModal = document.getElementById('validationErrorsModal');
+        if (existingModal) existingModal.remove();
+        
+        // Add new modal
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer.firstElementChild);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('validationErrorsModal'));
+        modal.show();
+    }
+    
+    // ========== REAL-TIME VALIDATION ==========
+    
+    // Add real-time validation to form fields
+    if (form) {
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            // Remove error styling on input
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const feedback = this.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.remove();
+                }
+            });
+            
+            // Validate on blur
+            input.addEventListener('blur', function() {
+                if (this.required && !this.value && this.type !== 'checkbox' && this.type !== 'radio') {
+                    this.classList.add('is-invalid');
+                }
+            });
+        });
+    }
+});
+</script>
 
 <style>
 .step-number {
@@ -389,5 +1034,71 @@
     border-color: #0d6efd;
     background-color: #f0f8ff;
 }
+.payment-option-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+.payment-option-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.payment-option-card input[type="radio"] {
+    display: none;
+}
+.payment-option-card.active label {
+    font-weight: bold;
+}
+
+/* Validation styles */
+.is-invalid {
+    border-color: #dc3545 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.is-invalid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+/* Toast animation */
+.custom-toast {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+.step-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+.form-check .card:hover {
+    border-color: #0d6efd;
+    cursor: pointer;
+}
+.form-check-input:checked + .card {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+}
+
 </style>
+{% endblock %}
 {% endblock %}

@@ -174,3 +174,15 @@ def total_with_gst(value):
         return float(value) * 1.18
     except (ValueError, TypeError):
         return 0
+    
+
+
+@register.filter
+def filter_payment_status(payments, status):
+    """Filter payments by status"""
+    return [p for p in payments if p.payment_status == status]
+
+@register.filter
+def count_by_status(payments, status):
+    """Count payments by status"""
+    return len([p for p in payments if p.payment_status == status])

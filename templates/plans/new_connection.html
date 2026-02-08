@@ -811,97 +811,143 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-// ✅ UPDATED: Handle online payment button click - SAVE FORM BEFORE PAYMENT
-document.getElementById('onlinePaymentBtn').addEventListener('click', async function() {
-    const planId = document.getElementById('selectedPlanId').value;
-    
-    if (!planId) {
-        alert('Please select a plan first');
-        return;
-    }
-    
-    // Validate all steps before proceeding
-    if (!validateAllSteps()) {
-        alert('Please complete all required fields before proceeding to payment.');
-        return;
-    }
-    
-    // Show loading
-    const originalText = this.innerHTML;
-    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving Request...';
-    this.disabled = true;
-    
-    try {
-        // Step 1: Create FormData object
-        const formData = new FormData(document.getElementById('newConnectionForm'));
+    // ✅ UPDATED: Handle online payment button click with better prevention
+    document.getElementById('onlinePaymentBtn').addEventListener('click', async function(e) {
+        e.preventDefault(); // Prevent any default behavior
+        e.stopPropagation(); // Stop event bubbling
         
-        // Step 2: Submit form via AJAX to save NewConnectionRequest
-        const response = await fetch('{% url "new_connection" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'X-Requested-With': 'XMLHttpRequest'  // IMPORTANT: Tell Django this is AJAX
-            }
-        });
+        // ✅ CRITICAL: Prevent multiple clicks
+        if (this.dataset.processing === 'true') {
+            console.log('Payment already being processed...');
+            return;
+        }
         
-        // Parse JSON response
-        let responseData;
+        const planId = document.getElementById('selectedPlanId').value;
+        
+        if (!planId) {
+            alert('Please select a plan first');
+            return;
+        }
+        
+        // Validate all steps before proceeding
+        if (!validateAllSteps()) {
+            alert('Please complete all required fields before proceeding to payment.');
+            return;
+        }
+        
+        // Set processing flag
+        this.dataset.processing = 'true';
+        
+        // Show loading
+        const originalText = this.innerHTML;
+        const originalDisabled = this.disabled;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        this.disabled = true;
+        
+        // Also disable the form to prevent any other submissions
+        document.getElementById('newConnectionForm').style.pointerEvents = 'none';
+        document.getElementById('newConnectionForm').style.opacity = '0.7';
+        
         try {
-            responseData = await response.json();
-        } catch (jsonError) {
-            console.error('JSON parse error:', jsonError);
-            const text = await response.text();
-            console.error('Response text:', text.substring(0, 500));
-            throw new Error('Server returned invalid response. Please try again.');
-        }
-        
-        if (response.ok && responseData.success) {
-            // ✅ SUCCESS: Form saved, now redirect to payment
-            console.log('New connection request saved successfully:', responseData.tracking_id);
+            // Step 1: Create FormData object
+            const formData = new FormData(document.getElementById('newConnectionForm'));
             
-            // Show success message
-            alert('Connection request saved successfully! Redirecting to payment...');
+            // ✅ Add a timestamp to prevent duplicate submissions
+            const submissionTimestamp = Date.now();
+            formData.append('submission_timestamp', submissionTimestamp);
             
-            // Get the redirect URL from response
-            let redirectUrl;
-            if (responseData.redirect_url) {
-                redirectUrl = responseData.redirect_url;
-            } else {
-                // Fallback URL
-                redirectUrl = `/payments/process/?plan_id=${planId}&new_connection=true&connection_request_id=${responseData.connection_request_id}`;
-            }
+            console.log('Submitting new connection request...');
             
-            // Redirect to payment page
-            window.location.href = redirectUrl;
-            
-        } else {
-            // Show error message
-            const errorMessage = responseData.error || responseData.message || 'Failed to save connection request. Please try again.';
-            
-            if (responseData.errors) {
-                // Show form errors
-                let errorList = 'Please correct the following errors:\n';
-                for (const field in responseData.errors) {
-                    errorList += `\n• ${field}: ${responseData.errors[field]}`;
+            // Step 2: Submit form via AJAX to save NewConnectionRequest
+            const response = await fetch('{% url "new_connection" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-                alert(errorList);
-            } else {
-                alert('Error: ' + errorMessage);
+            });
+            
+            // ✅ FIX: Store response text before parsing
+            const responseText = await response.text();
+            
+            let responseData;
+            try {
+                responseData = JSON.parse(responseText);
+            } catch (jsonError) {
+                console.error('JSON parse error:', jsonError);
+                console.error('Response text:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid response. Please try again.');
             }
             
-            console.error('Server error:', responseData);
+            if (response.ok && responseData.success) {
+                console.log('✅ New connection request saved successfully:', responseData.tracking_id);
+                
+                // Get the redirect URL from response
+                let redirectUrl;
+                if (responseData.redirect_url) {
+                    redirectUrl = responseData.redirect_url;
+                } else {
+                    // Fallback URL
+                    redirectUrl = `/payments/process/?plan_id=${planId}&new_connection=true&connection_request_id=${responseData.connection_request_id}`;
+                }
+                
+                console.log('✅ Redirecting to payment:', redirectUrl);
+                
+                // ✅ IMPORTANT: Add a small delay to ensure everything is saved
+                setTimeout(() => {
+                    // Reset button state before redirect
+                    this.innerHTML = originalText;
+                    this.disabled = originalDisabled;
+                    this.dataset.processing = 'false';
+                    
+                    // Reset form state
+                    document.getElementById('newConnectionForm').style.pointerEvents = '';
+                    document.getElementById('newConnectionForm').style.opacity = '';
+                    
+                    // Redirect to payment page
+                    window.location.href = redirectUrl;
+                }, 500); // 500ms delay to ensure everything is processed
+                
+            } else {
+                const errorMessage = responseData.error || responseData.message || 'Failed to save connection request. Please try again.';
+                
+                if (responseData.errors) {
+                    let errorList = 'Please correct the following errors:\n';
+                    for (const field in responseData.errors) {
+                        errorList += `\n• ${field}: ${responseData.errors[field].join(', ')}`;
+                    }
+                    alert(errorList);
+                } else {
+                    alert('Error: ' + errorMessage);
+                }
+                
+                console.error('Server error:', responseData);
+                
+                // Reset button state
+                this.innerHTML = originalText;
+                this.disabled = originalDisabled;
+                this.dataset.processing = 'false';
+                
+                // Reset form state
+                document.getElementById('newConnectionForm').style.pointerEvents = '';
+                document.getElementById('newConnectionForm').style.opacity = '';
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while saving your request: ' + error.message);
+            
+            // Reset button state
             this.innerHTML = originalText;
-            this.disabled = false;
+            this.disabled = originalDisabled;
+            this.dataset.processing = 'false';
+            
+            // Reset form state
+            document.getElementById('newConnectionForm').style.pointerEvents = '';
+            document.getElementById('newConnectionForm').style.opacity = '';
         }
-        
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while saving your request: ' + error.message);
-        this.innerHTML = originalText;
-        this.disabled = false;
-    }
-});
+    });
     
     // Update plan summary when plan is selected
     function updatePaymentSummary(planName, planPrice, planValidity, planData) {
@@ -1010,13 +1056,14 @@ document.getElementById('onlinePaymentBtn').addEventListener('click', async func
         return validateStep(1) && validateStep(2) && validateStep(3) && validateStep(4);
     }
     
-    // ✅ UPDATED: Form submission for COD (normal submission)
+    // ✅ UPDATED: Form submission for COD with better prevention
     document.getElementById('newConnectionForm').addEventListener('submit', function(e) {
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
         
         // If online payment selected, don't submit form normally
         if (paymentMethod && paymentMethod.value === 'online') {
             e.preventDefault();
+            e.stopPropagation();
             return false;
         }
         
@@ -1027,14 +1074,61 @@ document.getElementById('onlinePaymentBtn').addEventListener('click', async func
             return false;
         }
         
-        // Show loading for COD submission
+        // ✅ CRITICAL: Check if already submitting
         const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn.dataset.processing === 'true') {
+            e.preventDefault();
+            console.log('Form already submitting...');
+            return false;
+        }
+        
+        // Set processing flag
+        submitBtn.dataset.processing = 'true';
+        
+        // Show loading for COD submission
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
         submitBtn.disabled = true;
         
+        // Also disable the form
+        this.style.pointerEvents = 'none';
+        this.style.opacity = '0.7';
+        
+        // Add timestamp to prevent duplicates
+        const timestampInput = document.createElement('input');
+        timestampInput.type = 'hidden';
+        timestampInput.name = 'submission_timestamp';
+        timestampInput.value = Date.now();
+        this.appendChild(timestampInput);
+        
         // Allow normal form submission for COD
         return true;
+    });
+    
+    // ✅ ADD: Reset form when page loads to prevent resubmission
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+    
+    // ✅ ADD: Prevent form resubmission on page refresh
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            // Page was restored from bfcache
+            document.getElementById('newConnectionForm').reset();
+            document.getElementById('newConnectionForm').style.pointerEvents = '';
+            document.getElementById('newConnectionForm').style.opacity = '';
+            
+            // Reset buttons
+            document.querySelectorAll('button').forEach(btn => {
+                btn.disabled = false;
+                btn.dataset.processing = 'false';
+                if (btn.id === 'onlinePaymentBtn') {
+                    btn.innerHTML = '<i class="fas fa-lock me-2"></i>Pay Now & Complete';
+                } else if (btn.type === 'submit') {
+                    btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Submit Request';
+                }
+            });
+        }
     });
 });
 
@@ -1105,6 +1199,24 @@ function updatePaymentSummary(planName, planPrice, planValidity, planData) {
         document.getElementById('simCharge').textContent = '₹49';
     }
 }
+
+// ✅ ADD: Global variable to track form submissions
+let formSubmitted = false;
+
+// ✅ ADD: Function to prevent duplicate submissions
+function preventDuplicateSubmission(formId) {
+    const form = document.getElementById(formId);
+    if (formSubmitted) {
+        return false;
+    }
+    formSubmitted = true;
+    return true;
+}
+
+// ✅ ADD: Reset form submission flag when leaving page
+window.addEventListener('beforeunload', function() {
+    formSubmitted = false;
+});
 </script>
 {% endblock %}
 {% endblock %}
