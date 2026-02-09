@@ -1329,26 +1329,70 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         initial['email'] = self.request.user.email
         return initial
     
-    @transaction.atomic
     def form_valid(self, form):
         try:
-            # Create new connection request
-            connection_request = form.save(commit=False)
-            connection_request.user = self.request.user
-            connection_request.status = 'pending'
+            with transaction.atomic():
+                # Create new connection request
+                connection_request = form.save(commit=False)
+                connection_request.user = self.request.user
+                connection_request.status = 'pending'
+                
+                # ✅ IMPORTANT: Check for duplicate pending requests
+                duplicate_check = NewConnectionRequest.objects.filter(
+                    user=self.request.user,
+                    operator=connection_request.operator,
+                    selected_plan=connection_request.selected_plan,
+                    full_name=connection_request.full_name,
+                    email=connection_request.email,
+                    status__in=['draft', 'pending']
+                ).exclude(id=connection_request.id if connection_request.id else None).first()
+                
+                if duplicate_check:
+                    # Exit atomic block first
+                    pass  # We'll handle this outside
+                
+                else:
+                    # Save the new request
+                    connection_request.save()
+                    
+                    print(f"✅ New connection request created: {connection_request.tracking_id}")
+                    print(f"   User: {connection_request.email}")
+                    print(f"   Operator: {connection_request.operator}")
+                    print(f"   Plan: {connection_request.selected_plan}")
+                    print(f"   Status: {connection_request.status}")
+                    
+                    # ✅ CRITICAL: Handle payment based on payment method
+                    payment_method = self.request.POST.get('payment_method', 'cod')
+                    
+                    # Create Payment record for COD
+                    if payment_method == 'cod':
+                        payment = self.create_cod_payment(connection_request)
+                        
+                        # Store payment ID in session for later use
+                        self.request.session['current_payment_id'] = payment.id
+                        
+                        # For COD, update connection request status directly to payment_completed
+                        connection_request.status = 'payment_completed'
+                        connection_request.save()
+                        
+                        # Create plan history for COD
+                        self.create_plan_history_for_cod(payment, connection_request.selected_plan)
+                    
+                    # Handle AJAX request
+                    if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({
+                            'success': True,
+                            'message': 'Connection request created successfully',
+                            'tracking_id': connection_request.tracking_id,
+                            'connection_request_id': connection_request.id,
+                            'redirect_url': self.get_payment_redirect_url(connection_request)
+                        })
+                    
+                    # Handle regular form submission (COD)
+                    return self.payment_redirect(connection_request)
             
-            # ✅ IMPORTANT: Check for duplicate pending requests
-            duplicate_check = NewConnectionRequest.objects.filter(
-                user=self.request.user,
-                operator=connection_request.operator,
-                selected_plan=connection_request.selected_plan,
-                full_name=connection_request.full_name,
-                email=connection_request.email,
-                status__in=['draft', 'pending']
-            ).exclude(id=connection_request.id if connection_request.id else None).first()
-            
+            # Handle duplicate check outside atomic block
             if duplicate_check:
-                # Return existing request instead of creating new one
                 print(f"✅ Using existing request: {duplicate_check.tracking_id}")
                 
                 # ✅ CRITICAL: Handle payment for duplicate request
@@ -1366,51 +1410,12 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
                     })
                 return self.payment_redirect(duplicate_check)
             
-            # Save the new request
-            connection_request.save()
-            
-            print(f"✅ New connection request created: {connection_request.tracking_id}")
-            print(f"   User: {connection_request.email}")
-            print(f"   Operator: {connection_request.operator}")
-            print(f"   Plan: {connection_request.selected_plan}")
-            print(f"   Status: {connection_request.status}")
-            
-            # ✅ CRITICAL: Handle payment based on payment method
-            payment_method = self.request.POST.get('payment_method', 'cod')
-            
-            # Create Payment record for COD
-            if payment_method == 'cod':
-                payment = self.create_cod_payment(connection_request)
-                
-                # Store payment ID in session for later use
-                self.request.session['current_payment_id'] = payment.id
-                
-                # For COD, update connection request status directly to payment_completed
-                connection_request.status = 'payment_completed'
-                connection_request.save()
-                
-                # Create plan history for COD
-                self.create_plan_history_for_cod(payment, connection_request.selected_plan)
-            
-            # Handle AJAX request
-            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Connection request created successfully',
-                    'tracking_id': connection_request.tracking_id,
-                    'connection_request_id': connection_request.id,
-                    'redirect_url': self.get_payment_redirect_url(connection_request)
-                })
-            
-            # Handle regular form submission (COD)
-            return self.payment_redirect(connection_request)
-            
         except IntegrityError as e:
             print(f"❌ IntegrityError in form_valid: {str(e)}")
             
             # Handle duplicate tracking_id gracefully
             if 'tracking_id' in str(e):
-                # Get the latest request for this user
+                # Get the latest request for this user (outside atomic block)
                 existing_request = NewConnectionRequest.objects.filter(
                     user=self.request.user
                 ).order_by('-created_at').first()
