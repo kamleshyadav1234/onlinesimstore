@@ -1,5 +1,6 @@
 import random
 from django.shortcuts import render
+from django.urls import reverse
 
 # Create your views here.
 # payments/views.py
@@ -56,7 +57,7 @@ def process_payment(request):
         if existing_payment:
             if existing_payment.payment_status == 'completed':
                 messages.info(request, f'Plan already purchased! Bill: {existing_payment.bill_number}')
-                return redirect('payment_success') + f'?payment_id={existing_payment.razorpay_payment_id}'
+                return redirect(f"{reverse('payment_success')}?payment_id={existing_payment.razorpay_payment_id}")
             
             payment_record = existing_payment
             print(f"✅ Using existing pending plan payment: {payment_record.bill_number}")
