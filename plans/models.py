@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 
 # Create your models here.
@@ -6,6 +7,7 @@ from django.core.validators import MinValueValidator
 from telecom.models import TelecomOperator
 from telecompedia import settings
 from users.models import CustomUser
+from django.db import IntegrityError
 
 class PlanCategory(models.Model):
     CATEGORY_TYPES = [
@@ -267,14 +269,31 @@ class NewConnectionRequest(models.Model):
     def __str__(self):
         return f"NEW-{self.tracking_id} - {self.full_name}"
     
+    
     def save(self, *args, **kwargs):
         if not self.tracking_id:
-            date_str = timezone.now().strftime('%y%m%d')
-            last_id = NewConnectionRequest.objects.filter(
-                tracking_id__startswith=f"NEW{date_str}"
-            ).count() + 1
-            self.tracking_id = f"NEW{date_str}{str(last_id).zfill(4)}"
-        super().save(*args, **kwargs)
+            # Generate a guaranteed unique ID
+            self.tracking_id = self.generate_unique_tracking_id()
+        
+        # Retry logic in case of duplicates (very rare with UUID)
+        retry_count = 0
+        while retry_count < 3:
+            try:
+                super().save(*args, **kwargs)
+                break
+            except IntegrityError as e:
+                if 'tracking_id' in str(e) and retry_count < 2:
+                    # Regenerate and retry
+                    self.tracking_id = self.generate_unique_tracking_id()
+                    retry_count += 1
+                else:
+                    raise
+        
+    def generate_unique_tracking_id(self):
+        """Generate a unique tracking ID using UUID"""
+        date_str = timezone.now().strftime('%y%m%d')
+        unique_id = uuid.uuid4().hex[:8].upper()  # 8-character unique string
+        return f"NEW{date_str}-{unique_id}"
     
     @property
     def can_assign_number(self):
