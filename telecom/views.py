@@ -1329,6 +1329,7 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         initial['email'] = self.request.user.email
         return initial
     
+    @transaction.atomic
     def form_valid(self, form):
         try:
             # Create new connection request
