@@ -1242,5 +1242,205 @@ document.addEventListener('DOMContentLoaded', function() {
         customPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
     });
 });
+
+
+// FIX FOR LINKS OPENING IN NEW WINDOWS
+(function() {
+    'use strict';
+    
+    console.log('=== Link Fix Loaded ===');
+    
+    // Track all clicks on the page
+    document.addEventListener('click', function(e) {
+        console.log('Click detected on:', e.target);
+        
+        // Find the closest anchor tag
+        let target = e.target;
+        let link = null;
+        
+        // Traverse up the DOM to find the anchor
+        while (target && target !== document) {
+            if (target.tagName === 'A' && target.href) {
+                link = target;
+                break;
+            }
+            target = target.parentElement;
+        }
+        
+        // If no link found, return
+        if (!link) return;
+        
+        console.log('Link found:', {
+            href: link.href,
+            target: link.target,
+            classList: Array.from(link.classList),
+            isButton: link.classList.contains('btn'),
+            isServiceCard: link.closest('.service-card')
+        });
+        
+        // Skip if it's an external link (social media, etc.)
+        const isExternal = link.href.includes('facebook.com') || 
+                          link.href.includes('twitter.com') || 
+                          link.href.includes('whatsapp.com') || 
+                          link.href.includes('wa.me') ||
+                          link.href.includes('youtube.com') ||
+                          link.href.startsWith('mailto:') ||
+                          link.href.startsWith('tel:');
+        
+        // Skip if it's a social share button
+        const isSocialShare = link.classList.contains('btn-outline-primary') || 
+                             link.classList.contains('btn-outline-info') || 
+                             link.classList.contains('btn-outline-danger') || 
+                             link.classList.contains('btn-outline-success');
+        
+        // Skip if it's a video download link
+        const isVideoDownload = link.href.includes('.mp4') || link.href.includes('.webm');
+        
+        // Check if it's a service card link or main CTA
+        const isServiceLink = link.closest('.service-card') || 
+                             link.closest('.hero-section') || 
+                             link.closest('.cta-section') ||
+                             link.closest('.video-section');
+        
+        // If it's an internal link that should open in same window
+        if (!isExternal && !isSocialShare && !isVideoDownload && isServiceLink) {
+            console.log('Intercepting internal link click:', link.href);
+            
+            // Prevent default behavior
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Navigate to the URL in the same window
+            console.log('Navigating to:', link.href);
+            window.location.href = link.href;
+            
+            return false;
+        }
+        
+    }, true); // Use capture phase to intercept BEFORE other handlers
+    
+})();
+
+// ALTERNATIVE SIMPLER FIX - Directly intercept service card links
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Direct Service Card Fix ===');
+    
+    // Target ALL links in service cards and main CTAs
+    const selectors = [
+        '.service-card a.btn',
+        '.hero-section a.btn',
+        '.cta-section a.btn',
+        '.video-section a.btn'
+    ].join(', ');
+    
+    const allLinks = document.querySelectorAll(selectors);
+    console.log('Found', allLinks.length, 'links to fix');
+    
+    allLinks.forEach(link => {
+        // Store original href
+        const originalHref = link.href;
+        
+        // Remove any existing onclick handlers
+        link.removeAttribute('onclick');
+        
+        // Add our own click handler
+        link.addEventListener('click', function(e) {
+            console.log('Service card/CTA link clicked:', originalHref);
+            
+            // Prevent all default behavior
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Navigate in same window
+            window.location.href = originalHref;
+            
+            return false;
+        }, true); // Capture phase
+        
+        // Also add a backup handler on parent
+        const parent = link.parentElement;
+        if (parent) {
+            parent.addEventListener('click', function(e) {
+                if (e.target === link || link.contains(e.target)) {
+                    console.log('Parent backup handler triggered');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = originalHref;
+                    return false;
+                }
+            }, true);
+        }
+    });
+});
+
+// NUCLEAR OPTION: Intercept ALL clicks on the page
+(function() {
+    'use strict';
+    
+    console.log('=== Nuclear Link Fix Activated ===');
+    
+    // Intercept ALL clicks
+    document.addEventListener('click', function(e) {
+        // Find the anchor
+        let target = e.target;
+        let link = null;
+        
+        while (target && target !== document) {
+            if (target.tagName === 'A' && target.href) {
+                link = target;
+                break;
+            }
+            target = target.parentElement;
+        }
+        
+        // If no link, return
+        if (!link) return;
+        
+        console.log('Nuclear: Link clicked:', link.href);
+        
+        // List of URLs that should open in same window
+        const sameWindowUrls = [
+            '/new-connection/',
+            '/port-number/',
+            '/sim-replacement/',
+            '/plans/',
+            '/plan/',
+            '/operator/',
+            '/dashboard/',
+            '/profile/',
+            '/login/',
+            '/register/'
+        ];
+        
+        // Check if this URL should open in same window
+        const shouldOpenInSameWindow = sameWindowUrls.some(url => 
+            link.href.includes(url)
+        );
+        
+        // Check if it's NOT an external/social link
+        const isProblematicExternal = link.href.includes('facebook.com') || 
+                                     link.href.includes('twitter.com') || 
+                                     link.href.includes('youtube.com');
+        
+        // Apply the fix
+        if (shouldOpenInSameWindow && !isProblematicExternal && link.target !== '_blank') {
+            console.log('Nuclear: Opening in same window:', link.href);
+            
+            // Stop everything
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Force same window navigation
+            window.location.href = link.href;
+            
+            return false;
+        }
+        
+    }, true); // Capture phase - runs FIRST
+    
+})();
 </script>
 {% endblock %}

@@ -141,7 +141,7 @@ class HomeView(TemplateView):
                 'icon': 'fas fa-chart-line',
                 'description': 'Upgrade your existing plan',
                 'color': 'info',
-                'url': '#'
+                'url': reverse_lazy('plan_list')
             }
         ]
         
