@@ -60,6 +60,7 @@ class Plan(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    featured_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     validity = models.PositiveIntegerField()
     validity_unit = models.CharField(max_length=10, choices=VALIDITY_UNITS, default='days')
     

@@ -630,7 +630,7 @@
                             {% for plan in port_plans %}
                             <div class="col-xl-4 col-lg-6 col-md-6">
                                 <div class="fancy-plan-card" onclick="selectPortPlan(this, {{ plan.id }}, '{{ plan.operator.id }}')" 
-                                     data-plan='{"id": {{ plan.id }}, "name": "{{ plan.name|escapejs }}", "operator": "{{ plan.operator.name|escapejs }}", "operator_id": {{ plan.operator.id }}, "price": {{ plan.price }}, "validity": "{{ plan.validity }}", "validity_unit": "{{ plan.validity_unit }}", "data_allowance": "{{ plan.data_allowance|default:'-'|escapejs }}", "voice_calls": "{{ plan.voice_calls|default:'-'|escapejs }}", "sms": "{{ plan.sms|default:'-'|escapejs }}", "port_in_bonus": "{{ plan.port_in_bonus|default:''|escapejs }}" }'>
+                                     data-plan='{"id": {{ plan.id }}, "name": "{{ plan.name|escapejs }}", "operator": "{{ plan.operator.name|escapejs }}", "featured_price": "{{ plan.featured_price|default:plan.price }}", "operator_id": {{ plan.operator.id }}, "price": {{ plan.price }}, "validity": "{{ plan.validity }}", "validity_unit": "{{ plan.validity_unit }}", "data_allowance": "{{ plan.data_allowance|default:'-'|escapejs }}", "voice_calls": "{{ plan.voice_calls|default:'-'|escapejs }}", "sms": "{{ plan.sms|default:'-'|escapejs }}", "port_in_bonus": "{{ plan.port_in_bonus|default:''|escapejs }}" }'>
                                     
                                     <div class="fancy-plan-header">
                                         <div class="fancy-plan-price">₹{{ plan.price }}</div>
@@ -1203,7 +1203,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const planAmount = parseFloat(selectedPlanData.price) || 0;
         const taxAmount = planAmount * 0.18; // 18% GST
-        let totalAmount = planAmount + taxAmount;
+        let totalAmount = parseFloat(selectedPlanData.featured_price) + taxAmount;
+        console.log(parseFloat(selectedPlanData.featured_price))
         
         // Update displays
         document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;
@@ -1623,7 +1624,8 @@ function updatePaymentSummary(paymentMethod) {
     
     const planAmount = parseFloat(selectedPlanData.price) || 0;
     const taxAmount = planAmount * 0.18; // 18% GST
-    let totalAmount = planAmount + taxAmount;
+    let totalAmount = parseFloat(selectedPlanData.featured_price) + taxAmount;
+    console.log(parseFloat(selectedPlanData.price),'jhjhhjhjhjj')
     
     // Update displays
     document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;

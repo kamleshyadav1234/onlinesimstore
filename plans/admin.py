@@ -21,7 +21,7 @@ class PlanCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    list_display = ['name', 'operator', 'category', 'plan_type', 'price', 'validity', 'is_popular', 'is_active']
+    list_display = ['name', 'operator', 'category', 'plan_type', 'price', 'featured_price','validity', 'is_popular', 'is_active']
     list_filter = ['is_active', 'is_popular', 'category', 'operator', 'plan_type']  # Added plan_type here
     search_fields = ['name', 'description']
     list_editable = ['price', 'is_popular', 'is_active', 'plan_type']  # Added plan_type here
@@ -29,7 +29,7 @@ class PlanAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('operator', 'category', 'plan_type', 'name', 'description', 'price')  # Added plan_type here
+            'fields': ('operator', 'category', 'plan_type', 'name', 'description', 'price','featured_price')  # Added plan_type here
         }),
         ('Validity', {
             'fields': ('validity', 'validity_unit')

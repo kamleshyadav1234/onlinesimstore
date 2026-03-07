@@ -751,6 +751,7 @@ class PortNumberView(LoginRequiredMixin, CreateView):
                 'operator_id': plan.operator.id,
                 'operator_name': plan.operator.name,
                 'price': str(plan.price),
+                'featured_price': str(plan.featured_price) if hasattr(plan, 'featured_price') else str(plan.price),
                 'validity': plan.validity,
                 'validity_unit': plan.get_validity_unit_display(),
                 'data_allowance': plan.data_allowance or 'Unlimited',

@@ -416,64 +416,180 @@ video:focus {
 {% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero-section">
-    <div class="container">
-        <div class="hero-content">
-            <div class="hero-badge animate__animated animate__fadeIn">
-                <i class="fas fa-bolt"></i>
-                <span>India's Fastest SIM Delivery in 2 Hours</span>
+<!-- Hero Section with Impressive Background -->
+<section class="hero-section position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; padding: 0;">
+    <!-- Animated Background Elements -->
+    <div class="position-absolute w-100 h-100" style="z-index: 1;">
+        <!-- Floating gradient orbs -->
+        <div class="position-absolute rounded-circle" style="width: 300px; height: 300px; background: radial-gradient(circle at 30% 30%, #6366f1, #8b5cf6); top: -100px; left: -100px; opacity: 0.3; filter: blur(60px); animation: float 8s ease-in-out infinite;"></div>
+        <div class="position-absolute rounded-circle" style="width: 400px; height: 400px; background: radial-gradient(circle at 70% 70%, #a855f7, #ec4899); bottom: -150px; right: -150px; opacity: 0.2; filter: blur(80px); animation: float 12s ease-in-out infinite reverse;"></div>
+        <div class="position-absolute rounded-circle" style="width: 200px; height: 200px; background: radial-gradient(circle at 50% 50%, #3b82f6, #06b6d4); top: 50%; left: 30%; opacity: 0.15; filter: blur(50px); animation: float 10s ease-in-out infinite;"></div>
+        
+        <!-- Grid pattern overlay -->
+        <div class="position-absolute w-100 h-100" style="background-image: url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0 L60 0 L60 60 L0 60 Z' stroke='rgba(255,255,255,0.03)' stroke-width='1' fill='none' /%3E%3C/svg%3E'); opacity: 0.3;"></div>
+    </div>
+    
+    <div class="container-fluid px-0 h-100">
+        <div class="row g-0 align-items-center min-vh-100">
+            <!-- Left Content -->
+            <div class="col-lg-6">
+                <div class="hero-content py-5 ps-5 ps-xl-6 text-white" style="max-width: 650px; margin-left: auto; margin-right: auto; position: relative; z-index: 2;">
+                    <div class="hero-badge animate__animated animate__fadeIn mb-4 d-inline-flex align-items-center bg-white bg-opacity-10 backdrop-blur-sm px-4 py-2 rounded-pill border border-white border-opacity-20">
+                        <i class="fas fa-bolt text-warning me-2"></i>
+                        <span class="fw-medium">India's Fastest SIM Delivery in 2 Hours</span>
+                    </div>
+                    
+                    <h1 class="hero-title display-3 fw-bold mb-4 animate__animated animate__fadeInUp" style="line-height: 1.2;">
+                        Get Your <span class="text-primary" style="background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SIM Delivered</span><br>
+                        <span class="text-white">At Your Doorstep</span>
+                    </h1>
+                    
+                    <p class="hero-subtitle fs-5 mb-5 text-white-80 animate__animated animate__fadeInUp animate__delay-1s" style="opacity: 0.9;">
+                        Experience seamless SIM delivery. Choose your number, upload documents online, 
+                        and get doorstep delivery within hours. No queues, no paperwork, just convenience.
+                    </p>
+                    
+                    <div class="hero-features mb-5 animate__animated animate__fadeInUp animate__delay-2s">
+                        <div class="d-flex gap-4 flex-wrap">
+                            <div class="feature-item d-flex align-items-center">
+                                <div class="feature-icon me-3 bg-white bg-opacity-10 rounded-3 p-3" style="backdrop-filter: blur(5px);">
+                                    <i class="fas fa-shield-alt fs-5 text-primary"></i>
+                                </div>
+                                <span class="fw-medium">100% Safe & Secure</span>
+                            </div>
+                            <div class="feature-item d-flex align-items-center">
+                                <div class="feature-icon me-3 bg-white bg-opacity-10 rounded-3 p-3" style="backdrop-filter: blur(5px);">
+                                    <i class="fas fa-clock fs-5 text-success"></i>
+                                </div>
+                                <span class="fw-medium">2-4 Hour Delivery</span>
+                            </div>
+                            <div class="feature-item d-flex align-items-center">
+                                <div class="feature-icon me-3 bg-white bg-opacity-10 rounded-3 p-3" style="backdrop-filter: blur(5px);">
+                                    <i class="fas fa-phone-alt fs-5 text-warning"></i>
+                                </div>
+                                <span class="fw-medium">Choose Fancy Numbers</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
             
-            <h1 class="hero-title animate__animated animate__fadeInUp">
-                Get Your <span class="hero-highlight">SIM Delivered</span><br>
-                At Your Doorstep
-            </h1>
-            
-            <p class="hero-subtitle animate__animated animate__fadeInUp animate__delay-1s">
-                Experience seamless SIM delivery. Choose your number, upload documents online, 
-                and get doorstep delivery within hours. No queues, no paperwork, just convenience.
-            </p>
-            
-            <div class="hero-features animate__animated animate__fadeInUp animate__delay-2s">
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
+            <!-- Right Side - Full Height Image with Creative Effects -->
+            <div class="col-lg-6 d-none d-lg-block position-relative" style="height: 100vh; overflow: hidden;">
+                <!-- Image Container with Creative Overlays -->
+                <div class="position-relative w-100 h-100">
+                    <!-- Main Image with Glass Morphism Effect -->
+                    <div class="position-absolute w-100 h-100" style="z-index: 3;">
+                        <img src="{% static 'images/video-poster.jpg' %}" 
+                             alt="Fast SIM Delivery" 
+                             class="img-fluid"
+                             style="width: 100%; height: 100%; object-fit: contain; object-position: center; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.3));"
+                             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&h=800&q=80'">
                     </div>
-                    <span>100% Safe & Secure</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <i class="fas fa-clock"></i>
+                    
+                    <!-- Decorative Elements Around Image -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 2; pointer-events: none;">
+                        <!-- Floating particles -->
+                        <div class="position-absolute rounded-circle bg-primary" style="width: 20px; height: 20px; top: 20%; left: 20%; opacity: 0.3; filter: blur(5px); animation: particleFloat 5s ease-in-out infinite;"></div>
+                        <div class="position-absolute rounded-circle bg-info" style="width: 30px; height: 30px; bottom: 30%; right: 20%; opacity: 0.3; filter: blur(8px); animation: particleFloat 7s ease-in-out infinite reverse;"></div>
+                        <div class="position-absolute rounded-circle bg-warning" style="width: 15px; height: 15px; top: 60%; left: 40%; opacity: 0.3; filter: blur(4px); animation: particleFloat 6s ease-in-out infinite;"></div>
+                        
+                        <!-- Geometric shapes -->
+                        <svg class="position-absolute" style="top: 10%; right: 10%; width: 150px; height: 150px; opacity: 0.1;" viewBox="0 0 100 100">
+                            <polygon points="50,0 100,50 50,100 0,50" fill="none" stroke="white" stroke-width="2"/>
+                        </svg>
+                        <svg class="position-absolute" style="bottom: 15%; left: 5%; width: 100px; height: 100px; opacity: 0.1;" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="white" stroke-width="2"/>
+                        </svg>
                     </div>
-                    <span>2-4 Hour Delivery</span>
+                    
+                    <!-- Gradient Overlay to Blend Image -->
+                    <div class="position-absolute w-100 h-100" style="background: radial-gradient(ellipse at center, transparent 30%, rgba(15,23,42,0.3) 100%); z-index: 4; pointer-events: none;"></div>
+                    
                 </div>
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <i class="fas fa-phone-alt"></i>
-                    </div>
-                    <span>Choose Fancy Numbers</span>
-                </div>
-            </div>
-            
-            <div class="d-flex gap-3 flex-wrap animate__animated animate__fadeInUp animate__delay-3s">
-                <a href="{% url 'new_connection' %}" class="btn btn-light btn-lg px-5 py-3 rounded-pill">
-                    <i class="fas fa-bolt me-2"></i>Order New SIM
-                </a>
-                <a href="{% url 'sim_replacement_create' %}" class="btn btn-outline-light btn-lg px-5 py-3 rounded-pill">
-                    <i class="fas fa-redo me-2"></i>Replace SIM
-                </a>
             </div>
         </div>
     </div>
     
-    <!-- Floating Elements -->
-    <div class="position-absolute bottom-0 end-0 me-5 floating d-none d-lg-block">
-        <div class="feature-icon" style="width: 200px; height: 200px; background: rgba(255,255,255,0.1);">
-            <i class="fas fa-shipping-fast fa-4x"></i>
-        </div>
+    <!-- Bottom Wave Divider -->
+    <div class="position-absolute bottom-0 start-0 w-100" style="z-index: 5; line-height: 0;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none" style="width: 100%; height: auto;">
+            <path fill="#ffffff" fill-opacity="0.05" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,170.7C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        </svg>
     </div>
 </section>
+
+<style>
+    /* Custom Animations */
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        25% { transform: translate(20px, -20px) scale(1.05); }
+        50% { transform: translate(-10px, 20px) scale(0.95); }
+        75% { transform: translate(-20px, -10px) scale(1.02); }
+    }
+    
+    @keyframes particleFloat {
+        0%, 100% { transform: translateY(0) translateX(0); }
+        33% { transform: translateY(-20px) translateX(10px); }
+        66% { transform: translateY(10px) translateX(-15px); }
+    }
+    
+    @keyframes floatCard {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-15px); }
+    }
+    
+    /* Utility Classes */
+    .backdrop-blur-sm {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    
+    .backdrop-blur-md {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    
+    .bg-opacity-10 {
+        --bs-bg-opacity: 0.1;
+    }
+    
+    .bg-opacity-20 {
+        --bs-bg-opacity: 0.2;
+    }
+    
+    .text-white-50 {
+        color: rgba(255,255,255,0.5);
+    }
+    
+    .text-white-80 {
+        color: rgba(255,255,255,0.8);
+    }
+    
+    .bottom-10 {
+        bottom: 10%;
+    }
+    
+    .start-10 {
+        left: 10%;
+    }
+    
+    .top-20 {
+        top: 15%;
+    }
+    
+    .end-10 {
+        right: 10%;
+    }
+    
+    /* Responsive Adjustments */
+    @media (min-width: 1400px) {
+        .ps-xl-6 {
+            padding-left: 5rem !important;
+        }
+    }
+</style>
 <!-- Video Showcase Section -->
 <section class="video-section py-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
     <div class="container">
@@ -659,34 +775,40 @@ video:focus {
         </div>
     </div>
 </section>
-<!-- Stats Section -->
-<section class="stats-section">
+
+
+
+<!-- Operators Section -->
+<section class="py-5">
     <div class="container">
-        <div class="row g-4">
-            <div class="col-md-3 col-6">
-                <div class="stat-card">
-                    <div class="stat-number">50K+</div>
-                    <p class="text-muted mb-0">SIMs Delivered</p>
+        <div class="text-center mb-5">
+            <h3 class="fw-bold mb-3">Trusted by Top Operators</h3>
+            <p class="text-muted">Authorized partner of India's leading telecom companies</p>
+        </div>
+        
+        <div class="row g-4 justify-content-center">
+            {% for operator in featured_operators|slice:":6" %}
+            <div class="col-md-2 col-4">
+                <div class="text-center p-3">
+                    <div class="bg-light p-3 mb-3 mx-auto d-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; border-radius: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <img src="{{ operator.logo.url }}" alt="{{ operator.name }}" 
+                             class="img-fluid" style="max-height: 40px; max-width: 40px; object-fit: contain;">
+                    </div>
+                    <h6 class="fw-bold mb-0">{{ operator.name }}</h6>
+                    <small class="text-muted">{{ operator.get_operator_type_display }}</small>
                 </div>
             </div>
-            <div class="col-md-3 col-6">
-                <div class="stat-card">
-                    <div class="stat-number">2-4H</div>
-                    <p class="text-muted mb-0">Avg Delivery Time</p>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="stat-card">
-                    <div class="stat-number">4.9★</div>
-                    <p class="text-muted mb-0">Customer Rating</p>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="stat-card">
-                    <div class="stat-number">30+</div>
-                    <p class="text-muted mb-0">Cities Covered</p>
-                </div>
-            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="d-flex gap-3 flex-wrap justify-content-center mt-5 animate__animated animate__fadeInUp animate__delay-3s">
+            <a href="{% url 'new_connection' %}" class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-sm">
+                <i class="fas fa-bolt me-2"></i>Order New SIM
+            </a>
+            <a href="{% url 'sim_replacement_create' %}" class="btn btn-outline-primary btn-lg px-5 py-3 rounded-pill">
+                <i class="fas fa-redo me-2"></i>Replace SIM
+            </a>
         </div>
     </div>
 </section>
@@ -799,6 +921,8 @@ video:focus {
     </div>
 </section>
 
+
+
 <!-- Testimonials -->
 <section class="testimonials-section">
     <div class="container">
@@ -877,6 +1001,8 @@ video:focus {
     </div>
 </section>
 
+
+
 <!-- CTA Section -->
 <section class="cta-section">
     <div class="cta-background"></div>
@@ -902,29 +1028,38 @@ video:focus {
         </div>
     </div>
 </section>
-
-<!-- Operators Section -->
-<section class="py-5">
+<!-- Stats Section -->
+<section class="stats-section mt-5">
     <div class="container">
-        <div class="text-center mb-5">
-            <h3 class="fw-bold mb-3">Trusted by Top Operators</h3>
-            <p class="text-muted">Authorized partner of India's leading telecom companies</p>
-        </div>
-        
-        <div class="row g-4 justify-content-center">
-            {% for operator in featured_operators|slice:":6" %}
-            <div class="col-md-2 col-4">
-                <div class="text-center p-3">
-                    <img src="{{ operator.logo.url }}" alt="{{ operator.name }}" 
-                         class="img-fluid mb-3" style="height: 40px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">{{ operator.name }}</h6>
-                    <small class="text-muted">{{ operator.get_operator_type_display }}</small>
+        <div class="row g-4">
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-number">50K+</div>
+                    <p class="text-muted mb-0">SIMs Delivered</p>
                 </div>
             </div>
-            {% endfor %}
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-number">2-4H</div>
+                    <p class="text-muted mb-0">Avg Delivery Time</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-number">4.9★</div>
+                    <p class="text-muted mb-0">Customer Rating</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div class="stat-number">30+</div>
+                    <p class="text-muted mb-0">Cities Covered</p>
+                </div>
+            </div>
         </div>
     </div>
 </section>
+
 {% endblock %}
 
 {% block extra_js %}
