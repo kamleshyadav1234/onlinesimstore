@@ -37,7 +37,7 @@ def process_payment(request):
     new_connection = request.GET.get('new_connection')
     connection_request_id = request.GET.get('connection_request_id')
     coupon_code = request.GET.get('coupon')
-    port_request_id = request.GET.get('port_request_id')  # ✅ NEW: Add port request ID
+    port_request_id = request.GET.get('port_request_id')
 
     
     context = {}
@@ -47,7 +47,15 @@ def process_payment(request):
         # Handle plan payment
         plan = get_object_or_404(Plan, id=plan_id, is_active=True)
         
-        # ✅ CRITICAL: Check for existing pending payment for this plan
+        # ✅ FIX: Use featured_price for port-in plans if it exists
+        if plan.plan_type == 'port_in' and plan.featured_price and plan.featured_price > 0:
+            amount = float(plan.featured_price)
+            print(f"✅ Using featured_price for port-in plan: ₹{amount}")
+        else:
+            amount = float(plan.price)
+            print(f"✅ Using regular price: ₹{amount}")
+        
+        # Check for existing pending payment
         existing_payment = Payment.objects.filter(
             user=request.user,
             plan=plan,
@@ -62,8 +70,7 @@ def process_payment(request):
             payment_record = existing_payment
             print(f"✅ Using existing pending plan payment: {payment_record.bill_number}")
         else:
-            # Calculate amount
-            amount = float(plan.price)
+            # Calculate amount with coupon
             discount = 0
             coupon = None
             
@@ -101,14 +108,16 @@ def process_payment(request):
         context.update({
             'payment_type': 'plan',
             'plan': plan,
-            'amount': float(plan.price),
-            'discount': 0,
-            'final_amount': float(plan.price),
-            'coupon': None,
+            'amount': amount,  # Use the calculated amount
+            'discount': discount if 'discount' in locals() else 0,
+            'final_amount': final_amount if 'final_amount' in locals() else amount,
+            'coupon': coupon if 'coupon' in locals() else None,
             'payment_record': payment_record,
+            'using_featured_price': plan.plan_type == 'port_in' and plan.featured_price and plan.featured_price > 0
         })
+        
     elif port_request_id:
-        # ✅ NEW: Handle port request payment
+        # ✅ Handle port request payment
         from plans.models import PortRequest
         
         port_request = get_object_or_404(
@@ -123,9 +132,15 @@ def process_payment(request):
             messages.error(request, 'No plan selected for port request')
             return redirect('port_number')
         
-        final_amount = float(plan.price)
+        # ✅ FIX: Use featured_price for port-in plans if it exists
+        if plan.plan_type == 'port_in' and plan.featured_price and plan.featured_price > 0:
+            final_amount = float(plan.featured_price)
+            print(f"✅ Using featured_price for port-in plan: ₹{final_amount}")
+        else:
+            final_amount = float(plan.price)
+            print(f"✅ Using regular price: ₹{final_amount}")
         
-        # ✅ CRITICAL: Check for existing payment
+        # Check for existing payment
         existing_payments = Payment.objects.filter(
             port_request=port_request,
             user=request.user
@@ -143,8 +158,14 @@ def process_payment(request):
             if pending_payment:
                 payment_record = pending_payment
                 print(f"✅ Using existing pending port request payment: {payment_record.bill_number}")
+                
+                # ✅ CRITICAL: Update amount if it doesn't match the featured price
+                if payment_record.amount != final_amount:
+                    payment_record.amount = final_amount
+                    payment_record.save()
+                    print(f"✅ Updated payment amount to ₹{final_amount}")
             else:
-                # Use the most recent payment regardless of status
+                # Use the most recent payment
                 payment_record = existing_payments.first()
                 print(f"✅ Using existing port request payment: {payment_record.bill_number} - Status: {payment_record.payment_status}")
         else:
@@ -159,7 +180,7 @@ def process_payment(request):
                 payment_status='pending',
                 transaction_id=f'PORT{uuid.uuid4().hex[:10].upper()}',
             )
-            print(f"✅ Created new port request payment: {payment_record.bill_number}")
+            print(f"✅ Created new port request payment: {payment_record.bill_number} - Amount: ₹{final_amount}")
         
         context.update({
             'payment_type': 'port_request',
@@ -168,21 +189,19 @@ def process_payment(request):
             'amount': final_amount,
             'final_amount': final_amount,
             'payment_record': payment_record,
+            'using_featured_price': plan.plan_type == 'port_in' and plan.featured_price and plan.featured_price > 0
         })
-        
-   
+    
     elif sim_replacement_id:
-        # Handle SIM replacement payment
+        # Handle SIM replacement payment (similar fixes if needed)
         sim_request = get_object_or_404(
             SIMReplacementRequest, 
             id=sim_replacement_id, 
             user=request.user
         )
         
-        # For SIM replacement, amount is fixed based on service type
         final_amount = float(sim_request.amount_paid)
         
-        # ✅ CRITICAL: Check for existing payment
         existing_payment = Payment.objects.filter(
             sim_replacement=sim_request,
             user=request.user,
@@ -197,7 +216,6 @@ def process_payment(request):
             payment_record = existing_payment
             print(f"✅ Using existing SIM replacement payment: {payment_record.bill_number}")
         else:
-            # Create new payment record
             payment_record = Payment.objects.create(
                 user=request.user,
                 payment_type='sim_replacement',
@@ -227,38 +245,43 @@ def process_payment(request):
             user=request.user
         )
         
-        # Get the plan for new connection
         plan = new_conn_request.selected_plan
         if not plan:
             messages.error(request, 'No plan selected for new connection')
             return redirect('new_connection')
         
-        final_amount = float(plan.price)
+        # ✅ FIX: Use featured_price for new connection plans if it exists
+        if plan.plan_type == 'new_connection' and plan.featured_price and plan.featured_price > 0:
+            final_amount = float(plan.featured_price)
+            print(f"✅ Using featured_price for new connection: ₹{final_amount}")
+        else:
+            final_amount = float(plan.price)
+            print(f"✅ Using regular price: ₹{final_amount}")
         
-        # ✅ CRITICAL: Check for ANY existing payment (pending OR completed)
         existing_payments = Payment.objects.filter(
             new_connection=new_conn_request,
             user=request.user
         ).order_by('-payment_date')
         
         if existing_payments.exists():
-            # Check if there's a completed payment
             completed_payment = existing_payments.filter(payment_status='completed').first()
             if completed_payment:
                 messages.info(request, f'New connection payment already completed! Bill: {completed_payment.bill_number}')
                 return redirect('payment_success') + f'?payment_id={completed_payment.razorpay_payment_id}'
             
-            # Use the most recent pending payment
             pending_payment = existing_payments.filter(payment_status='pending').first()
             if pending_payment:
                 payment_record = pending_payment
                 print(f"✅ Using existing pending new connection payment: {payment_record.bill_number}")
+                
+                # ✅ Update amount if needed
+                if payment_record.amount != final_amount:
+                    payment_record.amount = final_amount
+                    payment_record.save()
             else:
-                # Use the most recent payment regardless of status
                 payment_record = existing_payments.first()
-                print(f"✅ Using existing new connection payment: {payment_record.bill_number} - Status: {payment_record.payment_status}")
+                print(f"✅ Using existing new connection payment: {payment_record.bill_number}")
         else:
-            # Create new payment record only if none exists
             payment_record = Payment.objects.create(
                 user=request.user,
                 payment_type='new_connection',
@@ -278,13 +301,14 @@ def process_payment(request):
             'amount': final_amount,
             'final_amount': final_amount,
             'payment_record': payment_record,
+            'using_featured_price': plan.plan_type == 'new_connection' and plan.featured_price and plan.featured_price > 0
         })
         
     else:
         messages.error(request, 'Invalid payment request.')
         return redirect('dashboard')
     
-    # ✅ CRITICAL: Validate we have a payment record
+    # ✅ Validate we have a payment record
     if not payment_record:
         messages.error(request, 'Failed to create or retrieve payment record.')
         return redirect('dashboard')
@@ -293,11 +317,10 @@ def process_payment(request):
     razorpay_order = None
     if settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET:
         try:
-            # Use existing payment record's transaction ID
             receipt_id = payment_record.transaction_id
             
             order_data = {
-                'amount': int(payment_record.amount * 100),  
+                'amount': int(payment_record.amount * 100),  # Use the payment record amount (which now has featured_price)
                 'currency': 'INR',
                 'receipt': receipt_id,
                 'notes': {
@@ -315,15 +338,13 @@ def process_payment(request):
             elif context['payment_type'] == 'new_connection':
                 order_data['notes']['new_connection_id'] = str(new_conn_request.id)
                 order_data['notes']['plan_id'] = str(plan.id)
-            elif context['payment_type'] == 'port_request':  # ✅ ADD THIS
+            elif context['payment_type'] == 'port_request':
                 order_data['notes']['port_request_id'] = str(port_request.id)
                 order_data['notes']['plan_id'] = str(plan.id)
-
             
-            # ✅ CRITICAL: Check if we already have a Razorpay order for this payment
+            # Check if we already have a Razorpay order
             if payment_record.razorpay_order_id:
                 try:
-                    # Try to fetch existing order
                     existing_order = client.order.fetch(payment_record.razorpay_order_id)
                     razorpay_order = existing_order
                     print(f"✅ Using existing Razorpay order: {payment_record.razorpay_order_id}")
@@ -334,13 +355,11 @@ def process_payment(request):
                     payment_record.save()
                     print(f"✅ Created new Razorpay order: {razorpay_order['id']}")
             else:
-                # Create new Razorpay order
                 razorpay_order = client.order.create(data=order_data)
                 payment_record.razorpay_order_id = razorpay_order['id']
                 payment_record.save()
                 print(f"✅ Created Razorpay order: {razorpay_order['id']}")
             
-            # Store in session
             request.session['current_payment_id'] = payment_record.id
             
         except Exception as e:

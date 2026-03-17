@@ -1203,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const planAmount = parseFloat(selectedPlanData.price) || 0;
         const taxAmount = planAmount * 0.18; // 18% GST
-        let totalAmount = parseFloat(selectedPlanData.featured_price) + taxAmount;
+        let totalAmount = parseFloat(selectedPlanData.featured_price);
         console.log(parseFloat(selectedPlanData.featured_price))
         
         // Update displays
@@ -1624,8 +1624,7 @@ function updatePaymentSummary(paymentMethod) {
     
     const planAmount = parseFloat(selectedPlanData.price) || 0;
     const taxAmount = planAmount * 0.18; // 18% GST
-    let totalAmount = parseFloat(selectedPlanData.featured_price) + taxAmount;
-    console.log(parseFloat(selectedPlanData.price),'jhjhhjhjhjj')
+    let totalAmount = parseFloat(selectedPlanData.featured_price);
     
     // Update displays
     document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;

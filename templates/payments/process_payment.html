@@ -7,6 +7,8 @@
         Payment - {{ plan.name }} - TelecomPedia
     {% elif payment_type == 'sim_replacement' and sim_request %}
         Payment - SIM Replacement - TelecomPedia
+    {% elif payment_type == 'port_request' and plan %}
+        Payment - Port-in Plan - {{ plan.name }} - TelecomPedia
     {% else %}
         Payment - TelecomPedia
     {% endif %}
@@ -23,10 +25,10 @@
                         <div class="text-center mx-4">
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" 
                                  style="width: 40px; height: 40px;">
-                                {% if payment_type == 'plan' %}1{% elif payment_type == 'sim_replacement' %}1{% else %}1{% endif %}
+                                {% if payment_type == 'plan' %}1{% elif payment_type == 'sim_replacement' %}1{% elif payment_type == 'port_request' %}1{% else %}1{% endif %}
                             </div>
                             <span class="fw-bold">
-                                {% if payment_type == 'plan' %}Select Plan{% elif payment_type == 'sim_replacement' %}Fill Details{% else %}Step 1{% endif %}
+                                {% if payment_type == 'plan' %}Select Plan{% elif payment_type == 'sim_replacement' %}Fill Details{% elif payment_type == 'port_request' %}Select Plan{% else %}Step 1{% endif %}
                             </span>
                         </div>
                         <div class="text-center mx-4">
@@ -63,6 +65,113 @@
                                     <h5 class="fw-bold">{{ plan.operator.name }}</h5>
                                     <h4 class="text-primary fw-bold">{{ plan.name }}</h4>
                                     <p class="text-muted">{{ plan.description }}</p>
+                                    
+                                    <!-- ✅ FIX: Show featured price for port-in plans -->
+                                    {% if plan.plan_type == 'port_in' and plan.featured_price and plan.featured_price > 0 %}
+                                    <div class="alert alert-info mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-gift fa-2x me-3"></i>
+                                            <div>
+                                                <span class="d-block" style="text-decoration: line-through; color: #999;">
+                                                    Regular Price: ₹{{ plan.price|floatformat:2 }}
+                                                </span>
+                                                <span class="d-block fw-bold fs-4 text-primary">
+                                                    Special Port-in Price: ₹{{ plan.featured_price|floatformat:2 }}
+                                                </span>
+                                                {% if plan.port_in_bonus %}
+                                                <span class="badge bg-success mt-2">
+                                                    <i class="fas fa-tag me-1"></i> {{ plan.port_in_bonus }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Data</small>
+                                                <strong>{{ plan.data_allowance|default:"-" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Validity</small>
+                                                <strong>{{ plan.get_full_validity }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">Calls</small>
+                                                <strong>{{ plan.voice_calls|default:"-" }}</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-light rounded p-3">
+                                                <small class="text-muted d-block">SMS</small>
+                                                <strong>{{ plan.sms|default:"-" }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            {% elif payment_type == 'port_request' and plan %}
+                                <!-- ✅ NEW: Port Request Details -->
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <i class="fas fa-exchange-alt fa-2x text-primary me-3"></i>
+                                        <div>
+                                            <h5 class="fw-bold mb-0">{{ plan.operator.name }}</h5>
+                                            <span class="badge bg-primary">Port-in Plan</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <h4 class="text-primary fw-bold">{{ plan.name }}</h4>
+                                    <p class="text-muted">{{ plan.description }}</p>
+                                    
+                                    <!-- ✅ FIX: Show featured price prominently -->
+                                    {% if plan.featured_price and plan.featured_price > 0 %}
+                                    <div class="alert alert-warning mb-3" style="background: linear-gradient(135deg, #fff3cd 0%, #fff9e6 100%);">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-star fa-2x text-warning me-3"></i>
+                                            <div>
+                                                <span class="d-block text-muted" style="text-decoration: line-through;">
+                                                    Original Price: ₹{{ plan.price|floatformat:2 }}
+                                                </span>
+                                                <span class="d-block fw-bold fs-2 text-primary">
+                                                    ₹{{ plan.featured_price|floatformat:2 }}
+                                                </span>
+                                                <span class="d-block text-success fw-bold">
+                                                    Special Port-in Offer!
+                                                </span>
+                                                {% if plan.port_in_bonus %}
+                                                <span class="badge bg-success mt-2">
+                                                    <i class="fas fa-gift me-1"></i> {{ plan.port_in_bonus }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Port Request Details -->
+                                    <div class="bg-light rounded p-3 mb-3">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <small class="text-muted d-block">Mobile Number to Port</small>
+                                                <strong>{{ port_request.mobile_number }}</strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">Current Operator</small>
+                                                <strong>{{ port_request.current_operator.name }}</strong>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted d-block">New Operator</small>
+                                                <strong>{{ plan.operator.name }}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     <div class="row g-2 mb-3">
                                         <div class="col-6">
@@ -140,6 +249,8 @@
                                     <span>
                                         {% if payment_type == 'plan' %}
                                             Plan Price
+                                        {% elif payment_type == 'port_request' %}
+                                            Port-in Plan Price
                                         {% elif payment_type == 'sim_replacement' %}
                                             Replacement Fee
                                         {% else %}
@@ -147,7 +258,19 @@
                                         {% endif %}
                                     </span>
                                     <span class="fw-bold">
-                                        ₹{% if payment_type == 'plan' %}{{ plan.price|floatformat:2 }}{% elif payment_type == 'sim_replacement' %}{{ final_amount|floatformat:2 }}{% else %}{{ final_amount|floatformat:2 }}{% endif %}
+                                        {% if payment_type == 'plan' %}
+                                            {% if plan.plan_type == 'port_in' and plan.featured_price and plan.featured_price > 0 %}
+                                                ₹{{ plan.featured_price|floatformat:2 }}
+                                            {% else %}
+                                                ₹{{ plan.price|floatformat:2 }}
+                                            {% endif %}
+                                        {% elif payment_type == 'port_request' %}
+                                            ₹{{ amount|floatformat:2 }}
+                                        {% elif payment_type == 'sim_replacement' %}
+                                            ₹{{ final_amount|floatformat:2 }}
+                                        {% else %}
+                                            ₹{{ final_amount|floatformat:2 }}
+                                        {% endif %}
                                     </span>
                                 </div>
                                 
@@ -155,6 +278,18 @@
                                 <div class="d-flex justify-content-between mb-2 text-success">
                                     <span>Discount</span>
                                     <span class="fw-bold">-₹{{ discount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Show original price crossed out for port-in plans -->
+                                {% if payment_type == 'port_request' and plan.featured_price and plan.featured_price > 0 and plan.price != plan.featured_price %}
+                                <div class="d-flex justify-content-between mb-2 text-muted">
+                                    <span>Regular Price</span>
+                                    <span class="fw-bold" style="text-decoration: line-through;">₹{{ plan.price|floatformat:2 }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2 text-success">
+                                    <span>You Save</span>
+                                    <span class="fw-bold">₹{{ plan.price|add:"-"|add:plan.featured_price|floatformat:2 }}</span>
                                 </div>
                                 {% endif %}
                                 
@@ -167,6 +302,14 @@
                                 <div class="text-center mt-3">
                                     <span class="badge bg-success">
                                         <i class="fas fa-tag me-1"></i> You save ₹{{ discount|floatformat:2 }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if payment_type == 'port_request' %}
+                                <div class="text-center mt-3">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-clock me-1"></i> Porting takes 3-5 working days
                                     </span>
                                 </div>
                                 {% endif %}
@@ -214,6 +357,10 @@
                                         <div class="col-12">
                                             <small class="text-muted">Mobile number linked to this account will be recharged</small>
                                         </div>
+                                        {% elif payment_type == 'port_request' %}
+                                        <div class="col-12">
+                                            <small class="text-muted">Port request for: {{ port_request.mobile_number }}</small>
+                                        </div>
                                         {% elif payment_type == 'sim_replacement' %}
                                         <div class="col-12">
                                             <small class="text-muted">SIM replacement will be processed for: {{ sim_request.mobile_number }}</small>
@@ -249,12 +396,13 @@
                                 <h6 class="fw-bold mb-3">Select Payment Method</h6>
                                 
                                 <div class="row g-3">
-                                    {% if payment_type == 'sim_replacement' %}
-                                    <!-- For SIM replacement, only online payments -->
+                                    {% if payment_type == 'sim_replacement' or payment_type == 'port_request' %}
+                                    <!-- For SIM replacement and port requests, only online payments -->
                                     <div class="col-12">
                                         <div class="alert alert-info">
                                             <i class="fas fa-info-circle me-2"></i>
-                                            Online payment is required for SIM replacement. Cash on delivery is not available for this service.
+                                            Online payment is required for {% if payment_type == 'port_request' %}port-in requests{% else %}SIM replacement{% endif %}. 
+                                            Cash on delivery is not available for this service.
                                         </div>
                                     </div>
                                     {% endif %}
@@ -266,7 +414,7 @@
                                                    name="paymentMethod" 
                                                    id="creditCard" 
                                                    value="credit_card" 
-                                                   checked>
+                                                   {% if payment_type != 'sim_replacement' and payment_type != 'port_request' %}checked{% endif %}>
                                             <label class="form-check-label w-100" for="creditCard">
                                                 <div class="d-flex align-items-center">
                                                     <i class="fas fa-credit-card fa-2x text-primary me-3"></i>
@@ -389,6 +537,8 @@
                                         I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
                                         {% if payment_type == 'plan' %}
                                         and confirm that I have entered the correct mobile number for recharge.
+                                        {% elif payment_type == 'port_request' %}
+                                        and confirm that all port-in details are correct.
                                         {% elif payment_type == 'sim_replacement' %}
                                         and confirm that all SIM replacement details are correct.
                                         {% endif %}
@@ -418,6 +568,10 @@
                                 {% if payment_type == 'plan' and plan %}
                                 <a href="{% url 'plan_detail' plan.id %}" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left me-2"></i> Back to Plan Details
+                                </a>
+                                {% elif payment_type == 'port_request' and port_request %}
+                                <a href="{% url 'port_number' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to Port Request
                                 </a>
                                 {% elif payment_type == 'sim_replacement' and sim_request %}
                                 <a href="{% url 'sim_replacement_status' sim_request.id %}" class="btn btn-outline-secondary">
@@ -463,6 +617,18 @@
                     <li>All prices include applicable GST</li>
                 </ul>
                 
+                {% elif payment_type == 'port_request' %}
+                <h6>Port-in Terms:</h6>
+                <ul>
+                    <li>Online payment is mandatory for port-in requests</li>
+                    <li>Porting fee is non-refundable once processed</li>
+                    <li>Porting takes 3-5 working days to complete</li>
+                    <li>You must present original documents for KYC verification</li>
+                    <li>Your mobile number will remain the same</li>
+                    <li>Service disruption of about 2 hours during porting</li>
+                    <li>TelecomPedia acts as a facilitator, final approval rests with the operator</li>
+                </ul>
+                
                 {% elif payment_type == 'sim_replacement' %}
                 <h6>SIM Replacement Terms:</h6>
                 <ul>
@@ -486,6 +652,7 @@
 <script>
     let currentCoupon = '{{ coupon.code|default:"" }}';
     let planId = '{{ plan.id|default:"" }}';
+    let portRequestId = '{{ port_request.id|default:"" }}';
     let simReplacementId = '{{ sim_request.id|default:"" }}';
     let paymentType = '{{ payment_type }}';
     let finalAmount = {{ final_amount }};
@@ -547,9 +714,9 @@
         
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
         
-        // For SIM replacement, only online payments are allowed
-        if (paymentType === 'sim_replacement' && paymentMethod === 'cash') {
-            alert('Cash on delivery is not available for SIM replacement. Please select an online payment method.');
+        // For SIM replacement and port requests, only online payments are allowed
+        if ((paymentType === 'sim_replacement' || paymentType === 'port_request') && paymentMethod === 'cash') {
+            alert('Cash on delivery is not available for this service. Please select an online payment method.');
             return;
         }
         
@@ -580,9 +747,14 @@
         if (paymentType === 'plan') {
             requestData.plan_id = planId;
             requestData.coupon_code = currentCoupon;
+        } else if (paymentType === 'port_request') {
+            requestData.port_request_id = portRequestId;
+            // Use existing payment ID if available
+            if (paymentId) {
+                requestData.payment_id = paymentId;
+            }
         } else if (paymentType === 'sim_replacement') {
             requestData.sim_replacement_id = simReplacementId;
-            // Use existing payment ID if available
             if (paymentId) {
                 requestData.payment_id = paymentId;
             }
@@ -606,11 +778,12 @@
                         amount: data.amount * 100,
                         currency: 'INR',
                         name: 'TelecomPedia',
-                        description: paymentType === 'plan' ? 'Plan Purchase' : 'SIM Replacement',
+                        description: paymentType === 'plan' ? 'Plan Purchase' : 
+                                    (paymentType === 'port_request' ? 'Port-in Request' : 'SIM Replacement'),
                         order_id: data.razorpay_order_id,
                         handler: function(response) {
                             // Payment successful
-                            window.location.href = `/payments/success/?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}`;
+                            window.location.href = `/payments/success/?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&type=${paymentType}`;
                         },
                         prefill: {
                             name: '{{ request.user.get_full_name|default:request.user.username }}',
@@ -634,7 +807,7 @@
                     
                 } else {
                     // Non-Razorpay payment
-                    window.location.href = `/payments/success/?payment_id=${data.payment_id}`;
+                    window.location.href = `/payments/success/?payment_id=${data.payment_id}&type=${paymentType}`;
                 }
                 
             } else {
@@ -669,7 +842,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.href = `/payments/success/?payment_id=${data.payment_id}`;
+                window.location.href = `/payments/success/?payment_id=${data.payment_id}&type=plan`;
             } else {
                 alert('Payment failed: ' + data.error);
             }
@@ -685,6 +858,14 @@
             const couponInput = document.getElementById('couponCode');
             if (couponInput) {
                 couponInput.focus();
+            }
+        }
+        
+        // For port requests, select the first payment method by default
+        if (paymentType === 'port_request') {
+            const firstPaymentMethod = document.querySelector('input[name="paymentMethod"]');
+            if (firstPaymentMethod) {
+                firstPaymentMethod.checked = true;
             }
         }
     });
