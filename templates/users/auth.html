@@ -326,21 +326,41 @@
         let countdownInterval;
         let countdownTime = 600; // 10 minutes in seconds
         
+        // Helper function to get CSRF token from cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
         // Check if we should show OTP section
         {% if show_otp %}
         startCountdown();
         {% endif %}
         
         // Phone input validation
-        phoneInput.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length > 10) {
-                this.value = this.value.slice(0, 10);
-            }
-            
-            // Update button state
-            sendOtpBtn.disabled = this.value.length !== 10;
-        });
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                if (this.value.length > 10) {
+                    this.value = this.value.slice(0, 10);
+                }
+                
+                // Update button state
+                if (sendOtpBtn) {
+                    sendOtpBtn.disabled = this.value.length !== 10;
+                }
+            });
+        }
         
         // OTP input handling
         otpInputs.forEach((input, index) => {
@@ -358,7 +378,9 @@
                 
                 // Enable verify button if all digits filled
                 const allFilled = Array.from(otpInputs).every(input => input.value.length === 1);
-                verifyOtpBtn.disabled = !allFilled;
+                if (verifyOtpBtn) {
+                    verifyOtpBtn.disabled = !allFilled;
+                }
             });
             
             // Handle backspace
@@ -386,7 +408,9 @@
                 }
                 
                 updateHiddenOtp();
-                verifyOtpBtn.disabled = !Array.from(otpInputs).every(input => input.value.length === 1);
+                if (verifyOtpBtn) {
+                    verifyOtpBtn.disabled = !Array.from(otpInputs).every(input => input.value.length === 1);
+                }
             });
         });
         
@@ -395,35 +419,128 @@
             const otpValue = Array.from(otpInputs)
                 .map(input => input.value)
                 .join('');
-            hiddenOtpInput.value = otpValue;
+            if (hiddenOtpInput) {
+                hiddenOtpInput.value = otpValue;
+            }
         }
         
         // Back to phone input
-        backToPhoneBtn.addEventListener('click', function() {
-            otpSection.classList.add('d-none');
-            phoneSection.classList.remove('d-none');
-            clearInterval(countdownInterval);
-            phoneInput.focus();
-            
-            // Clear session (optional - you might want to keep it)
-            fetch('{% url "auth" %}?clear_session=true')
-                .then(() => {
-                    // Session cleared
-                });
-        });
+        if (backToPhoneBtn) {
+            backToPhoneBtn.addEventListener('click', function() {
+                otpSection.classList.add('d-none');
+                phoneSection.classList.remove('d-none');
+                clearInterval(countdownInterval);
+                if (phoneInput) {
+                    phoneInput.focus();
+                }
+                
+                // Clear session (optional - you might want to keep it)
+                fetch('{% url "auth" %}?clear_session=true')
+                    .then(() => {
+                        // Session cleared
+                    })
+                    .catch(error => console.error('Error clearing session:', error));
+            });
+        }
         
-        // Resend OTP
-        resendOtpBtn.addEventListener('click', function() {
-            if (this.disabled) return;
-            
-            // Show loading state
-            const originalText = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Resending...';
-            this.disabled = true;
-            
-            // Submit the phone form again
-            document.getElementById('phoneForm').submit();
-        });
+        // FIXED: Resend OTP with AJAX and CSRF token
+        if (resendOtpBtn) {
+            resendOtpBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                if (this.disabled) return;
+                
+                // Show loading state
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Resending...';
+                this.disabled = true;
+                
+                // Get CSRF token
+                const csrftoken = getCookie('csrftoken');
+                
+                // Get phone number from the page
+                const phoneElement = document.getElementById('displayPhone');
+                let phone = '{{ phone }}';
+                
+                // Make AJAX request
+                fetch('{% url "resend_otp" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        action: 'resend_otp'
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+                        alertDiv.innerHTML = `
+                            OTP resent successfully!
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.card-body').insertBefore(alertDiv, otpSection);
+                        
+                        // Auto-fill OTP in development/demo mode
+                        if (data.demo_otp) {
+                            const demoOtp = data.demo_otp.toString();
+                            for (let i = 0; i < demoOtp.length; i++) {
+                                if (otpInputs[i]) {
+                                    otpInputs[i].value = demoOtp[i];
+                                }
+                            }
+                            updateHiddenOtp();
+                            if (verifyOtpBtn) {
+                                verifyOtpBtn.disabled = false;
+                            }
+                        }
+                        
+                        // Restart countdown
+                        startCountdown();
+                    } else {
+                        // Show error message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+                        alertDiv.innerHTML = `
+                            Error: ${data.error || 'Failed to resend OTP'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.card-body').insertBefore(alertDiv, otpSection);
+                        
+                        // Reset button
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    
+                    // Show error message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+                    alertDiv.innerHTML = `
+                        Failed to resend OTP. Please try again.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.card-body').insertBefore(alertDiv, otpSection);
+                    
+                    // Reset button
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                });
+            });
+        }
         
         // Countdown timer
         function startCountdown() {
@@ -436,17 +553,23 @@
                 const minutes = Math.floor(countdownTime / 60);
                 const seconds = countdownTime % 60;
                 
-                countdownElement.textContent = 
-                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                if (countdownElement) {
+                    countdownElement.textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
                 
                 // Enable resend button when time is up
                 if (countdownTime <= 0) {
                     clearInterval(countdownInterval);
-                    resendOtpBtn.disabled = false;
-                    resendOtpBtn.innerHTML = 'Click to resend OTP';
+                    if (resendOtpBtn) {
+                        resendOtpBtn.disabled = false;
+                        resendOtpBtn.innerHTML = 'Click to resend OTP';
+                    }
                 } else {
-                    resendOtpBtn.disabled = true;
-                    resendOtpBtn.innerHTML = 'Resend OTP';
+                    if (resendOtpBtn) {
+                        resendOtpBtn.disabled = true;
+                        resendOtpBtn.innerHTML = 'Resend OTP';
+                    }
                 }
             }, 1000);
         }
@@ -458,32 +581,42 @@
         }
         {% else %}
         // Auto-focus phone input
-        phoneInput.focus();
+        if (phoneInput) {
+            phoneInput.focus();
+        }
         {% endif %}
         
         // Form submission enhancements
         const phoneForm = document.getElementById('phoneForm');
         const otpForm = document.getElementById('otpForm');
         
-        phoneForm.addEventListener('submit', function(e) {
-            // Add loading state
-            sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
-            sendOtpBtn.disabled = true;
-        });
+        if (phoneForm) {
+            phoneForm.addEventListener('submit', function(e) {
+                // Add loading state
+                if (sendOtpBtn) {
+                    sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+                    sendOtpBtn.disabled = true;
+                }
+            });
+        }
         
-        otpForm.addEventListener('submit', function(e) {
-            // Ensure OTP is complete
-            const otpValue = hiddenOtpInput.value;
-            if (otpValue.length !== 6) {
-                e.preventDefault();
-                alert('Please enter complete 6-digit OTP');
-                return;
-            }
-            
-            // Add loading state
-            verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
-            verifyOtpBtn.disabled = true;
-        });
+        if (otpForm) {
+            otpForm.addEventListener('submit', function(e) {
+                // Ensure OTP is complete
+                const otpValue = hiddenOtpInput ? hiddenOtpInput.value : '';
+                if (otpValue.length !== 6) {
+                    e.preventDefault();
+                    alert('Please enter complete 6-digit OTP');
+                    return;
+                }
+                
+                // Add loading state
+                if (verifyOtpBtn) {
+                    verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
+                    verifyOtpBtn.disabled = true;
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

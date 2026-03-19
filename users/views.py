@@ -44,16 +44,40 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from .models import CustomUser, OTP
 from .forms import OTPVerificationForm
+from twilio.rest import Client
+from django.utils import timezone
+from django.http import JsonResponse
+from datetime import timedelta
+from django.conf import settings
+import logging
+import re
+import json
+
+logger = logging.getLogger(__name__)
 
 class UnifiedAuthView(View):
-    """Unified authentication view - single screen for OTP login/registration"""
+    """Unified authentication view - Twilio handles OTP send and verify"""
     template_name = 'users/auth.html'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize Twilio client
+        if hasattr(settings, 'TWILIO_ACCOUNT_SID') and hasattr(settings, 'TWILIO_AUTH_TOKEN'):
+            self.twilio_client = Client(
+                settings.TWILIO_ACCOUNT_SID,
+                settings.TWILIO_AUTH_TOKEN
+            )
+            self.verify_service_sid = getattr(settings, 'TWILIO_VERIFY_SERVICE_SID', None)
+        else:
+            self.twilio_client = None
+            self.verify_service_sid = None
+            logger.warning("Twilio credentials not configured.")
     
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('dashboard')
         
-        # Check if phone is in session (coming back after OTP failure)
+        # Check if phone is in session
         phone = request.session.get('auth_phone', '')
         
         context = {
@@ -63,130 +87,210 @@ class UnifiedAuthView(View):
         return render(request, self.template_name, context)
     
     def post(self, request, *args, **kwargs):
-        """Handle both OTP sending and verification"""
+        """Handle OTP sending and verification"""
         action = request.POST.get('action', 'send_otp')
         
         if action == 'send_otp':
             return self.handle_send_otp(request)
         elif action == 'verify_otp':
             return self.handle_verify_otp(request)
+        elif action == 'resend_otp':
+            return self.handle_resend_otp(request)
         else:
             messages.error(request, 'Invalid action')
             return redirect('auth')
     
     def handle_send_otp(self, request):
-        """Handle OTP sending"""
+        """Send OTP using Twilio Verify API - No backend storage"""
         phone = request.POST.get('phone', '').strip()
         
-        if not phone or len(phone) != 10:
+        # Validate phone number
+        if not phone or not re.match(r'^\d{10}$', phone):
             messages.error(request, 'Please enter a valid 10-digit mobile number')
             return redirect('auth')
+        
+        # Format phone number with country code
+        full_phone = f'+91{phone}'
         
         # Check if user exists or create new one
         try:
             user = CustomUser.objects.get(phone=phone)
             is_new_user = False
         except CustomUser.DoesNotExist:
-            # Create new user automatically
+            # Create new user but mark as not verified yet
             user = CustomUser.objects.create(
                 phone=phone,
                 username=f'user_{phone}',
-                is_active=True  # Auto-activate for OTP login
+                is_active=True,
+                phone_verified=False  # Will be verified after OTP
             )
             is_new_user = True
         
-        # Generate and send OTP
-        otp_obj = OTP.create_otp(
-            phone=phone,
-            otp_type='auth',
-            user=user
-        )
-        
-        # Store in session
+        # Store in session (only phone and user id, no OTP)
         request.session['auth_phone'] = phone
         request.session['auth_user_id'] = user.id
         
-        # In production: Send OTP via SMS
-        # For demo, show OTP in message
-        if is_new_user:
-            messages.info(request, f'Welcome! New account created. OTP sent to {phone}: {otp_obj.otp}')
+        # Use Twilio Verify API to send OTP
+        if self.verify_service_sid and self.twilio_client:
+            try:
+                # Send OTP via Twilio Verify (Twilio generates and manages OTP)
+                verification = self.twilio_client.verify \
+                    .v2 \
+                    .services(self.verify_service_sid) \
+                    .verifications \
+                    .create(to=full_phone, channel='sms')
+                
+                logger.info(f"Twilio verification sent: {verification.sid}")
+                logger.info(f"Verification status: {verification.status}")
+                
+                if is_new_user:
+                    messages.success(request, f'Welcome! OTP sent to {phone}')
+                else:
+                    messages.success(request, f'OTP sent to {phone}')
+                
+            except Exception as e:
+                logger.error(f"Twilio error: {str(e)}")
+                messages.error(request, 'Failed to send OTP. Please try again.')
+                return redirect('auth')
         else:
-            messages.info(request, f'OTP sent to {phone}: {otp_obj.otp}')
+            # Fallback for development - simulate OTP
+            logger.warning("Twilio Verify not configured. Using simulation.")
+            messages.info(request, f'SIMULATION MODE: OTP would be sent to {phone}')
+            # Store a dummy OTP in session for simulation
+            request.session['sim_otp'] = '123456'
         
-        # Redirect back to same page (now showing OTP section)
         return redirect('auth')
     
     def handle_verify_otp(self, request):
-        """Handle OTP verification"""
+        """Verify OTP using Twilio Verify API - No database check"""
         phone = request.session.get('auth_phone')
         user_id = request.session.get('auth_user_id')
-        otp = request.POST.get('otp', '').strip()
+        otp_code = request.POST.get('otp', '').strip()
         
         if not phone or not user_id:
             messages.error(request, 'Session expired. Please try again.')
             return redirect('auth')
         
-        if not otp or len(otp) != 6:
+        if not otp_code or len(otp_code) != 6:
             messages.error(request, 'Please enter a valid 6-digit OTP')
             return redirect('auth')
         
-        # Verify OTP
-        try:
-            otp_obj = OTP.objects.get(
-                phone=phone,
-                otp=otp,
-                otp_type='auth',
-                is_used=False
-            )
-            
-            # Check if OTP is expired (10 minutes)
-            from django.utils import timezone
-            from datetime import timedelta
-            
-            if otp_obj.created_at < timezone.now() - timedelta(minutes=10):
-                messages.error(request, 'OTP has expired. Please request a new one.')
-                return redirect('auth')
-            
-            # Mark OTP as verified
-            otp_obj.is_used = True
-            otp_obj.save()
-            
-            # Get user
+        full_phone = f'+91{phone}'
+        
+        # Use Twilio Verify API to check OTP
+        if self.verify_service_sid and self.twilio_client:
             try:
-                user = CustomUser.objects.get(id=user_id, phone=phone)
+                # Verify OTP with Twilio
+                verification_check = self.twilio_client.verify \
+                    .v2 \
+                    .services(self.verify_service_sid) \
+                    .verification_checks \
+                    .create(to=full_phone, code=otp_code)
                 
-                # Update user verification status
-                user.phone_verified = True
-                user.save()
+                logger.info(f"Twilio verification status: {verification_check.status}")
                 
-                # Login user
-                login(request, user)
-                
-                # Clear session
-                self.clear_auth_session(request)
-                
-                # Welcome message
-                if user.date_joined > timezone.now() - timedelta(minutes=5):
-                    messages.success(request, f'Welcome to TelecomPedia! Your account has been created.')
+                if verification_check.status == 'approved':
+                    # OTP verified successfully by Twilio
+                    return self.login_user(request, user_id, phone)
                 else:
-                    messages.success(request, f'Welcome back {user.display_name}!')
-                
-                return redirect('dashboard')
-                
-            except CustomUser.DoesNotExist:
-                messages.error(request, 'User not found.')
+                    messages.error(request, 'Invalid OTP. Please try again.')
+                    return redirect('auth')
+                    
+            except Exception as e:
+                logger.error(f"Twilio verification error: {str(e)}")
+                messages.error(request, 'Verification failed. Please try again.')
                 return redirect('auth')
-                
-        except OTP.DoesNotExist:
-            messages.error(request, 'Invalid OTP. Please try again.')
+        
+        # Fallback for development - check session
+        else:
+            sim_otp = request.session.get('sim_otp')
+            if sim_otp and sim_otp == otp_code:
+                return self.login_user(request, user_id, phone)
+            else:
+                messages.error(request, 'Invalid OTP')
+                return redirect('auth')
+    
+    def handle_resend_otp(self, request):
+        """Handle AJAX resend OTP request"""
+        if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+        
+        try:
+            data = json.loads(request.body)
+            phone = data.get('phone')
+            
+            if not phone:
+                return JsonResponse({'success': False, 'error': 'Phone number required'})
+            
+            full_phone = f'+91{phone}'
+            
+            # Resend OTP via Twilio Verify
+            if self.verify_service_sid and self.twilio_client:
+                try:
+                    verification = self.twilio_client.verify \
+                        .v2 \
+                        .services(self.verify_service_sid) \
+                        .verifications \
+                        .create(to=full_phone, channel='sms')
+                    
+                    logger.info(f"Twilio verification resent: {verification.sid}")
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'OTP resent successfully'
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Twilio resend error: {str(e)}")
+                    return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            else:
+                # Simulation mode
+                return JsonResponse({
+                    'success': True,
+                    'message': 'OTP resent successfully (simulation)',
+                    'demo_otp': '123456' if settings.DEBUG else None
+                })
+            
+        except Exception as e:
+            logger.error(f"Resend OTP error: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    def login_user(self, request, user_id, phone):
+        """Helper method to login user after successful verification"""
+        try:
+            user = CustomUser.objects.get(id=user_id, phone=phone)
+            
+            # Update user verification status
+            user.phone_verified = True
+            user.last_login = timezone.now()
+            user.save()
+            
+            # Login user
+            login(request, user)
+            
+            # Clear session
+            self.clear_auth_session(request)
+            
+            # Welcome message
+            if user.date_joined > timezone.now() - timedelta(minutes=5):
+                messages.success(request, f'Welcome to TelecomPedia! Your account has been created.')
+            else:
+                messages.success(request, f'Welcome back {user.display_name}!')
+            
+            return redirect('dashboard')
+        
+        except CustomUser.DoesNotExist:
+            messages.error(request, 'User not found.')
             return redirect('auth')
     
     def clear_auth_session(self, request):
         """Clear authentication session data"""
-        session_keys = ['auth_phone', 'auth_user_id']
+        session_keys = ['auth_phone', 'auth_user_id', 'sim_otp']
         for key in session_keys:
             if key in request.session:
                 del request.session[key]
+
+
 
 class CustomLogoutView(LogoutView):
     """Custom logout view"""

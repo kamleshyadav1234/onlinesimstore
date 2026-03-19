@@ -114,6 +114,8 @@ EMAIL_HOST_PASSWORD = 'your-email-password'
 DEFAULT_FROM_EMAIL = 'TelecomPedia <noreply@telecompedia.com>'
 
 
+
+
 # # Add these to your settings.py
 # RAZORPAY_KEY_ID = 'your_razorpay_key_id'
 # RAZORPAY_KEY_SECRET = 'your_razorpay_key_secret'

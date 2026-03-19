@@ -14,6 +14,8 @@ urlpatterns = [
     # path('send-otp/', OTPSendView.as_view(), name='send_otp'),
     # path('verify-otp/', OTPVerifyView.as_view(), name='verify_otp'),
     # path('resend-otp/', OTPResendView.as_view(), name='resend_otp'),
+    path('resend-otp/', UnifiedAuthView.as_view(), name='resend_otp'),  # AJAX endpoint
+
     path('logout/',CustomLogoutView.as_view(), name='logout'),
     
     # Dashboard
