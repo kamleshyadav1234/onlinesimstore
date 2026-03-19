@@ -11,9 +11,7 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('auth/', UnifiedAuthView.as_view(), name='auth'),
     path('login/', UnifiedAuthView.as_view(), name='login'),  # Alias for backward compatibility
-    # path('send-otp/', OTPSendView.as_view(), name='send_otp'),
-    # path('verify-otp/', OTPVerifyView.as_view(), name='verify_otp'),
-    # path('resend-otp/', OTPResendView.as_view(), name='resend_otp'),
+   
     path('resend-otp/', UnifiedAuthView.as_view(), name='resend_otp'),  # AJAX endpoint
 
     path('logout/',CustomLogoutView.as_view(), name='logout'),
