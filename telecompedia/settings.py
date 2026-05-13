@@ -119,3 +119,19 @@ DEFAULT_FROM_EMAIL = 'TelecomPedia <noreply@telecompedia.com>'
 # RAZORPAY_KEY_ID = 'your_razorpay_key_id'
 # RAZORPAY_KEY_SECRET = 'your_razorpay_key_secret'
 # RAZORPAY_WEBHOOK_SECRET = 'your_webhook_secret'
+
+
+# settings.py
+import os
+INFOBIP_SIMULATION_MODE = False  # Set to False for production
+# settings.py - Add these lines at the bottom
+
+# Infobip Configuration
+INFOBIP_API_KEY = '456e48165c4e0630d3387fa358b5e376-5f3b404b-0218-4d3b-b814-f7ba472ac545'
+
+INFOBIP_BASE_URL = 'x19rj4.api.infobip.com'
+INFOBIP_BASE_URL_FULL = f"https://{INFOBIP_BASE_URL}"
+
+# These are the IDs you just generated from the setup script
+INFOBIP_2FA_APPLICATION_ID = '573AA8224B135491F6921E09D590C831'
+INFOBIP_2FA_MESSAGE_TEMPLATE_ID = '5E4DEB0796B9BE301DA94B6918E93ADF'
