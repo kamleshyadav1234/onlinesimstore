@@ -8,6 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import login
+import requests
 from .models import CustomUser, UserPlanHistory, UserFavouritePlan
 from plans.models import Plan, SIMReplacementRequest
 from payments.models import Payment
@@ -106,7 +107,8 @@ import re
 import logging
 import random
 from datetime import timedelta, datetime
-
+import urllib.parse
+import urllib3
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib import messages
@@ -114,97 +116,75 @@ from django.utils import timezone
 from django.views import View
 from django.conf import settings
 from django.http import JsonResponse
-
-from infobip_channels.sms.channel import SMSChannel
-
+import threading
+from django.contrib.auth import login as auth_login
 from .models import CustomUser
 
 logger = logging.getLogger(__name__)
 
-
 class UnifiedAuthView(View):
-    """Unified authentication view - Uses Infobip SMS for OTP"""
+    """Authentication view using Fast2SMS for OTP"""
     template_name = 'users/auth.html'
-    
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.infobip_client = None
-        
-        # Initialize Infobip client
-        if (hasattr(settings, 'INFOBIP_API_KEY') and 
-            hasattr(settings, 'INFOBIP_BASE_URL_FULL') and
-            settings.INFOBIP_API_KEY and 
-            settings.INFOBIP_BASE_URL_FULL):
+            super().__init__(*args, **kwargs)
+            self.fast2sms_api_key = getattr(settings, 'FAST2SMS_API_KEY', None)
+            self.fast2sms_template_id = getattr(settings, 'FAST2SMS_TEMPLATE_ID', None)
+            self.fast2sms_sender_id = getattr(settings, 'FAST2SMS_SENDER_ID', None)
+            self.fast2sms_route = getattr(settings, 'FAST2SMS_ROUTE', 'dlt')
+            self.simulation_mode = getattr(settings, 'OTP_SIMULATION_MODE', False)
             
-            try:
-                self.infobip_client = SMSChannel.from_auth_params({
-                    "base_url": settings.INFOBIP_BASE_URL_FULL,
-                    "api_key": settings.INFOBIP_API_KEY
-                })
-                logger.info("✅ Infobip client initialized successfully")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize Infobip client: {str(e)}")
-                self.infobip_client = None
-        else:
-            logger.warning("⚠️ Infobip credentials not configured.")
-    
+            if self.simulation_mode:
+                logger.warning("🔧 Running in SIMULATION mode - OTPs will be logged but not sent")
+            elif not all([self.fast2sms_api_key, self.fast2sms_template_id, self.fast2sms_sender_id]):
+                logger.warning("⚠️ Fast2SMS credentials not configured. Falling back to simulation mode.")
+                self.simulation_mode = True
+        
     def generate_otp(self):
-        """Generate a 6-digit OTP"""
         return ''.join(random.choices('0123456789', k=6))
     
-    def send_sms(self, to_phone, message):
-        """Send SMS using Infobip regular SMS endpoint (not 2FA)"""
-        try:
-            # Use regular SMS endpoint with ServiceSMS sender (required for trial)
-            payload = {
-                "messages": [
-                    {
-                        "from": "ServiceSMS",  # Required for free trial
-                        "destinations": [{"to": to_phone}],
-                        "text": message,
-                        "smsValidity": 120
-                    }
-                ]
-            }
-            
-            logger.info(f"📤 Sending SMS to {to_phone}")
-            
-            # Use the regular SMS endpoint
-            response = self.infobip_client.send_sms_message(payload)
-            
-            # Log response
-            if hasattr(response, 'messages') and response.messages:
-                for msg in response.messages:
-                    status = msg.status
-                    logger.info(f"📊 Message status: {status.name} (ID: {status.id})")
-                    if status.id == 26:  # PENDING_ACCEPTED
-                        logger.info("✅ SMS accepted for delivery")
-                        return True, None
-                    else:
-                        logger.warning(f"⚠️ Status: {status.name}")
-                        return True, None  # Still consider it sent
-            else:
-                logger.info("✅ SMS sent successfully")
-                return True, None
+    def send_otp_in_background(self, phone, otp):
+        """Send OTP in background thread for faster response"""
+        def send():
+            try:
+                params = {
+                    'authorization': self.fast2sms_api_key,
+                    'route': self.fast2sms_route,
+                    'sender_id': self.fast2sms_sender_id,
+                    'message': self.fast2sms_template_id,
+                    'variables_values': f"{otp}|",
+                    'numbers': phone
+                }
+                url = f"https://www.fast2sms.com/dev/bulkV2?{urllib.parse.urlencode(params)}"
                 
-        except Exception as e:
-            logger.error(f"❌ Failed to send SMS: {str(e)}")
-            return False, str(e)
+                logger.info(f"📤 Sending OTP to {phone} in background")
+                response = requests.get(url, timeout=30)
+                result = response.json()
+                
+                if result.get('return'):
+                    logger.info(f"✅ OTP sent to {phone}")
+                else:
+                    logger.error(f"❌ Failed to send OTP to {phone}: {result.get('message')}")
+            except Exception as e:
+                logger.error(f"❌ Error sending OTP to {phone}: {str(e)}")
+        
+        thread = threading.Thread(target=send)
+        thread.daemon = True
+        thread.start()
     
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('dashboard')
         
-        phone = request.session.get('auth_phone', '')
+        # Clear session if requested
+        if request.GET.get('clear_session'):
+            self.clear_auth_session(request)
+            return redirect('auth')
         
-        context = {
-            'phone': phone,
-            'show_otp': bool(phone),
-        }
+        phone = request.session.get('auth_phone', '')
+        context = {'phone': phone, 'show_otp': bool(phone)}
         return render(request, self.template_name, context)
     
     def post(self, request, *args, **kwargs):
-        """Handle OTP sending and verification"""
         action = request.POST.get('action', 'send_otp')
         
         if action == 'send_otp':
@@ -218,32 +198,24 @@ class UnifiedAuthView(View):
             return redirect('auth')
     
     def handle_send_otp(self, request):
-        """Generate and send OTP via SMS"""
-        logger.info("=" * 60)
-        logger.info("📱 SENDING OTP")
-        logger.info("=" * 60)
-        
+        """Fast OTP sending - returns immediately"""
         phone = request.POST.get('phone', '').strip()
         
-        # Validate phone number (10 digits for Indian numbers)
         if not phone or not re.match(r'^\d{10}$', phone):
             messages.error(request, 'Please enter a valid 10-digit mobile number')
             return redirect('auth')
         
-        # Format phone number with country code
-        full_phone = f'91{phone}'
-        
-        # Rate limiting (60 seconds cooldown)
+        # Rate limiting
         last_otp_time = request.session.get('last_otp_time')
         if last_otp_time:
             last_time = datetime.fromisoformat(last_otp_time)
             time_diff = (timezone.now() - last_time).total_seconds()
             if time_diff < 60:
                 wait_time = int(60 - time_diff)
-                messages.error(request, f'Please wait {wait_time} seconds before requesting another OTP')
+                messages.error(request, f'Please wait {wait_time} seconds')
                 return redirect('auth')
         
-        # Check if user exists or create new one
+        # User handling
         try:
             user = CustomUser.objects.get(phone=phone)
             is_new_user = False
@@ -256,36 +228,27 @@ class UnifiedAuthView(View):
             )
             is_new_user = True
         
-        # Generate and store OTP
+        # Generate OTP
         otp = self.generate_otp()
+        
+        # Store session (fast - no API call)
         request.session['auth_phone'] = phone
         request.session['auth_user_id'] = user.id
+        request.session['last_otp_time'] = timezone.now().isoformat()
         request.session['otp_code'] = otp
         request.session['otp_expiry'] = (timezone.now() + timedelta(minutes=10)).isoformat()
-        request.session['last_otp_time'] = timezone.now().isoformat()
         
-        # Check simulation mode
-        simulation_mode = getattr(settings, 'INFOBIP_SIMULATION_MODE', False)
-        
-        # Send SMS
-        if self.infobip_client and not simulation_mode:
-            message = f"Your TelecomPedia OTP is: {otp}. Valid for 10 minutes."
-            success, error = self.send_sms(full_phone, message)
-            
-            if success:
-                logger.info(f"✅ OTP sent to {phone}")
-                messages.success(request, f'OTP sent to {phone}')
-                if is_new_user:
-                    messages.info(request, 'Welcome! Please verify your number.')
-            else:
-                logger.error(f"❌ Failed to send OTP: {error}")
-                messages.error(request, 'Failed to send OTP. Please try again.')
-                return redirect('auth')
+        # Send OTP in background (doesn't block response)
+        if not self.simulation_mode:
+            self.send_otp_in_background(phone, otp)
         else:
-            # Simulation mode
-            logger.warning(f"🔧 SIMULATION MODE - OTP: {otp}")
-            messages.info(request, f'🔧 DEVELOPMENT MODE: OTP would be sent to {phone}')
-            messages.info(request, f'🔧 Use OTP: {otp} for testing')
+            # Log OTP for debugging in simulation mode
+            logger.info(f"🔧 SIMULATION MODE - OTP for {phone}: {otp}")
+        
+        # ✅ REMOVED: TEST OTP message - no longer shown to user
+        messages.success(request, f'OTP sent to {phone}')
+        if is_new_user:
+            messages.info(request, 'Welcome! Please verify your number.')
         
         return redirect('auth')
     
@@ -297,11 +260,21 @@ class UnifiedAuthView(View):
         
         phone = request.session.get('auth_phone')
         user_id = request.session.get('auth_user_id')
-        stored_otp = request.session.get('otp_code')
-        otp_expiry = request.session.get('otp_expiry')
         otp_code = request.POST.get('otp', '').strip()
         
-        if not phone or not user_id or not stored_otp:
+        if not phone or not user_id:
+            messages.error(request, 'Session expired. Please request a new OTP.')
+            return redirect('auth')
+        
+        if not otp_code or len(otp_code) != 6:
+            messages.error(request, 'Please enter a valid 6-digit OTP')
+            return redirect('auth')
+        
+        # Check OTP against session-stored value
+        stored_otp = request.session.get('otp_code')
+        otp_expiry = request.session.get('otp_expiry')
+        
+        if not stored_otp:
             messages.error(request, 'Session expired. Please request a new OTP.')
             return redirect('auth')
         
@@ -313,16 +286,12 @@ class UnifiedAuthView(View):
                 self.clear_auth_session(request)
                 return redirect('auth')
         
-        if not otp_code or len(otp_code) != 6:
-            messages.error(request, 'Please enter a valid 6-digit OTP')
-            return redirect('auth')
-        
         # Verify OTP
         if otp_code == stored_otp:
             logger.info("✅ OTP verified successfully")
             return self.login_user(request, user_id, phone)
         else:
-            logger.warning(f"❌ Invalid OTP")
+            logger.warning(f"❌ Invalid OTP provided")
             messages.error(request, 'Invalid OTP. Please try again.')
             return redirect('auth')
     
@@ -338,31 +307,43 @@ class UnifiedAuthView(View):
             if not phone:
                 return JsonResponse({'success': False, 'error': 'Phone number required'})
             
-            full_phone = f'91{phone}'
-            simulation_mode = getattr(settings, 'INFOBIP_SIMULATION_MODE', False)
+            # Rate limiting check (30 seconds for resend)
+            last_otp_time = request.session.get('last_otp_time')
+            if last_otp_time:
+                last_time = datetime.fromisoformat(last_otp_time)
+                time_diff = (timezone.now() - last_time).total_seconds()
+                if time_diff < 30:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'Please wait {int(30 - time_diff)} seconds before resending'
+                    }, status=429)
             
             # Generate new OTP
             otp = self.generate_otp()
             
             # Update session
+            request.session['last_otp_time'] = timezone.now().isoformat()
             request.session['otp_code'] = otp
             request.session['otp_expiry'] = (timezone.now() + timedelta(minutes=10)).isoformat()
-            request.session['last_otp_time'] = timezone.now().isoformat()
             
-            if self.infobip_client and not simulation_mode:
-                message = f"Your TelecomPedia OTP is: {otp}. Valid for 10 minutes."
-                success, error = self.send_sms(full_phone, message)
-                
-                if success:
-                    return JsonResponse({'success': True, 'message': 'OTP resent successfully'})
-                else:
-                    return JsonResponse({'success': False, 'error': error}, status=500)
+            # Send OTP
+            if self.simulation_mode:
+                success = True
+                error = None
+                logger.info(f"🔧 SIMULATION MODE - New OTP for {phone}: {otp}")
             else:
+                success, error, request_id = self.send_otp_via_fast2sms(phone, otp)
+                if success and request_id:
+                    request.session['otp_request_id'] = request_id
+            
+            if success:
+                # ✅ REMOVED: demo_otp from response
                 return JsonResponse({
-                    'success': True,
-                    'message': 'OTP resent successfully (simulation)',
-                    'demo_otp': otp if settings.DEBUG else None
+                    'success': True, 
+                    'message': 'OTP resent successfully'
                 })
+            else:
+                return JsonResponse({'success': False, 'error': error}, status=500)
             
         except Exception as e:
             logger.error(f"❌ Resend error: {str(e)}")
@@ -377,14 +358,15 @@ class UnifiedAuthView(View):
             user.last_login = timezone.now()
             user.save()
             
-            login(request, user)
+            auth_login(request, user)
             self.clear_auth_session(request)
             
             is_new_user = user.date_joined > timezone.now() - timedelta(minutes=5)
             if is_new_user:
-                messages.success(request, f'Welcome to TelecomPedia! Your account has been created.')
+                messages.success(request, f'Welcome! Your account has been created.')
             else:
-                messages.success(request, f'Welcome back {user.display_name}!')
+                display_name = getattr(user, 'display_name', user.username)
+                messages.success(request, f'Welcome back {display_name}!')
             
             return redirect('dashboard')
         
@@ -394,10 +376,11 @@ class UnifiedAuthView(View):
     
     def clear_auth_session(self, request):
         """Clear authentication session data"""
-        session_keys = ['auth_phone', 'auth_user_id', 'otp_code', 'otp_expiry', 'last_otp_time']
+        session_keys = ['auth_phone', 'auth_user_id', 'otp_code', 'otp_expiry', 'last_otp_time', 'otp_request_id']
         for key in session_keys:
             if key in request.session:
                 del request.session[key]
+
 
 class CustomLogoutView(LogoutView):
     """Custom logout view"""
