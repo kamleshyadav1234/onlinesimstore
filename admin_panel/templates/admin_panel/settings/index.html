@@ -1,0 +1,83 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-gear"></i> System Settings</h4>
+            <p class="text-muted">Configure system-wide settings</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for type, type_label in setting_types %}
+    <div class="col-md-6 mb-4">
+        <div class="content-card">
+            <h6><i class="bi bi-circle-fill text-primary me-2"></i> {{ type_label }}</h6>
+            <hr>
+            <form method="post">
+                {% csrf_token %}
+                {% for setting in settings_by_type|default_if_none:"" %}
+                    {% if setting.setting_type == type %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ setting.setting_key|title }}</label>
+                        <input type="text" name="setting_{{ setting.setting_key }}" 
+                               class="form-control" value="{{ setting.setting_value }}">
+                        {% if setting.description %}
+                            <small class="text-muted">{{ setting.description }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="content-card text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted">No settings configured yet</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add New Setting -->
+<div class="row">
+    <div class="col-12">
+        <div class="content-card">
+            <h6><i class="bi bi-plus-circle"></i> Add New Setting</h6>
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-3">
+                    <input type="text" name="setting_key" class="form-control" placeholder="Setting Key">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="setting_value" class="form-control" placeholder="Setting Value">
+                </div>
+                <div class="col-md-3">
+                    <select name="setting_type" class="form-select">
+                        <option value="general">General</option>
+                        <option value="email">Email</option>
+                        <option value="payment">Payment</option>
+                        <option value="notification">Notification</option>
+                        <option value="security">Security</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-plus"></i> Add
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

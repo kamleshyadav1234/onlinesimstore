@@ -1,0 +1,152 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Payments Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-credit-card"></i> Payments Management</h4>
+            <p class="text-muted">Track and manage all payments</p>
+        </div>
+        <div>
+            <span class="badge bg-success me-2">Total Revenue: ₹{{ payment_stats.total_revenue|floatformat:2 }}</span>
+            <span class="badge bg-primary me-2">Total: {{ payment_stats.total }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ payment_stats.completed }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ payment_stats.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ payment_stats.failed }}</div>
+            <div class="stat-label">Failed</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ payment_stats.refunded }}</div>
+            <div class="stat-label">Refunded</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="content-card">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+                <option value="">All Status</option>
+                {% for status_code, status_label in payment_statuses %}
+                <option value="{{ status_code }}" {% if request.GET.status == status_code %}selected{% endif %}>
+                    {{ status_label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Payment Type</label>
+            <select name="payment_type" class="form-select">
+                <option value="">All Types</option>
+                {% for type_code, type_label in payment_types %}
+                <option value="{{ type_code }}" {% if request.GET.payment_type == type_code %}selected{% endif %}>
+                    {{ type_label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <input type="text" name="search" class="form-control" placeholder="Transaction ID, Bill #..." value="{{ search_query }}">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="bi bi-search"></i> Filter
+            </button>
+            <a href="{% url 'admin_panel:payments_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Payments Table -->
+<div class="content-card">
+    <div class="table-responsive">
+        <table class="table table-hover datatable">
+            <thead>
+                <tr>
+                    <th>Bill #</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>
+                        <strong>{{ payment.bill_number }}</strong>
+                        <br>
+                        <small class="text-muted">{{ payment.transaction_id|truncatechars:10 }}</small>
+                    </td>
+                    <td>
+                        <a href="{% url 'admin_panel:user_detail' payment.user.id %}" class="text-decoration-none">
+                            {{ payment.user.display_name }}
+                        </a>
+                    </td>
+                    <td>₹{{ payment.amount }}</td>
+                    <td>
+                        <span class="badge bg-info">{{ payment.get_payment_type_display }}</span>
+                    </td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>
+                        <span class="badge {% if payment.payment_status == 'completed' %}bg-success{% elif payment.payment_status == 'pending' %}bg-warning{% elif payment.payment_status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ payment.get_payment_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ payment.payment_date|date:"M d, Y H:i" }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewPayment('{{ payment.id }}')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="bi bi-inbox display-4 d-block text-muted"></i>
+                        <p class="text-muted">No payments found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function viewPayment(paymentId) {
+    alert('Payment details for ID: ' + paymentId);
+}
+</script>
+{% endblock %}

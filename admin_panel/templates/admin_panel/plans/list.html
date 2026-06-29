@@ -1,0 +1,133 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Plans Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-list-ul"></i> Plans Management</h4>
+            <p class="text-muted">Manage all telecom plans</p>
+        </div>
+        <a href="{% url 'admin_panel:plan_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add New Plan
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="content-card">
+    <form method="get" class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Operator</label>
+            <select name="operator" class="form-select">
+                <option value="">All Operators</option>
+                {% for operator in operators %}
+                <option value="{{ operator.id }}" {% if request.GET.operator == operator.id|stringformat:"s" %}selected{% endif %}>
+                    {{ operator.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Plan Type</label>
+            <select name="plan_type" class="form-select">
+                <option value="">All Types</option>
+                {% for type, label in plan_types %}
+                <option value="{{ type }}" {% if request.GET.plan_type == type %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Status</label>
+            <select name="is_active" class="form-select">
+                <option value="">All</option>
+                <option value="true" {% if request.GET.is_active == 'true' %}selected{% endif %}>Active</option>
+                <option value="false" {% if request.GET.is_active == 'false' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Search</label>
+            <input type="text" name="search" class="form-control" placeholder="Search plans..." value="{{ search_query }}">
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary me-2">
+                <i class="bi bi-search"></i> Filter
+            </button>
+            <a href="{% url 'admin_panel:plans_list' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Plans Table -->
+<div class="content-card">
+    <div class="table-responsive">
+        <table class="table table-hover datatable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Plan Name</th>
+                    <th>Operator</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Validity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plans %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ plan.name }}</strong>
+                        {% if plan.is_popular %}
+                            <span class="badge bg-warning">Popular</span>
+                        {% endif %}
+                        {% if plan.is_featured %}
+                            <span class="badge bg-info">Featured</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.operator.logo %}
+                            <img src="{{ plan.operator.logo.url }}" alt="{{ plan.operator.name }}" width="30" height="30" class="rounded me-1">
+                        {% endif %}
+                        {{ plan.operator.name }}
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">{{ plan.get_plan_type_display }}</span>
+                    </td>
+                    <td>₹{{ plan.price }}</td>
+                    <td>{{ plan.validity }} {{ plan.get_validity_unit_display }}</td>
+                    <td>
+                        <span class="badge {% if plan.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ plan.is_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'admin_panel:plan_detail' plan.id %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'admin_panel:plan_detail' plan.id %}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="bi bi-inbox display-4 d-block text-muted"></i>
+                        <p class="text-muted">No plans found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

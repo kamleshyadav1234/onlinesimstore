@@ -1,0 +1,145 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-bar-chart"></i> Reports & Analytics</h4>
+            <p class="text-muted">View detailed reports and analytics</p>
+        </div>
+        <div>
+            <div class="btn-group">
+                <a href="?period=week" class="btn btn-outline-primary {% if period == 'week' %}active{% endif %}">Week</a>
+                <a href="?period=month" class="btn btn-outline-primary {% if period == 'month' %}active{% endif %}">Month</a>
+                <a href="?period=year" class="btn btn-outline-primary {% if period == 'year' %}active{% endif %}">Year</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Revenue by Operator -->
+    <div class="col-md-6">
+        <div class="content-card">
+            <h6><i class="bi bi-building"></i> Revenue by Operator</h6>
+            <canvas id="operatorChart" height="250"></canvas>
+        </div>
+    </div>
+    
+    <!-- Revenue by Plan Type -->
+    <div class="col-md-6">
+        <div class="content-card">
+            <h6><i class="bi bi-list-ul"></i> Revenue by Plan Type</h6>
+            <canvas id="planTypeChart" height="250"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- User Registrations -->
+<div class="row">
+    <div class="col-12">
+        <div class="content-card">
+            <h6><i class="bi bi-people"></i> User Registrations (Last 12 Months)</h6>
+            <canvas id="userRegistrationsChart" height="150"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Revenue by Operator Chart
+    const operatorData = {{ revenue_by_operator|safe }};
+    new Chart(document.getElementById('operatorChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(operatorData),
+            datasets: [{
+                data: Object.values(operatorData),
+                backgroundColor: [
+                    '#3498db', '#2ecc71', '#e74c3c', '#f39c12', 
+                    '#9b59b6', '#1abc9c', '#e67e22', '#34495e'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Revenue by Plan Type Chart
+    const planTypeData = {{ revenue_by_plan_type|safe }};
+    new Chart(document.getElementById('planTypeChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(planTypeData),
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: Object.values(planTypeData),
+                backgroundColor: '#3498db',
+                borderColor: '#2980b9',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // User Registrations Chart
+    const userData = {{ user_registrations|safe }};
+    new Chart(document.getElementById('userRegistrationsChart'), {
+        type: 'line',
+        data: {
+            labels: userData.map(item => item.month),
+            datasets: [{
+                label: 'New Users',
+                data: userData.map(item => item.count),
+                borderColor: '#2ecc71',
+                backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h4><i class="bi bi-speedometer2"></i> Dashboard</h4>
+    <p class="text-muted">Welcome back, {{ request.user.display_name }}!</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_users }}</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-icon text-primary">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_plans }}</div>
+                    <div class="stat-label">Active Plans</div>
+                </div>
+                <div class="stat-icon text-success">
+                    <i class="bi bi-list-ul"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">₹{{ total_revenue|floatformat:0 }}</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+                <div class="stat-icon text-warning">
+                    <i class="bi bi-currency-rupee"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_payments }}</div>
+                    <div class="stat-label">Total Payments</div>
+                </div>
+                <div class="stat-icon text-info">
+                    <i class="bi bi-credit-card"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Requests -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-arrow-left-right"></i> Port Requests</h6>
+            </div>
+            <div class="card-body">
+                <h2 class="text-primary">{{ pending_port_requests }}</h2>
+                <p class="text-muted">Pending port-in requests</p>
+                <a href="{% url 'admin_panel:pending_requests' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-plus-circle"></i> New Connections</h6>
+            </div>
+            <div class="card-body">
+                <h2 class="text-success">{{ pending_new_connections }}</h2>
+                <p class="text-muted">Pending new connection requests</p>
+                <a href="{% url 'admin_panel:pending_requests' %}" class="btn btn-sm btn-outline-success">View All</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-sim"></i> SIM Replacements</h6>
+            </div>
+            <div class="card-body">
+                <h2 class="text-warning">{{ pending_sim_replacements }}</h2>
+                <p class="text-muted">Pending SIM replacement requests</p>
+                <a href="{% url 'admin_panel:pending_requests' %}" class="btn btn-sm btn-outline-warning">View All</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-graph-up"></i> Revenue Trend (Last 6 Months)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-clock"></i> Recent Activities</h6>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <ul class="list-unstyled">
+                    {% for activity in recent_activities %}
+                    <li class="mb-2">
+                        <small>
+                            <i class="bi bi-dot"></i>
+                            <strong>{{ activity.admin.username }}</strong>
+                            {{ activity.action_type }}
+                            {{ activity.model_name }}
+                            <span class="text-muted">{{ activity.timestamp|timesince }} ago</span>
+                        </small>
+                    </li>
+                    {% empty %}
+                    <li class="text-muted">No recent activities</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="bi bi-lightning"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'admin_panel:plan_create' %}" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i> New Plan
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'admin_panel:users_list' %}" class="btn btn-info w-100">
+                            <i class="bi bi-people"></i> Manage Users
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'admin_panel:payments_list' %}" class="btn btn-success w-100">
+                            <i class="bi bi-credit-card"></i> Payments
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'admin_panel:reports' %}" class="btn btn-warning w-100">
+                            <i class="bi bi-bar-chart"></i> Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Revenue Chart
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    const revenueData = {{ revenue_data|safe }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: revenueData.map(item => item.month),
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: revenueData.map(item => item.revenue),
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                borderColor: 'rgba(52, 152, 219, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

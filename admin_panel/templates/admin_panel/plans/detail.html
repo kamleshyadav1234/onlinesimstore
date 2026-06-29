@@ -1,0 +1,148 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}{{ plan.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-list-ul"></i> {{ plan.name }}</h4>
+            <p class="text-muted">View and edit plan details</p>
+        </div>
+        <div>
+            <a href="{% url 'admin_panel:plans_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Plans
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="content-card">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Plan Name *</label>
+                            <input type="text" name="name" class="form-control" required value="{{ plan.name }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Operator</label>
+                            <input type="text" class="form-control" value="{{ plan.operator.name }}" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Price (₹) *</label>
+                            <input type="number" name="price" class="form-control" required step="0.01" value="{{ plan.price }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Featured Price (₹)</label>
+                            <input type="number" name="featured_price" class="form-control" step="0.01" value="{{ plan.featured_price }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Validity *</label>
+                            <input type="number" name="validity" class="form-control" required value="{{ plan.validity }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Validity Unit *</label>
+                            <select name="validity_unit" class="form-select" required>
+                                {% for unit, label in validity_units %}
+                                <option value="{{ unit }}" {% if plan.validity_unit == unit %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description *</label>
+                    <textarea name="description" class="form-control" rows="3" required>{{ plan.description }}</textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Data Allowance</label>
+                            <input type="text" name="data_allowance" class="form-control" value="{{ plan.data_allowance }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Voice Calls</label>
+                            <input type="text" name="voice_calls" class="form-control" value="{{ plan.voice_calls }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">SMS</label>
+                            <input type="text" name="sms" class="form-control" value="{{ plan.sms }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">OTT Benefits</label>
+                            <input type="text" name="ott_benefits" class="form-control" value="{{ plan.ott_benefits }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Other Benefits</label>
+                    <textarea name="other_benefits" class="form-control" rows="2">{{ plan.other_benefits }}</textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" name="is_popular" class="form-check-input" id="is_popular" {% if plan.is_popular %}checked{% endif %}>
+                            <label class="form-check-label" for="is_popular">Popular</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" name="is_featured" class="form-check-input" id="is_featured" {% if plan.is_featured %}checked{% endif %}>
+                            <label class="form-check-label" for="is_featured">Featured</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="is_active" {% if plan.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Update Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

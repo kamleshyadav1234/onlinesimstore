@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'plans',
     'payments',
     'notifications',
+    'admin_panel'
 ]
 
 MIDDLEWARE = [
@@ -103,6 +104,10 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
 
+# # Add these settings
+# LOGIN_URL = 'admin_login'
+# LOGIN_REDIRECT_URL = 'admin_dashboard'
+# LOGOUT_REDIRECT_URL = 'admin_login'
 # Payment Gateway Settings
 RAZORPAY_KEY_ID = 'rzp_test_S9Nry6FbsLPWnJ'
 RAZORPAY_KEY_SECRET = 'BG838K1LuxxJ2SD7Q8Yy4VcY'

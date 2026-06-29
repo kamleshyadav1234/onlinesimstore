@@ -1,0 +1,199 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Pending Requests{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-clock-history"></i> Pending Requests</h4>
+            <p class="text-muted">Review and manage all pending service requests</p>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#port">
+            <i class="bi bi-arrow-left-right"></i> Port Requests
+            <span class="badge bg-warning ms-1">{{ port_requests|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#new">
+            <i class="bi bi-plus-circle"></i> New Connections
+            <span class="badge bg-warning ms-1">{{ new_connections|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#sim">
+            <i class="bi bi-sim"></i> SIM Replacements
+            <span class="badge bg-warning ms-1">{{ sim_replacements|length }}</span>
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Port Requests -->
+    <div class="tab-pane active" id="port">
+        <div class="content-card">
+            {% if port_requests %}
+                {% for request in port_requests %}
+                <div class="border-bottom py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <strong>{{ request.mobile_number }}</strong>
+                            <br>
+                            <small class="text-muted">{{ request.user.display_name }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-primary me-1">{{ request.current_operator.name }}</span>
+                            <i class="bi bi-arrow-right"></i>
+                            <span class="badge bg-success ms-1">{{ request.new_operator.name }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-warning">{{ request.get_status_display }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="text-muted">{{ request.created_at|timesince }} ago</small>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button class="btn btn-sm btn-success" onclick="processRequest('port', '{{ request.id }}', 'approve')">
+                                <i class="bi bi-check-circle"></i> Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="processRequest('port', '{{ request.id }}', 'reject')">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-muted py-4">No pending port requests</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- New Connections -->
+    <div class="tab-pane" id="new">
+        <div class="content-card">
+            {% if new_connections %}
+                {% for request in new_connections %}
+                <div class="border-bottom py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <strong>{{ request.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ request.user.display_name }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-primary">{{ request.operator.name }}</span>
+                            <span class="badge bg-info ms-1">{{ request.get_connection_type_display }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-warning">{{ request.get_status_display }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="text-muted">{{ request.created_at|timesince }} ago</small>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button class="btn btn-sm btn-success" onclick="processRequest('new_connection', '{{ request.id }}', 'approve')">
+                                <i class="bi bi-check-circle"></i> Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="processRequest('new_connection', '{{ request.id }}', 'reject')">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-muted py-4">No pending new connection requests</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- SIM Replacements -->
+    <div class="tab-pane" id="sim">
+        <div class="content-card">
+            {% if sim_replacements %}
+                {% for request in sim_replacements %}
+                <div class="border-bottom py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <strong>{{ request.mobile_number }}</strong>
+                            <br>
+                            <small class="text-muted">{{ request.full_name }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="badge bg-primary">{{ request.get_operator_display }}</span>
+                            <span class="badge bg-info ms-1">{{ request.get_reason_display }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-warning">{{ request.get_status_display }}</span>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="text-muted">{{ request.created_at|timesince }} ago</small>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button class="btn btn-sm btn-success" onclick="processRequest('sim', '{{ request.id }}', 'approve')">
+                                <i class="bi bi-check-circle"></i> Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="processRequest('sim', '{{ request.id }}', 'reject')">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-muted py-4">No pending SIM replacement requests</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function processRequest(requestType, requestId, action) {
+    if (confirm(`Are you sure you want to ${action} this request?`)) {
+        fetch(`/admin-panel/requests/${requestType}/${requestId}/action/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `action=${action}&notes=Processed by admin`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error processing request');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing request');
+        });
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

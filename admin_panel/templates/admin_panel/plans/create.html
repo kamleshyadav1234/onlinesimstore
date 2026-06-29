@@ -1,0 +1,173 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Create New Plan{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4><i class="bi bi-plus-circle"></i> Create New Plan</h4>
+            <p class="text-muted">Add a new telecom plan</p>
+        </div>
+        <a href="{% url 'admin_panel:plans_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Plans
+        </a>
+    </div>
+</div>
+
+<div class="content-card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Plan Name *</label>
+                    <input type="text" name="name" class="form-control" required placeholder="Enter plan name">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Operator *</label>
+                    <select name="operator" class="form-select" required>
+                        <option value="">Select Operator</option>
+                        {% for operator in operators %}
+                        <option value="{{ operator.id }}">{{ operator.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Plan Type *</label>
+                    <select name="plan_type" class="form-select" required>
+                        <option value="">Select Type</option>
+                        {% for type, label in plan_types %}
+                        <option value="{{ type }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Price (₹) *</label>
+                    <input type="number" name="price" class="form-control" required step="0.01" placeholder="99.00">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Featured Price (₹)</label>
+                    <input type="number" name="featured_price" class="form-control" step="0.01" placeholder="79.00">
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Validity *</label>
+                    <input type="number" name="validity" class="form-control" required placeholder="30">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Validity Unit *</label>
+                    <select name="validity_unit" class="form-select" required>
+                        {% for unit, label in validity_units %}
+                        <option value="{{ unit }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Description *</label>
+            <textarea name="description" class="form-control" rows="3" required placeholder="Plan description"></textarea>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Data Allowance</label>
+                    <input type="text" name="data_allowance" class="form-control" placeholder="2GB/day">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Voice Calls</label>
+                    <input type="text" name="voice_calls" class="form-control" placeholder="Unlimited">
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">SMS</label>
+                    <input type="text" name="sms" class="form-control" placeholder="100/day">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">OTT Benefits</label>
+                    <input type="text" name="ott_benefits" class="form-control" placeholder="Netflix, Prime Video">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Other Benefits</label>
+            <textarea name="other_benefits" class="form-control" rows="2" placeholder="Other benefits..."></textarea>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_popular" class="form-check-input" id="is_popular">
+                    <label class="form-check-label" for="is_popular">Mark as Popular</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_featured" class="form-check-input" id="is_featured">
+                    <label class="form-check-label" for="is_featured">Mark as Featured</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_active" class="form-check-input" id="is_active" checked>
+                    <label class="form-check-label" for="is_active">Active</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button type="reset" class="btn btn-secondary me-2">
+                <i class="bi bi-x-circle"></i> Reset
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Create Plan
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
