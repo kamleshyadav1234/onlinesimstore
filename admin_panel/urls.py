@@ -35,4 +35,5 @@ urlpatterns = [
     
     # Settings
     path('settings/', views.settings_view, name='settings'),
+    path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
 ]

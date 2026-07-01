@@ -64,7 +64,7 @@
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr>
+                <tr id="user-row-{{ user.id }}">
                     <td>{{ forloop.counter }}</td>
                     <td>
                         <div class="d-flex align-items-center">
@@ -122,12 +122,132 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+                <p class="text-danger"><small>This action cannot be undone. All data associated with this user will be permanently deleted.</small></p>
+                <input type="hidden" id="deleteUserId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash"></i> Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function confirmDelete(userId, userName) {
-    if (confirm(`Are you sure you want to delete user "${userName}"?`)) {
-        // Add delete functionality here
-        alert('Delete functionality to be implemented');
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
     }
+    return cookieValue;
 }
+
+// Show delete confirmation modal
+function confirmDelete(userId, userName) {
+    document.getElementById('deleteUserId').value = userId;
+    document.getElementById('deleteUserName').textContent = userName;
+    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Handle delete confirmation
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    const userId = document.getElementById('deleteUserId').value;
+    const userName = document.getElementById('deleteUserName').textContent;
+    
+    // Disable button to prevent double submission
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Deleting...';
+    
+    // Send delete request
+    fetch(`/admin-panel/users/${userId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `user_id=${userId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the row from table
+            const row = document.getElementById(`user-row-${userId}`);
+            if (row) {
+                row.remove();
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+            modal.hide();
+            
+            // Show success message
+            showAlert('success', `User "${userName}" deleted successfully!`);
+            
+            // Update stats (optional)
+            location.reload(); // Reload to update stats
+        } else {
+            showAlert('danger', data.error || 'Error deleting user');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'An error occurred while deleting the user');
+    })
+    .finally(() => {
+        // Re-enable button
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-trash"></i> Delete User';
+    });
+});
+
+// Show alert function
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at top of content
+    const content = document.getElementById('content');
+    content.insertBefore(alertDiv, content.firstChild);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Also handle Enter key on modal
+document.getElementById('deleteModal').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('confirmDeleteBtn').click();
+    }
+});
 </script>
 {% endblock %}

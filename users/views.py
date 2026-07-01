@@ -230,7 +230,7 @@ class UnifiedAuthView(View):
         
         # Generate OTP
         otp = self.generate_otp()
-        
+        print(otp,'otppppppppp')
         # Store session (fast - no API call)
         request.session['auth_phone'] = phone
         request.session['auth_user_id'] = user.id

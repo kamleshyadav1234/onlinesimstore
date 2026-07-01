@@ -535,3 +535,28 @@ def settings_view(request):
         'page_title': 'Settings',
     }
     return render(request, 'admin_panel/settings/index.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def user_delete(request, user_id):
+    if request.method == 'POST':
+        user = get_object_or_404(CustomUser, id=user_id)
+        
+        # Don't allow deleting your own account
+        if user.id == request.user.id:
+            return JsonResponse({'error': 'Cannot delete your own account'}, status=400)
+        
+        # Log the action before deleting
+        AdminLog.objects.create(
+            admin=request.user,
+            action_type='delete',
+            model_name='User',
+            object_id=str(user.id),
+            details=f'Deleted user: {user.display_name}',
+        )
+        
+        user.delete()
+        return JsonResponse({'success': True})
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
