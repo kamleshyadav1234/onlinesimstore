@@ -367,6 +367,7 @@ class NewConnectionForm(forms.ModelForm):
                     self.plan_amount = 0
             else:
                 self.plan_amount = 0
+                
     
     def clean_alternate_mobile(self):
         mobile = self.cleaned_data.get('alternate_mobile')
@@ -378,6 +379,19 @@ class NewConnectionForm(forms.ModelForm):
             if not mobile.startswith(('6', '7', '8', '9')):
                 raise forms.ValidationError("Mobile number should start with 6, 7, 8, or 9.")
         return mobile
+    
+    def clean_pincode(self):
+        """Validate pincode and check service availability"""
+        pincode = self.cleaned_data.get('pincode')
+        operator = self.cleaned_data.get('operator')
+        
+        if pincode:
+            # Validate pincode format
+            if not pincode.isdigit() or len(pincode) != 6:
+                raise forms.ValidationError("Please enter a valid 6-digit pincode.")
+        
+        # Service area check will be done in the view
+        return pincode
     
     def clean_pincode(self):
         pincode = self.cleaned_data.get('pincode')

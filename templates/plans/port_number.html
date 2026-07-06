@@ -468,6 +468,28 @@
         font-size: 1.2rem;
     }
     
+    /* Error message styling */
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .error-message i {
+        margin-right: 0.5rem;
+    }
+    
+    .field-error {
+        border-color: #dc3545 !important;
+    }
+    
+    .field-error:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
     /* Responsive Design */
     @media (max-width: 768px) {
         .fancy-header {
@@ -536,10 +558,75 @@
             <input type="hidden" name="selected_plan" id="selectedPlanId" value="">
             <!-- Hidden field for payment method -->
             <input type="hidden" name="payment_method" id="paymentMethodInput" value="cod">
+            <!-- ✅ Hidden field to track current step -->
+            <input type="hidden" name="current_step" id="currentStepInput" value="1">
+            
+            <!-- ✅ Display form errors at the top -->
+            {% if form.errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong><i class="fas fa-exclamation-circle me-2"></i>Please correct the following errors:</strong>
+                <ul class="mb-0 mt-2">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ field|title }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
             
             <!-- Step 1: Current Details -->
-            <div class="step-content active" id="step1">
+            <div class="step-content" id="step1">
                 <h3 class="mb-4 text-center">Step 1: Your Current Details</h3>
+                
+                <!-- ✅ SERVICE AREA VERIFICATION - NOW IN STEP 1 -->
+                <div class="card border-info mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-map-pin me-2"></i>Check Service Availability</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="fancy-form-label">
+                                    <i class="fas fa-map-pin me-1"></i> Enter Your Pincode *
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                        id="portServicePincode" 
+                                        class="form-control fancy-form-control" 
+                                        placeholder="Enter 6-digit pincode" 
+                                        maxlength="6"
+                                        pattern="[0-9]{6}"
+                                        autocomplete="postal-code">
+                                    <button class="btn btn-info" type="button" id="portCheckServiceBtn">
+                                        <i class="fas fa-search"></i> Check
+                                    </button>
+                                </div>
+                                <div id="portServiceStatus" class="mt-2"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="portServiceResult" style="display: none;">
+                                    <div class="d-flex align-items-center p-3 rounded" id="portServiceResultContent">
+                                        <!-- Dynamic content -->
+                                    </div>
+                                </div>
+                                <div id="portServiceLoading" style="display: none;">
+                                    <div class="d-flex align-items-center text-info">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                        <span>Checking service availability...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Enter your pincode to check if we can port your number to your area
+                            </small>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="fancy-eligibility-card">
                     <div class="row g-4">
@@ -550,8 +637,14 @@
                                 </label>
                                 <input type="tel" name="mobile_number" class="form-control fancy-form-control" 
                                        pattern="[6-9][0-9]{9}" required
-                                       placeholder="98XXXXXX98" maxlength="10" id="mobileNumberInput">
+                                       placeholder="98XXXXXX98" maxlength="10" id="mobileNumberInput"
+                                       value="{{ form.mobile_number.value|default:'' }}">
                                 <div class="form-text mt-2">Enter 10-digit mobile number you want to port</div>
+                                {% if form.mobile_number.errors %}
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ form.mobile_number.errors.0 }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                         
@@ -563,10 +656,17 @@
                                 <select name="current_operator" class="form-control fancy-form-control" required id="currentOperatorSelect">
                                     <option value="">Select Current Operator</option>
                                     {% for operator in operators %}
-                                    <option value="{{ operator.id }}">{{ operator.name }}</option>
+                                    <option value="{{ operator.id }}" {% if form.current_operator.value|default:'' == operator.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ operator.name }}
+                                    </option>
                                     {% endfor %}
                                 </select>
                                 <div class="form-text mt-2">Your current mobile service provider</div>
+                                {% if form.current_operator.errors %}
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-circle"></i> {{ form.current_operator.errors.0 }}
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -629,7 +729,8 @@
                         <div class="row g-3">
                             {% for plan in port_plans %}
                             <div class="col-xl-4 col-lg-6 col-md-6">
-                                <div class="fancy-plan-card" onclick="selectPortPlan(this, {{ plan.id }}, '{{ plan.operator.id }}')" 
+                                <div class="fancy-plan-card {% if form.selected_plan.value|default:'' == plan.id|stringformat:"s" %}selected{% endif %}" 
+                                     onclick="selectPortPlan(this, {{ plan.id }}, '{{ plan.operator.id }}')" 
                                      data-plan='{"id": {{ plan.id }}, "name": "{{ plan.name|escapejs }}", "operator": "{{ plan.operator.name|escapejs }}", "featured_price": "{{ plan.featured_price|default:plan.price }}", "operator_id": {{ plan.operator.id }}, "price": {{ plan.price }}, "validity": "{{ plan.validity }}", "validity_unit": "{{ plan.validity_unit }}", "data_allowance": "{{ plan.data_allowance|default:'-'|escapejs }}", "voice_calls": "{{ plan.voice_calls|default:'-'|escapejs }}", "sms": "{{ plan.sms|default:'-'|escapejs }}", "port_in_bonus": "{{ plan.port_in_bonus|default:''|escapejs }}" }'>
                                     
                                     <div class="fancy-plan-header">
@@ -681,10 +782,15 @@
                             <p class="text-muted">Please check back later or select a different operator</p>
                         </div>
                     {% endif %}
+                    {% if form.selected_plan.errors %}
+                    <div class="error-message mt-2">
+                        <i class="fas fa-exclamation-circle"></i> {{ form.selected_plan.errors.0 }}
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <!-- Selected Plan Summary -->
-                <div class="fancy-summary-card" id="selectedPlanSummary" style="display: none;">
+                <div class="fancy-summary-card" id="selectedPlanSummary" style="display: {% if form.selected_plan.value %}block{% else %}none{% endif %};">
                     <div class="fancy-summary-header">
                         <div>
                             <h4 class="mb-1">Selected Plan</h4>
@@ -713,7 +819,7 @@
                         <i class="fas fa-arrow-left me-2"></i>Back to Step 1
                     </button>
                     
-                    <button type="button" class="btn fancy-btn fancy-btn-primary" id="continueBtn" disabled onclick="goToStep(3)">
+                    <button type="button" class="btn fancy-btn fancy-btn-primary" id="continueBtn" {% if not form.selected_plan.value %}disabled{% endif %} onclick="goToStep(3)">
                         Continue to Step 3 <i class="fas fa-arrow-right ms-2"></i>
                     </button>
                 </div>
@@ -744,8 +850,13 @@
                             <label class="fancy-form-label">
                                 <i class="fas fa-user"></i> Full Name *
                             </label>
-                            <input type="text" name="full_name" class="form-control fancy-form-control" required 
-                                   value="{{ request.user.get_full_name|default:'' }}">
+                            <input type="text" name="full_name" class="form-control fancy-form-control {% if form.full_name.errors %}field-error{% endif %}" required 
+                                   value="{{ form.full_name.value|default:request.user.get_full_name|default:'' }}">
+                            {% if form.full_name.errors %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.full_name.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -754,8 +865,13 @@
                             <label class="fancy-form-label">
                                 <i class="fas fa-envelope"></i> Email Address *
                             </label>
-                            <input type="email" name="email" class="form-control fancy-form-control" required 
-                                   value="{{ request.user.email|default:'' }}">
+                            <input type="email" name="email" class="form-control fancy-form-control {% if form.email.errors %}field-error{% endif %}" required 
+                                   value="{{ form.email.value|default:request.user.email|default:'' }}">
+                            {% if form.email.errors %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.email.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -764,8 +880,13 @@
                             <label class="fancy-form-label">
                                 <i class="fas fa-home"></i> Current Address *
                             </label>
-                            <textarea name="address" class="form-control fancy-form-control" rows="3" required></textarea>
+                            <textarea name="address" class="form-control fancy-form-control {% if form.address.errors %}field-error{% endif %}" rows="3" required>{{ form.address.value|default:'' }}</textarea>
                             <div class="form-text mt-2">Should match your current operator's registered address</div>
+                            {% if form.address.errors %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.address.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -774,7 +895,13 @@
                             <label class="fancy-form-label">
                                 <i class="fas fa-map-pin"></i> Pincode *
                             </label>
-                            <input type="text" name="pincode" class="form-control fancy-form-control" required maxlength="6" id="pincodeInput">
+                            <input type="text" name="pincode" class="form-control fancy-form-control {% if form.pincode.errors %}field-error{% endif %}" required maxlength="6" id="pincodeInput"
+                                   value="{{ form.pincode.value|default:'' }}">
+                            {% if form.pincode.errors %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.pincode.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -783,7 +910,13 @@
                             <label class="fancy-form-label">
                                 <i class="fas fa-city"></i> City *
                             </label>
-                            <input type="text" name="city" class="form-control fancy-form-control" required id="cityInput">
+                            <input type="text" name="city" class="form-control fancy-form-control {% if form.city.errors %}field-error{% endif %}" required id="cityInput"
+                                   value="{{ form.city.value|default:'' }}">
+                            {% if form.city.errors %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.city.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -792,7 +925,13 @@
                             <label class="fancy-form-label">
                                 <i class="fas fa-map"></i> State *
                             </label>
-                            <input type="text" name="state" class="form-control fancy-form-control" required id="stateInput">
+                            <input type="text" name="state" class="form-control fancy-form-control {% if form.state.errors %}field-error{% endif %}" required id="stateInput"
+                                   value="{{ form.state.value|default:'' }}">
+                            {% if form.state.errors %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.state.errors.0 }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -1064,27 +1203,84 @@ let currentStep = 1;
 let selectedPlanData = null;
 let formSubmitted = false;
 
+// ✅ Service Area Variables
+let portServiceAvailable = false;
+let portVerifiedPincode = '';
+let portVerifiedCity = '';
+let portVerifiedState = '';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the form
     initForm();
     
-    // Check Django context variable
+    // ✅ Check if we should show step 3 (from session)
     {% if show_step_3 %}
     goToStep(3);
     {% endif %}
     
+    // ✅ Check if there are form errors and show appropriate step
+    {% if form.errors %}
+        // Determine which step has errors
+        const errorFields = {{ form.errors.keys|safe }};
+        let errorStep = 3; // Default to step 3
+        
+        // Check if errors are in step 1 fields
+        const step1Fields = ['mobile_number', 'current_operator'];
+        const step2Fields = ['selected_plan'];
+        const step3Fields = ['full_name', 'email', 'address', 'pincode', 'city', 'state'];
+        
+        for (const field of errorFields) {
+            if (step1Fields.includes(field)) {
+                errorStep = 1;
+                break;
+            } else if (step2Fields.includes(field)) {
+                errorStep = 2;
+                break;
+            } else if (step3Fields.includes(field)) {
+                errorStep = 3;
+                break;
+            }
+        }
+        
+        // If there are any errors, go to the appropriate step
+        if (errorFields.length > 0) {
+            setTimeout(function() {
+                goToStep(errorStep);
+                // Scroll to the first error
+                const firstError = document.querySelector('.field-error, .error-message');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 300);
+        }
+    {% endif %}
+    
     function initForm() {
         // Show only step 1 initially (unless step 3 is already shown)
-        {% if not show_step_3 %}
+        {% if not show_step_3 and not form.errors %}
         goToStep(1);
         {% endif %}
         
         // Add event listeners
         document.getElementById('mobileNumberInput').addEventListener('input', updateDisplayFields);
-        document.getElementById('currentOperatorSelect').addEventListener('change', updateDisplayFields);
+        document.getElementById('currentOperatorSelect').addEventListener('change', function() {
+            updateDisplayFields();
+            // ✅ Update service area check when operator changes
+            updateOperatorForServiceCheck();
+        });
         
-        // Check eligibility button
-        document.getElementById('checkEligibilityBtn').addEventListener('click', checkEligibility);
+        // ✅ Initialize Service Area Check in Step 1
+        initServiceAreaCheck();
+        
+        // Check eligibility button - UPDATED to validate service area
+        document.getElementById('checkEligibilityBtn').addEventListener('click', function(e) {
+            // ✅ First validate service area
+            if (!validateServiceAreaBeforeProceed()) {
+                e.preventDefault();
+                return;
+            }
+            checkEligibility();
+        });
         
         // New operator filter
         document.getElementById('newOperator').addEventListener('change', function() {
@@ -1125,27 +1321,270 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // ✅ Function to update operator for service check
+    function updateOperatorForServiceCheck() {
+        const currentOperatorSelect = document.getElementById('currentOperatorSelect');
+        if (currentOperatorSelect) {
+            // Auto-check service if pincode is already entered
+            const portServicePincode = document.getElementById('portServicePincode');
+            if (portServicePincode && portServicePincode.value.trim().length === 6) {
+                setTimeout(() => {
+                    const checkBtn = document.getElementById('portCheckServiceBtn');
+                    if (checkBtn) checkBtn.click();
+                }, 300);
+            }
+        }
+    }
+    
+    // ✅ VALIDATE SERVICE AREA BEFORE PROCEEDING
+    function validateServiceAreaBeforeProceed() {
+        const pincode = document.getElementById('portServicePincode').value.trim();
+        const operatorId = document.getElementById('currentOperatorSelect').value;
+        
+        if (!operatorId) {
+            alert('Please select your current operator first');
+            document.getElementById('currentOperatorSelect').focus();
+            return false;
+        }
+        
+        if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+            alert('Please enter a valid 6-digit pincode and verify service availability.');
+            document.getElementById('portServicePincode').focus();
+            return false;
+        }
+        
+        if (!portServiceAvailable) {
+            alert('Please verify service availability in your area by clicking the "Check" button.');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // ✅ SERVICE AREA CHECK FUNCTION - Now in Step 1
+    function initServiceAreaCheck() {
+        const portServicePincode = document.getElementById('portServicePincode');
+        const portCheckServiceBtn = document.getElementById('portCheckServiceBtn');
+        const portServiceStatus = document.getElementById('portServiceStatus');
+        const portServiceResult = document.getElementById('portServiceResult');
+        const portServiceResultContent = document.getElementById('portServiceResultContent');
+        const portServiceLoading = document.getElementById('portServiceLoading');
+        
+        // Function to check service area for porting
+        function checkPortServiceArea() {
+            const operatorId = document.getElementById('currentOperatorSelect').value;
+            const pincode = portServicePincode.value.trim();
+            
+            // Validate pincode
+            if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+                portServiceStatus.innerHTML = `
+                    <div class="alert alert-danger alert-sm">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Please enter a valid 6-digit pincode
+                    </div>
+                `;
+                portServicePincode.classList.remove('is-valid', 'is-invalid');
+                portServicePincode.classList.add('is-invalid');
+                portServiceResult.style.display = 'none';
+                portServiceAvailable = false;
+                return;
+            }
+            
+            if (!operatorId) {
+                portServiceStatus.innerHTML = `
+                    <div class="alert alert-warning alert-sm">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Please select your current operator first
+                    </div>
+                `;
+                portServicePincode.classList.remove('is-valid', 'is-invalid');
+                portServiceResult.style.display = 'none';
+                portServiceAvailable = false;
+                return;
+            }
+            
+            // Show loading
+            portServiceStatus.innerHTML = '';
+            portServiceResult.style.display = 'none';
+            portServiceLoading.style.display = 'block';
+            portServicePincode.classList.remove('is-valid', 'is-invalid');
+            
+            // Call API to check service
+            fetch('/port-number/?ajax=1&action=check_service&operator_id=' + operatorId + '&pincode=' + pincode, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                portServiceLoading.style.display = 'none';
+                
+                if (data.available) {
+                    portServiceAvailable = true;
+                    portVerifiedPincode = pincode;
+                    portVerifiedCity = data.city || '';
+                    portVerifiedState = data.state || '';
+                    
+                    // Show success
+                    portServicePincode.classList.remove('is-invalid');
+                    portServicePincode.classList.add('is-valid');
+                    
+                    portServiceResult.style.display = 'block';
+                    portServiceResultContent.className = 'service-available';
+                    portServiceResultContent.innerHTML = `
+                        <i class="fas fa-check-circle icon text-success"></i>
+                        <div>
+                            <strong>✅ Service Available!</strong>
+                            <p class="mb-0 small">${data.message}</p>
+                            <small class="text-success">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                We can port your number to this area
+                            </small>
+                        </div>
+                    `;
+                    
+                    portServiceStatus.innerHTML = `
+                        <div class="alert alert-success alert-sm mt-2">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Service verified for pincode ${pincode}
+                        </div>
+                    `;
+                    
+                    // ✅ Store verified data for later use
+                    sessionStorage.setItem('portVerifiedPincode', pincode);
+                    sessionStorage.setItem('portVerifiedCity', data.city || '');
+                    sessionStorage.setItem('portVerifiedState', data.state || '');
+                    sessionStorage.setItem('portServiceAvailable', 'true');
+                    
+                    // Auto-fill pincode in step 3
+                    const pincodeInput = document.getElementById('pincodeInput');
+                    if (pincodeInput) {
+                        pincodeInput.value = pincode;
+                        pincodeInput.readOnly = true;
+                        pincodeInput.classList.add('bg-light');
+                    }
+                    
+                    if (data.city) {
+                        const cityInput = document.getElementById('cityInput');
+                        if (cityInput) {
+                            cityInput.value = data.city;
+                            cityInput.readOnly = true;
+                            cityInput.classList.add('bg-light');
+                        }
+                    }
+                    
+                    if (data.state) {
+                        const stateInput = document.getElementById('stateInput');
+                        if (stateInput) {
+                            stateInput.value = data.state;
+                            stateInput.readOnly = true;
+                            stateInput.classList.add('bg-light');
+                        }
+                    }
+                    
+                } else {
+                    portServiceAvailable = false;
+                    portVerifiedPincode = '';
+                    
+                    // Show error
+                    portServicePincode.classList.remove('is-valid');
+                    portServicePincode.classList.add('is-invalid');
+                    
+                    portServiceResult.style.display = 'block';
+                    portServiceResultContent.className = 'service-unavailable';
+                    portServiceResultContent.innerHTML = `
+                        <i class="fas fa-times-circle icon text-danger"></i>
+                        <div>
+                            <strong>❌ Service Not Available</strong>
+                            <p class="mb-0 small">${data.message}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Try a different operator or check your pincode
+                            </small>
+                        </div>
+                    `;
+                    
+                    portServiceStatus.innerHTML = `
+                        <div class="alert alert-danger alert-sm mt-2">
+                            <i class="fas fa-times-circle me-2"></i>
+                            ${data.message}
+                        </div>
+                    `;
+                    
+                    sessionStorage.setItem('portServiceAvailable', 'false');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking service:', error);
+                portServiceLoading.style.display = 'none';
+                portServiceAvailable = false;
+                
+                portServiceStatus.innerHTML = `
+                    <div class="alert alert-danger alert-sm">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error checking service availability. Please try again.
+                    </div>
+                `;
+            });
+        }
+        
+        // Check service on button click
+        if (portCheckServiceBtn) {
+            portCheckServiceBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                checkPortServiceArea();
+            });
+        }
+        
+        // Check service on Enter key
+        if (portServicePincode) {
+            portServicePincode.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (portCheckServiceBtn) portCheckServiceBtn.click();
+                }
+            });
+            
+            // Check service on blur
+            portServicePincode.addEventListener('blur', function() {
+                if (this.value.trim().length === 6) {
+                    checkPortServiceArea();
+                }
+            });
+        }
+    }
+    
     function setupPaymentOptions() {
         const codCard = document.getElementById('codCard');
         const onlineCard = document.getElementById('onlineCard');
         const codRadio = document.getElementById('payment_cod');
         const onlineRadio = document.getElementById('payment_online');
         
-        codCard.addEventListener('click', function() {
-            selectPaymentMethod('cod');
-        });
+        if (codCard) {
+            codCard.addEventListener('click', function() {
+                selectPaymentMethod('cod');
+            });
+        }
         
-        onlineCard.addEventListener('click', function() {
-            selectPaymentMethod('online');
-        });
+        if (onlineCard) {
+            onlineCard.addEventListener('click', function() {
+                selectPaymentMethod('online');
+            });
+        }
         
-        codRadio.addEventListener('change', function() {
-            if (this.checked) selectPaymentMethod('cod');
-        });
+        if (codRadio) {
+            codRadio.addEventListener('change', function() {
+                if (this.checked) selectPaymentMethod('cod');
+            });
+        }
         
-        onlineRadio.addEventListener('change', function() {
-            if (this.checked) selectPaymentMethod('online');
-        });
+        if (onlineRadio) {
+            onlineRadio.addEventListener('change', function() {
+                if (this.checked) selectPaymentMethod('online');
+            });
+        }
     }
     
     function selectPaymentMethod(method) {
@@ -1157,43 +1596,37 @@ document.addEventListener('DOMContentLoaded', function() {
         const codInfoNote = document.getElementById('codInfoNote');
         
         // Update card styling
-        codCard.classList.remove('active', 'border-success');
-        onlineCard.classList.remove('active', 'border-primary');
+        if (codCard) codCard.classList.remove('active', 'border-success');
+        if (onlineCard) onlineCard.classList.remove('active', 'border-primary');
         
         // Update radio buttons
-        document.getElementById('payment_cod').checked = false;
-        document.getElementById('payment_online').checked = false;
+        const paymentCod = document.getElementById('payment_cod');
+        const paymentOnline = document.getElementById('payment_online');
+        if (paymentCod) paymentCod.checked = false;
+        if (paymentOnline) paymentOnline.checked = false;
         
         if (method === 'cod') {
-            codCard.classList.add('active', 'border-success');
-            document.getElementById('payment_cod').checked = true;
+            if (codCard) codCard.classList.add('active', 'border-success');
+            if (paymentCod) paymentCod.checked = true;
             document.getElementById('paymentMethodInput').value = 'cod';
             
-            // Show COD submit button, hide online payment button
-            codSubmitBtn.style.display = 'inline-block';
-            onlinePaymentBtn.style.display = 'none';
+            if (codSubmitBtn) codSubmitBtn.style.display = 'inline-block';
+            if (onlinePaymentBtn) onlinePaymentBtn.style.display = 'none';
+            if (onlineBenefitNote) onlineBenefitNote.style.display = 'none';
+            if (codInfoNote) codInfoNote.style.display = 'block';
             
-            // Show/hide notes
-            onlineBenefitNote.style.display = 'none';
-            codInfoNote.style.display = 'block';
-            
-            // Update summary for COD
             updatePaymentSummary('cod');
             
         } else if (method === 'online') {
-            onlineCard.classList.add('active', 'border-primary');
-            document.getElementById('payment_online').checked = true;
+            if (onlineCard) onlineCard.classList.add('active', 'border-primary');
+            if (paymentOnline) paymentOnline.checked = true;
             document.getElementById('paymentMethodInput').value = 'online';
             
-            // Show online payment button, hide COD submit button
-            codSubmitBtn.style.display = 'none';
-            onlinePaymentBtn.style.display = 'inline-block';
+            if (codSubmitBtn) codSubmitBtn.style.display = 'none';
+            if (onlinePaymentBtn) onlinePaymentBtn.style.display = 'inline-block';
+            if (onlineBenefitNote) onlineBenefitNote.style.display = 'block';
+            if (codInfoNote) codInfoNote.style.display = 'none';
             
-            // Show/hide notes
-            onlineBenefitNote.style.display = 'block';
-            codInfoNote.style.display = 'none';
-            
-            // Update summary for online payment
             updatePaymentSummary('online');
         }
     }
@@ -1202,25 +1635,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selectedPlanData) return;
         
         const planAmount = parseFloat(selectedPlanData.price) || 0;
-        const taxAmount = planAmount * 0.18; // 18% GST
-        let totalAmount = parseFloat(selectedPlanData.featured_price);
-        console.log(parseFloat(selectedPlanData.featured_price))
+        const taxAmount = planAmount * 0.18;
+        let totalAmount = parseFloat(selectedPlanData.featured_price) || planAmount;
         
-        // Update displays
-        document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;
-        document.getElementById('summaryTaxAmount').textContent = `₹${taxAmount.toFixed(2)}`;
+        const summaryPlanAmount = document.getElementById('summaryPlanAmount');
+        const summaryTaxAmount = document.getElementById('summaryTaxAmount');
+        const summaryTotalAmount = document.getElementById('summaryTotalAmount');
+        const codAmountDisplay = document.getElementById('codAmountDisplay');
+        const onlineAmountDisplay = document.getElementById('onlineAmountDisplay');
         
-        if (paymentMethod === 'online') {
-            // Online payment: plan price + tax
-            document.getElementById('summaryTotalAmount').textContent = `₹${totalAmount.toFixed(2)}`;
-            document.getElementById('codAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
-            document.getElementById('onlineAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
-        } else {
-            // COD: same as online (no SIM charge for porting)
-            document.getElementById('summaryTotalAmount').textContent = `₹${totalAmount.toFixed(2)}`;
-            document.getElementById('codAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
-            document.getElementById('onlineAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
-        }
+        if (summaryPlanAmount) summaryPlanAmount.textContent = `₹${planAmount.toFixed(2)}`;
+        if (summaryTaxAmount) summaryTaxAmount.textContent = `₹${taxAmount.toFixed(2)}`;
+        
+        const totalWithTax = totalAmount + taxAmount;
+        if (summaryTotalAmount) summaryTotalAmount.textContent = `₹${totalWithTax.toFixed(2)}`;
+        if (codAmountDisplay) codAmountDisplay.textContent = `₹${totalWithTax.toFixed(2)}`;
+        if (onlineAmountDisplay) onlineAmountDisplay.textContent = `₹${totalWithTax.toFixed(2)}`;
     }
     
     function updatePlans(plans) {
@@ -1305,6 +1735,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentOperator = document.getElementById('currentOperatorSelect').value;
         const checkBtn = document.getElementById('checkEligibilityBtn');
         
+        // ✅ Service area is already validated before this function is called
+        // But double-check just in case
+        if (!portServiceAvailable) {
+            alert('Please verify service availability first.');
+            return false;
+        }
+        
         // Basic validation
         if (!mobileNumber.match(/^[6-9]\d{9}$/)) {
             alert('Please enter a valid 10-digit Indian mobile number starting with 6,7,8 or 9');
@@ -1322,8 +1759,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Simulate API call
         setTimeout(() => {
-            // Mock eligibility check
-            const isEligible = true; // Always eligible for demo
+            const isEligible = true;
             
             if (isEligible) {
                 alert(`✓ Mobile number ${mobileNumber} is eligible for porting!`);
@@ -1332,7 +1768,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert(`✗ Mobile number ${mobileNumber} is not eligible for porting.`);
             }
             
-            // Reset button
             checkBtn.innerHTML = '<i class="fas fa-search me-2"></i>Check Eligibility & Continue';
             checkBtn.disabled = false;
         }, 1000);
@@ -1370,8 +1805,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        // Set submission flag
-        formSubmitted = true;
+        // Set submission flag        formSubmitted = true;
         
         // Show loading
         const submitBtn = document.getElementById('codSubmitBtn');
@@ -1462,9 +1896,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Validate all steps
+    // ✅ UPDATED VALIDATION - Includes service area check from Step 1
     function validateAllSteps() {
-        // Validate step 1
+        // Validate Step 1 - Service Area
+        if (!portServiceAvailable) {
+            alert('Please verify service availability in your area first (Step 1).');
+            goToStep(1);
+            return false;
+        }
+        
+        // Validate step 1 - Mobile number
         const mobileNumber = document.getElementById('mobileNumberInput').value.trim();
         const currentOperator = document.getElementById('currentOperatorSelect').value;
         
@@ -1520,18 +1961,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Global function to select port plan
 function selectPortPlan(cardElement, planId, operatorId) {
-    // Remove selected class from all cards
     document.querySelectorAll('.fancy-plan-card').forEach(card => {
         card.classList.remove('selected');
     });
     
-    // Add selected class to clicked card
     cardElement.classList.add('selected');
-    
-    // Get plan details from data attribute
     selectedPlanData = JSON.parse(cardElement.getAttribute('data-plan'));
     
-    // Update selected plan summary
     document.getElementById('summaryPlanPrice').textContent = `₹${selectedPlanData.price}`;
     document.getElementById('summaryPlanOperator').textContent = selectedPlanData.operator;
     document.getElementById('summaryPlanName').textContent = selectedPlanData.name;
@@ -1540,55 +1976,48 @@ function selectPortPlan(cardElement, planId, operatorId) {
     document.getElementById('summaryPlanCalls').textContent = selectedPlanData.voice_calls || 'Unlimited';
     document.getElementById('summaryPlanSMS').textContent = selectedPlanData.sms || 'Unlimited';
     
-    // Update final display for step 3
     document.getElementById('finalPlanName').textContent = selectedPlanData.name;
     document.getElementById('finalPlanOperator').textContent = selectedPlanData.operator;
     document.getElementById('finalPlanPrice').textContent = `₹${selectedPlanData.price}`;
     
-    // Update payment display for step 4
     document.getElementById('paymentPlanName').textContent = selectedPlanData.name;
     document.getElementById('paymentPlanOperator').textContent = selectedPlanData.operator;
     document.getElementById('paymentPlanPrice').textContent = `₹${selectedPlanData.price}`;
     
-    // Show bonus if exists
     if (selectedPlanData.port_in_bonus) {
         document.getElementById('summaryPlanBonus').textContent = selectedPlanData.port_in_bonus;
     } else {
         document.getElementById('summaryPlanBonus').textContent = 'None';
     }
     
-    // Set hidden field values
     document.getElementById('selectedPlanId').value = planId;
     
-    // Show summary section
     const summaryElement = document.getElementById('selectedPlanSummary');
     summaryElement.style.display = 'block';
-    
-    // Enable continue button
     document.getElementById('continueBtn').disabled = false;
+    updatePaymentSummary('cod');
     
-    // Update payment summary
-    updatePaymentSummary('cod'); // Default to COD
+    // ✅ Auto-check service area if pincode is already entered
+    const portServicePincode = document.getElementById('portServicePincode');
+    if (portServicePincode && portServicePincode.value.trim().length === 6) {
+        setTimeout(() => {
+            const checkBtn = document.getElementById('portCheckServiceBtn');
+            if (checkBtn) checkBtn.click();
+        }, 500);
+    }
     
-    // Smooth scroll to summary
     setTimeout(() => {
-        summaryElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-        });
+        summaryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 300);
 }
 
-// Navigation function - UPDATED FOR 4 STEPS
 function goToStep(stepNumber) {
     currentStep = stepNumber;
     
-    // Hide all steps
     document.querySelectorAll('.step-content').forEach(content => {
         content.classList.remove('active');
     });
     
-    // Update step indicators
     document.querySelectorAll('.fancy-step').forEach((indicator, index) => {
         indicator.classList.remove('active');
         if (index < stepNumber) {
@@ -1596,44 +2025,46 @@ function goToStep(stepNumber) {
         }
     });
     
-    // Show current step
     document.getElementById(`step${stepNumber}`).classList.add('active');
     
-    // Update progress bar (now 4 steps total)
     const progress = (stepNumber / 4) * 100;
     document.getElementById('progressBar').style.width = `${progress}%`;
     
-    // If going to step 4, update payment display
+    // ✅ Update hidden current step field
+    document.getElementById('currentStepInput').value = stepNumber;
+    
     if (stepNumber === 4 && selectedPlanData) {
         const paymentMethod = document.getElementById('paymentMethodInput').value;
         updatePaymentSummary(paymentMethod);
         
-        // Ensure a payment method is selected
         if (!document.querySelector('input[name="payment_method_radio"]:checked')) {
-            selectPaymentMethod('cod'); // Default to COD
+            selectPaymentMethod('cod');
         }
     }
     
-    // Smooth scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Global function to update payment summary
 function updatePaymentSummary(paymentMethod) {
     if (!selectedPlanData) return;
     
     const planAmount = parseFloat(selectedPlanData.price) || 0;
-    const taxAmount = planAmount * 0.18; // 18% GST
-    let totalAmount = parseFloat(selectedPlanData.featured_price);
+    const taxAmount = planAmount * 0.18;
+    let totalAmount = parseFloat(selectedPlanData.featured_price) || planAmount;
     
-    // Update displays
-    document.getElementById('summaryPlanAmount').textContent = `₹${planAmount.toFixed(2)}`;
-    document.getElementById('summaryTaxAmount').textContent = `₹${taxAmount.toFixed(2)}`;
-    document.getElementById('summaryTotalAmount').textContent = `₹${totalAmount.toFixed(2)}`;
+    const totalWithTax = totalAmount + taxAmount;
     
-    // Update payment method specific displays
-    document.getElementById('codAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
-    document.getElementById('onlineAmountDisplay').textContent = `₹${totalAmount.toFixed(2)}`;
+    const summaryPlanAmount = document.getElementById('summaryPlanAmount');
+    const summaryTaxAmount = document.getElementById('summaryTaxAmount');
+    const summaryTotalAmount = document.getElementById('summaryTotalAmount');
+    const codAmountDisplay = document.getElementById('codAmountDisplay');
+    const onlineAmountDisplay = document.getElementById('onlineAmountDisplay');
+    
+    if (summaryPlanAmount) summaryPlanAmount.textContent = `₹${planAmount.toFixed(2)}`;
+    if (summaryTaxAmount) summaryTaxAmount.textContent = `₹${taxAmount.toFixed(2)}`;
+    if (summaryTotalAmount) summaryTotalAmount.textContent = `₹${totalWithTax.toFixed(2)}`;
+    if (codAmountDisplay) codAmountDisplay.textContent = `₹${totalWithTax.toFixed(2)}`;
+    if (onlineAmountDisplay) onlineAmountDisplay.textContent = `₹${totalWithTax.toFixed(2)}`;
 }
 </script>
 {% endblock %}

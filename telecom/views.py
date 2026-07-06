@@ -8,7 +8,10 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, DetailView, TemplateView
 from django.db.models import Q
 from django.views import View
-
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from .models import ServiceArea, TelecomOperator
 from plans.forms import  DocumentUploadForm, NewConnectionForm, SIMReplacementForm
 from .models import TelecomOperator, ServiceArea
 from plans.models import NewConnectionRequest, Plan, PlanCategory, PortRequest, SIMReplacementRequest
@@ -728,12 +731,65 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         return reverse_lazy('port_request_status')
     
 
+    def check_service_area(self, pincode, operator_id):
+        """
+        Check if service is available for the given pincode and operator
+        Returns: (is_available, service_area_object)
+        """
+        if not pincode or not operator_id:
+            return False, None
+        
+        try:
+            from .models import ServiceArea
+            is_available, service_area = ServiceArea.check_service_availability(
+                operator_id, pincode
+            )
+            return is_available, service_area
+        except Exception as e:
+            print(f"Error checking service area: {e}")
+            return False, None
+
 
     def handle_ajax_request(self, request):
-        """Handle AJAX request for loading plans"""
+        """Handle AJAX requests"""
+        action = request.GET.get('action')
+        
+        if action == 'check_service':
+            # Service area check
+            operator_id = request.GET.get('operator_id')
+            pincode = request.GET.get('pincode')
+            
+            if not operator_id or not pincode:
+                return JsonResponse({
+                    'available': False,
+                    'message': 'Operator and pincode are required'
+                }, status=400)
+            
+            is_available, service_area = self.check_service_area(pincode, operator_id)
+            
+            if is_available and service_area:
+                return JsonResponse({
+                    'available': True,
+                    'message': f'Service available in {service_area.city}, {service_area.get_state_display()}',
+                    'city': service_area.city,
+                    'state': service_area.get_state_display()
+                })
+            else:
+                try:
+                    operator = TelecomOperator.objects.get(id=operator_id, is_active=True)
+                    return JsonResponse({
+                        'available': False,
+                        'message': f'Sorry, {operator.name} service is not available at pincode {pincode}'
+                    })
+                except TelecomOperator.DoesNotExist:
+                    return JsonResponse({
+                        'available': False,
+                        'message': 'Selected operator not found'
+                    })
+        
+        # Existing plan loading logic
         new_operator_id = request.GET.get('new_operator')
         
-        # Get port-in plans for the selected operator or all
         port_plans = Plan.objects.filter(
             plan_type='port_in',
             is_active=True
@@ -742,7 +798,6 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         if new_operator_id:
             port_plans = port_plans.filter(operator_id=new_operator_id)
         
-        # Serialize plans data
         plans_data = []
         for plan in port_plans.order_by('operator__name', 'price'):
             plans_data.append({
@@ -839,6 +894,24 @@ class PortNumberView(LoginRequiredMixin, CreateView):
         return initial
     
     @transaction.atomic
+    def check_service_area(self, pincode, operator_id):
+        """
+        Check if service is available for the given pincode and operator
+        Returns: (is_available, service_area_object)
+        """
+        if not pincode or not operator_id:
+            return False, None
+        
+        try:
+            from .models import ServiceArea
+            is_available, service_area = ServiceArea.check_service_availability(
+                operator_id, pincode
+            )
+            return is_available, service_area
+        except Exception as e:
+            print(f"Error checking service area: {e}")
+            return False, None
+    
     def form_valid(self, form):
         """Handle valid form submission"""
         try:
@@ -870,15 +943,46 @@ class PortNumberView(LoginRequiredMixin, CreateView):
                 self.request.session['show_step_3'] = True
                 return self.form_invalid(form)
             
-            # Set new_operator from the selected plan's operator
+            # ✅ SERVICE AREA VALIDATION
+            pincode = form.cleaned_data.get('pincode')
             new_operator = selected_plan.operator
+            
+            if pincode and new_operator:
+                is_available, service_area = self.check_service_area(pincode, new_operator.id)
+                
+                if not is_available:
+                    error_message = f"Service is not available at pincode {pincode} for {new_operator.name}. Please check your pincode or select a different operator."
+                    form.add_error('pincode', error_message)
+                    self.request.session['show_step_3'] = True
+                    
+                    if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({
+                            'success': False,
+                            'error': error_message,
+                            'service_unavailable': True,
+                            'pincode': pincode
+                        }, status=400)
+                    
+                    messages.error(self.request, error_message)
+                    return self.form_invalid(form)
+                else:
+                    print(f"✅ Service area validated for port: {service_area.city}, {service_area.get_state_display()}")
+                    # Store service area info
+                    self.service_area = service_area
+            else:
+                print("⚠️ No pincode or operator for service area validation")
             
             # Save the port request with user
             port_request = form.save(commit=False)
             port_request.user = self.request.user
             port_request.new_operator = new_operator
-            port_request.selected_plan = selected_plan  # Make sure selected_plan is saved
+            port_request.selected_plan = selected_plan
             port_request.status = 'pending'
+            
+            # Set city and state from service area if available
+            if hasattr(self, 'service_area') and self.service_area:
+                port_request.city = self.service_area.city
+                port_request.state = self.service_area.get_state_display()
             
             # Generate tracking ID
             tracking_id = self.generate_tracking_id()
@@ -895,21 +999,15 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             # Set the object for CreateView
             self.object = port_request
             
-            # ✅ CRITICAL: Handle payment based on payment method
+            # Handle payment based on payment method
             payment_method = self.request.POST.get('payment_method', 'cod')
             
             # Create Payment record for COD
             if payment_method == 'cod':
                 payment = self.create_cod_payment(port_request, selected_plan)
-                
-                # Store payment ID in session for later use
                 self.request.session['current_payment_id'] = payment.id
-                
-                # For COD, update port request status directly to payment_completed
                 port_request.status = 'payment_completed'
                 port_request.save()
-                
-                # Create plan history for COD
                 self.create_plan_history_for_cod(payment, selected_plan)
             
             if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -918,13 +1016,20 @@ class PortNumberView(LoginRequiredMixin, CreateView):
                     'message': 'Port request created successfully',
                     'tracking_id': tracking_id,
                     'port_request_id': port_request.id,
-                    'redirect_url': self.get_payment_redirect_url(port_request, payment_method)
+                    'redirect_url': self.get_payment_redirect_url(port_request, payment_method),
+                    'service_area': {
+                        'city': self.service_area.city if hasattr(self, 'service_area') and self.service_area else None,
+                        'state': self.service_area.get_state_display() if hasattr(self, 'service_area') and self.service_area else None
+                    } if hasattr(self, 'service_area') and self.service_area else None
                 })
             
             # Handle regular form submission
             return self.payment_redirect(port_request, payment_method)
             
         except Exception as e:
+            print(f"Error in form_valid: {e}")
+            import traceback
+            traceback.print_exc()
             messages.error(self.request, f"Error: {str(e)}")
             self.request.session['show_step_3'] = True
             return self.form_invalid(form)
@@ -1058,13 +1163,16 @@ class PortNumberView(LoginRequiredMixin, CreateView):
             next_number = 1
         
         return f'MNP{date_str}{next_number:04d}'
+    
+
+    
     def get(self, request, *args, **kwargs):
         """Handle AJAX requests for loading plans"""
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
             return self.handle_ajax_request(request)
         return super().get(request, *args, **kwargs)
     
-
+    
     def generate_upc_code(self):
         """Generate Unique Porting Code"""
         import random
@@ -1330,13 +1438,38 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
         initial['email'] = self.request.user.email
         return initial
     
-    @transaction.atomic
     def form_valid(self, form):
         try:
             # Create new connection request
             connection_request = form.save(commit=False)
             connection_request.user = self.request.user
             connection_request.status = 'pending'
+            
+            # ✅ SERVICE AREA VALIDATION: Check if service is available
+            pincode = form.cleaned_data.get('pincode')
+            operator = connection_request.operator
+            
+            if pincode and operator:
+                is_available, service_area = ServiceArea.check_service_availability(
+                    operator.id, pincode
+                )
+                
+                if not is_available:
+                    error_message = f"Service is not available in your area (Pincode: {pincode}). Please select a different operator or check your pincode."
+                    print(f"❌ Service area validation failed: {error_message}")
+                    
+                    if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({
+                            'success': False,
+                            'error': error_message,
+                            'service_unavailable': True,
+                            'pincode': pincode
+                        }, status=400)
+                    
+                    messages.error(self.request, error_message)
+                    return self.form_invalid(form)
+                else:
+                    print(f"✅ Service area validated: {service_area.city}, {service_area.get_state_display()}")
             
             # ✅ IMPORTANT: Check for duplicate pending requests
             duplicate_check = NewConnectionRequest.objects.filter(
@@ -1357,15 +1490,30 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
                 if payment_method == 'cod':
                     self.handle_cod_payment_for_duplicate(duplicate_check)
                 
+                # Also update service area info if needed
+                if service_area:
+                    duplicate_check.city = service_area.city
+                    duplicate_check.state = service_area.get_state_display()
+                    duplicate_check.save(update_fields=['city', 'state'])
+                
                 if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
                     return JsonResponse({
                         'success': True,
                         'message': 'Using existing connection request',
                         'tracking_id': duplicate_check.tracking_id,
                         'connection_request_id': duplicate_check.id,
-                        'redirect_url': self.get_payment_redirect_url(duplicate_check)
+                        'redirect_url': self.get_payment_redirect_url(duplicate_check),
+                        'service_area': {
+                            'city': service_area.city if service_area else None,
+                            'state': service_area.get_state_display() if service_area else None
+                        } if service_area else None
                     })
                 return self.payment_redirect(duplicate_check)
+            
+            # Save service area info to the request
+            if service_area:
+                connection_request.city = service_area.city
+                connection_request.state = service_area.get_state_display()
             
             # Save the new request
             connection_request.save()
@@ -1375,6 +1523,8 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             print(f"   Operator: {connection_request.operator}")
             print(f"   Plan: {connection_request.selected_plan}")
             print(f"   Status: {connection_request.status}")
+            if service_area:
+                print(f"   Service Area: {service_area.city}, {service_area.get_state_display()}")
             
             # ✅ CRITICAL: Handle payment based on payment method
             payment_method = self.request.POST.get('payment_method', 'cod')
@@ -1400,7 +1550,11 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
                     'message': 'Connection request created successfully',
                     'tracking_id': connection_request.tracking_id,
                     'connection_request_id': connection_request.id,
-                    'redirect_url': self.get_payment_redirect_url(connection_request)
+                    'redirect_url': self.get_payment_redirect_url(connection_request),
+                    'service_area': {
+                        'city': service_area.city if service_area else None,
+                        'state': service_area.get_state_display() if service_area else None
+                    } if service_area else None
                 })
             
             # Handle regular form submission (COD)
@@ -1457,7 +1611,6 @@ class NewConnectionView(LoginRequiredMixin, CreateView):
             
             messages.error(self.request, f"Error creating connection request: {str(e)}")
             return self.form_invalid(form)
-    
     def handle_cod_payment_for_duplicate(self, connection_request):
         """Handle COD payment for duplicate/new connection request"""
         # Check if payment already exists
@@ -2185,3 +2338,62 @@ def check_port_request(request, mobile_number):
         'has_active_request': has_active_request,
         'mobile_number': mobile_number
     })
+
+
+
+
+
+
+@require_http_methods(["POST"])
+def check_service_area(request):
+    """
+    Check if service is available for given operator and pincode
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        operator_id = data.get('operator_id')
+        pincode = data.get('pincode', '').strip()
+        
+        if not operator_id or not pincode:
+            return JsonResponse({
+                'available': False,
+                'message': 'Operator and pincode are required'
+            }, status=400)
+        
+        # Check if pincode is valid format
+        if not pincode.isdigit() or len(pincode) != 6:
+            return JsonResponse({
+                'available': False,
+                'message': 'Please enter a valid 6-digit pincode'
+            })
+        
+        # Check service availability
+        is_available, service_area = ServiceArea.check_service_availability(operator_id, pincode)
+        
+        if is_available and service_area:
+            return JsonResponse({
+                'available': True,
+                'message': f'Service available in {service_area.city}, {service_area.get_state_display()}',
+                'city': service_area.city,
+                'state': service_area.get_state_display()
+            })
+        else:
+            # Check if operator exists
+            try:
+                operator = TelecomOperator.objects.get(id=operator_id, is_active=True)
+                return JsonResponse({
+                    'available': False,
+                    'message': f'Sorry, {operator.name} service is not available at pincode {pincode}'
+                })
+            except TelecomOperator.DoesNotExist:
+                return JsonResponse({
+                    'available': False,
+                    'message': 'Selected operator not found'
+                })
+                
+    except Exception as e:
+        return JsonResponse({
+            'available': False,
+            'message': f'Error checking service area: {str(e)}'
+        }, status=500)

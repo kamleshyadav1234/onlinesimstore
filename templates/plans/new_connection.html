@@ -6,6 +6,53 @@
 
 {% block extra_css %}
 <style>
+
+        /* Service area verification styles */
+    #serviceStatus .alert {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+
+    #serviceResultContent {
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+    }
+
+    #serviceResultContent.service-available {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    #serviceResultContent.service-unavailable {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    #serviceResultContent .icon {
+        font-size: 1.5rem;
+        margin-right: 0.75rem;
+    }
+
+    #servicePincode.is-valid {
+        border-color: #28a745;
+    }
+
+    #servicePincode.is-invalid {
+        border-color: #dc3545;
+    }
+
+    #servicePincode:focus.is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    #servicePincode:focus.is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
     .step-indicator {
         position: relative;
     }
@@ -176,91 +223,138 @@
                         {% csrf_token %}
                         
                         <!-- Step 1: Operator & Plan Selection -->
-                        <div class="step-content active" id="step1">
-                            <h4 class="mb-4">Step 1: Choose Operator & Plan</h4>
-                            
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Operator *</label>
-                                <select name="operator" class="form-control form-control-lg" id="newOperator" required>
-                                    <option value="">Select Operator</option>
-                                    {% for operator in operators %}
-                                    <option value="{{ operator.id }}">{{ operator.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">Choose your preferred mobile service provider</div>
+                     
+                    <div class="step-content active" id="step1">
+                        <h4 class="mb-4">Step 1: Choose Operator & Plan</h4>
+                        
+                        <!-- ✅ NEW: Service Area / Pincode Verification -->
+                        <div class="card border-info mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="fas fa-map-pin me-2"></i>Check Service Availability</h5>
                             </div>
-                            
-                            <!-- Connection Type -->
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Connection Type *</label>
-                                <div class="btn-group w-100" role="group">
-                                    <input type="radio" class="btn-check" name="connection_type" id="prepaid" value="prepaid" checked>
-                                    <label class="btn btn-outline-primary" for="prepaid">Prepaid</label>
-                                    
-                                    <input type="radio" class="btn-check" name="connection_type" id="postpaid" value="postpaid">
-                                    <label class="btn btn-outline-primary" for="postpaid">Postpaid</label>
-                                </div>
-                            </div>
-                            
-                            <!-- New Connection Plans Display -->
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Select Plan *</label>
-                                <div id="newPlansContainer" class="row g-3">
-                                    <div class="col-12 text-center py-4">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading plans...</span>
+                            <div class="card-body">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-bold">Enter Your Pincode *</label>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                id="servicePincode" 
+                                                class="form-control" 
+                                                placeholder="Enter 6-digit pincode" 
+                                                maxlength="6"
+                                                pattern="[0-9]{6}"
+                                                autocomplete="postal-code">
+                                            <button class="btn btn-info" type="button" id="checkServiceBtn">
+                                                <i class="fas fa-search"></i> Check
+                                            </button>
                                         </div>
-                                        <p class="mt-2">Select an operator to see plans</p>
+                                        <div id="serviceStatus" class="mt-2"></div>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Selected Plan Details -->
-                            <div class="card border-primary mb-4" id="selectedPlanCard" style="display: none;">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Selected Plan</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-8">
-                                            <h5 id="selectedPlanName">Plan Name</h5>
-                                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                                <span class="badge bg-primary">New Connection</span>
-                                                <span class="badge bg-success" id="selectedPlanBonus">Welcome Bonus</span>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-6">
-                                                    <small class="text-muted">Data:</small>
-                                                    <p class="mb-0 fw-bold" id="selectedPlanData">-</p>
-                                                </div>
-                                                <div class="col-6">
-                                                    <small class="text-muted">Validity:</small>
-                                                    <p class="mb-0 fw-bold" id="selectedPlanValidity">-</p>
-                                                </div>
+                                    <div class="col-md-7">
+                                        <div id="serviceResult" style="display: none;">
+                                            <div class="d-flex align-items-center p-2 rounded" id="serviceResultContent">
+                                                <!-- Dynamic content will be inserted here -->
                                             </div>
                                         </div>
-                                        <div class="col-md-4 text-end">
-                                            <h3 class="text-primary mb-0" id="selectedPlanPrice">₹0</h3>
-                                            <input type="hidden" name="selected_plan" id="selectedPlanId">
+                                        <div id="serviceLoading" style="display: none;">
+                                            <div class="d-flex align-items-center text-info">
+                                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                                <span>Checking service availability...</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Number Preference -->
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Number Preference (Optional)</label>
-                                <input type="text" name="number_preference" class="form-control" 
-                                       placeholder="e.g., 98XX98XX98, VIP series, Lucky number">
-                                <div class="form-text">Enter your preferred number pattern or series</div>
-                            </div>
-                            
-                            <div class="d-grid mt-4">
-                                <button type="button" class="btn btn-primary btn-lg btn-next-step" data-next="2">
-                                    Continue <i class="fas fa-arrow-right ms-2"></i>
-                                </button>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Enter your pincode to check if we deliver to your area
+                                    </small>
+                                </div>
                             </div>
                         </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Operator *</label>
+                            <select name="operator" class="form-control form-control-lg" id="newOperator" required>
+                                <option value="">Select Operator</option>
+                                {% for operator in operators %}
+                                <option value="{{ operator.id }}">{{ operator.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Choose your preferred mobile service provider</div>
+                        </div>
+                        
+                        <!-- Connection Type -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Connection Type *</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="connection_type" id="prepaid" value="prepaid" checked>
+                                <label class="btn btn-outline-primary" for="prepaid">Prepaid</label>
+                                
+                                <input type="radio" class="btn-check" name="connection_type" id="postpaid" value="postpaid">
+                                <label class="btn btn-outline-primary" for="postpaid">Postpaid</label>
+                            </div>
+                        </div>
+                        
+                        <!-- New Connection Plans Display -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Select Plan *</label>
+                            <div id="newPlansContainer" class="row g-3">
+                                <div class="col-12 text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading plans...</span>
+                                    </div>
+                                    <p class="mt-2">Select an operator to see plans</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Plan Details -->
+                        <div class="card border-primary mb-4" id="selectedPlanCard" style="display: none;">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Selected Plan</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h5 id="selectedPlanName">Plan Name</h5>
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <span class="badge bg-primary">New Connection</span>
+                                            <span class="badge bg-success" id="selectedPlanBonus">Welcome Bonus</span>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small class="text-muted">Data:</small>
+                                                <p class="mb-0 fw-bold" id="selectedPlanData">-</p>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Validity:</small>
+                                                <p class="mb-0 fw-bold" id="selectedPlanValidity">-</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <h3 class="text-primary mb-0" id="selectedPlanPrice">₹0</h3>
+                                        <input type="hidden" name="selected_plan" id="selectedPlanId">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Number Preference -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Number Preference (Optional)</label>
+                            <input type="text" name="number_preference" class="form-control" 
+                                placeholder="e.g., 98XX98XX98, VIP series, Lucky number">
+                            <div class="form-text">Enter your preferred number pattern or series</div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="button" class="btn btn-primary btn-lg btn-next-step" data-next="2" id="continueToStep2">
+                                Continue <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
                         
                         <!-- Step 2: Personal Information -->
                         <div class="step-content" id="step2">
@@ -625,7 +719,81 @@
 
 {% block extra_js %}
 <script>
+// Global function to select new connection plan
+function selectNewConnectionPlan(cardElement, planId) {
+    // Remove selected class from all cards
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.remove('selected');
+    });
     
+    // Add selected class to clicked card
+    cardElement.classList.add('selected');
+    
+    // Get plan details from card
+    const planName = cardElement.querySelector('.card-title').textContent;
+    const planPrice = cardElement.querySelector('.text-primary').textContent.replace('₹', '');
+    const planDetails = cardElement.querySelectorAll('.plan-details p');
+    
+    // Get plan details for summary
+    let planValidity = '-';
+    let planData = '-';
+    
+    if (planDetails.length >= 1) {
+        planValidity = planDetails[0].textContent.replace('Validity: ', '');
+    }
+    if (planDetails.length >= 2) {
+        planData = planDetails[1].textContent.replace('Data: ', '');
+    }
+    
+    // Update selected plan display
+    document.getElementById('selectedPlanName').textContent = planName;
+    document.getElementById('selectedPlanPrice').textContent = `₹${planPrice}`;
+    document.getElementById('selectedPlanId').value = planId;
+    document.getElementById('selectedPlanValidity').textContent = planValidity;
+    document.getElementById('selectedPlanData').textContent = planData;
+    
+    // Update payment summary
+    updatePaymentSummary(planName, planPrice, planValidity, planData);
+    
+    // Show selected plan card
+    document.getElementById('selectedPlanCard').style.display = 'block';
+}
+
+// Update payment summary function (accessible globally)
+function updatePaymentSummary(planName, planPrice, planValidity, planData) {
+    // Update summary display
+    document.getElementById('summaryPlanName').textContent = planName;
+    document.getElementById('summaryPlanPrice').textContent = `₹${planPrice}`;
+    document.getElementById('summaryPlanValidity').textContent = planValidity;
+    document.getElementById('summaryPlanData').textContent = planData;
+    
+    // Calculate amounts
+    const planAmount = parseFloat(planPrice) || 0;
+    
+    // Update COD amount (plan + SIM)
+    document.getElementById('codAmountDisplay').textContent = `₹${planAmount + 49}`;
+    
+    // Update Online amount (plan only, SIM free)
+    document.getElementById('onlineAmountDisplay').textContent = `₹${planAmount}`;
+    
+    // Update total based on selected payment method
+    const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+    if (selectedPayment && selectedPayment.value === 'online') {
+        document.getElementById('totalAmount').textContent = `₹${planAmount}`;
+        document.getElementById('simCharge').innerHTML = '<del>₹49</del> <span class="text-success">FREE</span>';
+    } else {
+        document.getElementById('totalAmount').textContent = `₹${planAmount + 49}`;
+        document.getElementById('simCharge').textContent = '₹49';
+    }
+}
+
+// Global variables
+let formSubmitted = false;
+let serviceAvailable = false;
+let verifiedPincode = '';
+let verifiedCity = '';
+let verifiedState = '';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Multi-step navigation
     let currentStep = 1;
@@ -648,6 +816,257 @@ document.addEventListener('DOMContentLoaded', function() {
         // Scroll to top of step
         document.getElementById(`step${stepNumber}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+    
+    // ✅ SERVICE AREA VERIFICATION
+    const servicePincode = document.getElementById('servicePincode');
+    const checkServiceBtn = document.getElementById('checkServiceBtn');
+    const serviceStatus = document.getElementById('serviceStatus');
+    const serviceResult = document.getElementById('serviceResult');
+    const serviceResultContent = document.getElementById('serviceResultContent');
+    const serviceLoading = document.getElementById('serviceLoading');
+    const continueToStep2 = document.getElementById('continueToStep2');
+    
+    // Function to check service area
+    function checkServiceArea() {
+        const operatorId = document.getElementById('newOperator').value;
+        const pincode = servicePincode.value.trim();
+        
+        // Validate pincode
+        if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+            serviceStatus.innerHTML = `
+                <div class="alert alert-danger alert-sm">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Please enter a valid 6-digit pincode
+                </div>
+            `;
+            servicePincode.classList.remove('is-valid', 'is-invalid');
+            servicePincode.classList.add('is-invalid');
+            serviceResult.style.display = 'none';
+            serviceAvailable = false;
+            return;
+        }
+        
+        if (!operatorId) {
+            serviceStatus.innerHTML = `
+                <div class="alert alert-warning alert-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Please select an operator first
+                </div>
+            `;
+            servicePincode.classList.remove('is-valid', 'is-invalid');
+            serviceResult.style.display = 'none';
+            serviceAvailable = false;
+            return;
+        }
+        
+        // Show loading
+        serviceStatus.innerHTML = '';
+        serviceResult.style.display = 'none';
+        serviceLoading.style.display = 'block';
+        servicePincode.classList.remove('is-valid', 'is-invalid');
+        
+        // Call API to check service
+        fetch('/api/check-service-area/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                operator_id: operatorId,
+                pincode: pincode
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            serviceLoading.style.display = 'none';
+            
+            if (data.available) {
+                serviceAvailable = true;
+                verifiedPincode = pincode;
+                verifiedCity = data.city || '';
+                verifiedState = data.state || '';
+                
+                // Show success
+                servicePincode.classList.remove('is-invalid');
+                servicePincode.classList.add('is-valid');
+                
+                serviceResult.style.display = 'block';
+                serviceResultContent.className = 'service-available';
+                serviceResultContent.innerHTML = `
+                    <i class="fas fa-check-circle icon text-success"></i>
+                    <div>
+                        <strong>✅ Service Available!</strong>
+                        <p class="mb-0 small">${data.message}</p>
+                        <small class="text-success">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            We deliver to your area
+                        </small>
+                    </div>
+                `;
+                
+                serviceStatus.innerHTML = `
+                    <div class="alert alert-success alert-sm mt-2">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Service verified for pincode ${pincode}
+                    </div>
+                `;
+                
+                // Store for later use
+                window.serviceCity = data.city;
+                window.serviceState = data.state;
+                
+            } else {
+                serviceAvailable = false;
+                verifiedPincode = '';
+                
+                // Show error
+                servicePincode.classList.remove('is-valid');
+                servicePincode.classList.add('is-invalid');
+                
+                serviceResult.style.display = 'block';
+                serviceResultContent.className = 'service-unavailable';
+                serviceResultContent.innerHTML = `
+                    <i class="fas fa-times-circle icon text-danger"></i>
+                    <div>
+                        <strong>❌ Service Not Available</strong>
+                        <p class="mb-0 small">${data.message}</p>
+                        <small class="text-muted">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Try a different operator or check your pincode
+                        </small>
+                    </div>
+                `;
+                
+                serviceStatus.innerHTML = `
+                    <div class="alert alert-danger alert-sm mt-2">
+                        <i class="fas fa-times-circle me-2"></i>
+                        ${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking service:', error);
+            serviceLoading.style.display = 'none';
+            serviceAvailable = false;
+            
+            serviceStatus.innerHTML = `
+                <div class="alert alert-danger alert-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error checking service availability. Please try again.
+                </div>
+            `;
+        });
+    }
+    
+    // Check service on button click
+    if (checkServiceBtn) {
+        checkServiceBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            checkServiceArea();
+        });
+    }
+    
+    // Check service on Enter key
+    if (servicePincode) {
+        servicePincode.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (checkServiceBtn) checkServiceBtn.click();
+            }
+        });
+        
+        // Check service on blur
+        servicePincode.addEventListener('blur', function() {
+            if (this.value.trim().length === 6) {
+                checkServiceArea();
+            }
+        });
+    }
+    
+    // Auto-check when operator changes
+    document.getElementById('newOperator').addEventListener('change', function() {
+        if (servicePincode && servicePincode.value.trim().length === 6) {
+            checkServiceArea();
+        }
+    });
+    
+    // Validate service area before proceeding to next step
+    if (continueToStep2) {
+        continueToStep2.addEventListener('click', function(e) {
+            const operatorId = document.getElementById('newOperator').value;
+            const pincode = servicePincode ? servicePincode.value.trim() : '';
+            
+            if (!operatorId) {
+                alert('Please select an operator first');
+                e.preventDefault();
+                return;
+            }
+            
+            if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
+                alert('Please enter a valid 6-digit pincode and verify service availability.');
+                if (servicePincode) servicePincode.focus();
+                e.preventDefault();
+                return;
+            }
+            
+            if (!serviceAvailable) {
+                alert('Please verify service availability in your area by clicking the "Check" button.');
+                e.preventDefault();
+                return;
+            }
+            
+            // Store pincode info for later steps
+            sessionStorage.setItem('verifiedPincode', verifiedPincode);
+            sessionStorage.setItem('verifiedCity', verifiedCity);
+            sessionStorage.setItem('verifiedState', verifiedState);
+            
+            // Proceed to next step
+            const nextStep = parseInt(this.getAttribute('data-next'));
+            showStep(nextStep);
+        });
+    }
+    
+    // Auto-fill pincode in step 3 when user reaches it
+    const originalShowStep = showStep;
+    showStep = function(stepNumber) {
+        originalShowStep(stepNumber);
+        
+        // If we're on step 3, auto-fill pincode and city/state
+        if (stepNumber === 3) {
+            const verifiedPincode = sessionStorage.getItem('verifiedPincode');
+            const verifiedCity = sessionStorage.getItem('verifiedCity');
+            const verifiedState = sessionStorage.getItem('verifiedState');
+            
+            if (verifiedPincode) {
+                const pincodeInput = document.querySelector('[name="pincode"]');
+                if (pincodeInput) {
+                    pincodeInput.value = verifiedPincode;
+                    pincodeInput.readOnly = true;
+                    pincodeInput.classList.add('bg-light');
+                }
+                
+                if (verifiedCity) {
+                    const cityInput = document.querySelector('[name="city"]');
+                    if (cityInput) {
+                        cityInput.value = verifiedCity;
+                        cityInput.readOnly = true;
+                        cityInput.classList.add('bg-light');
+                    }
+                }
+                
+                if (verifiedState) {
+                    const stateInput = document.querySelector('[name="state"]');
+                    if (stateInput) {
+                        stateInput.value = verifiedState;
+                        stateInput.readOnly = true;
+                        stateInput.classList.add('bg-light');
+                    }
+                }
+            }
+        }
+    };
     
     // Next step buttons
     document.querySelectorAll('.btn-next-step').forEach(button => {
@@ -766,19 +1185,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const codCard = document.getElementById('codCard');
     const onlineCard = document.getElementById('onlineCard');
     
-    codCard.addEventListener('click', function() {
-        codCard.classList.add('active', 'border-success');
-        onlineCard.classList.remove('active', 'border-primary');
-        document.getElementById('payment_cod').checked = true;
-        updatePaymentDisplay('cod');
-    });
+    if (codCard) {
+        codCard.addEventListener('click', function() {
+            codCard.classList.add('active', 'border-success');
+            onlineCard.classList.remove('active', 'border-primary');
+            document.getElementById('payment_cod').checked = true;
+            updatePaymentDisplay('cod');
+        });
+    }
     
-    onlineCard.addEventListener('click', function() {
-        onlineCard.classList.add('active', 'border-primary');
-        codCard.classList.remove('active', 'border-success');
-        document.getElementById('payment_online').checked = true;
-        updatePaymentDisplay('online');
-    });
+    if (onlineCard) {
+        onlineCard.addEventListener('click', function() {
+            onlineCard.classList.add('active', 'border-primary');
+            codCard.classList.remove('active', 'border-success');
+            document.getElementById('payment_online').checked = true;
+            updatePaymentDisplay('online');
+        });
+    }
     
     // Update payment display based on selection
     function updatePaymentDisplay(method) {
@@ -791,33 +1214,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const planPrice = parseFloat(document.getElementById('summaryPlanPrice').textContent.replace('₹', '')) || 0;
         
         if (method === 'online') {
-            // Show online payment button, hide COD submit
-            codSubmitBtn.style.display = 'none';
-            onlinePaymentBtn.style.display = 'inline-block';
-            onlinePaymentNote.style.display = 'block';
+            if (codSubmitBtn) codSubmitBtn.style.display = 'none';
+            if (onlinePaymentBtn) onlinePaymentBtn.style.display = 'inline-block';
+            if (onlinePaymentNote) onlinePaymentNote.style.display = 'block';
             
-            // Update amounts for online payment (SIM free)
-            simChargeElement.innerHTML = '<del>₹49</del> <span class="text-success">FREE</span>';
-            totalAmountElement.textContent = `₹${planPrice}`;
+            if (simChargeElement) simChargeElement.innerHTML = '<del>₹49</del> <span class="text-success">FREE</span>';
+            if (totalAmountElement) totalAmountElement.textContent = `₹${planPrice}`;
             
         } else {
-            // Show COD submit button, hide online payment
-            codSubmitBtn.style.display = 'inline-block';
-            onlinePaymentBtn.style.display = 'none';
-            onlinePaymentNote.style.display = 'none';
+            if (codSubmitBtn) codSubmitBtn.style.display = 'inline-block';
+            if (onlinePaymentBtn) onlinePaymentBtn.style.display = 'none';
+            if (onlinePaymentNote) onlinePaymentNote.style.display = 'none';
             
-            // Update amounts for COD (plan + SIM)
-            simChargeElement.textContent = '₹49';
-            totalAmountElement.textContent = `₹${planPrice + 49}`;
+            if (simChargeElement) simChargeElement.textContent = '₹49';
+            if (totalAmountElement) totalAmountElement.textContent = `₹${planPrice + 49}`;
         }
     }
     
-    // ✅ UPDATED: Handle online payment button click with better prevention
+    // Handle online payment button click
     document.getElementById('onlinePaymentBtn').addEventListener('click', async function(e) {
-        e.preventDefault(); // Prevent any default behavior
-        e.stopPropagation(); // Stop event bubbling
+        e.preventDefault();
+        e.stopPropagation();
         
-        // ✅ CRITICAL: Prevent multiple clicks
         if (this.dataset.processing === 'true') {
             console.log('Payment already being processed...');
             return;
@@ -836,30 +1254,23 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Set processing flag
         this.dataset.processing = 'true';
         
-        // Show loading
         const originalText = this.innerHTML;
         const originalDisabled = this.disabled;
         this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
         this.disabled = true;
         
-        // Also disable the form to prevent any other submissions
         document.getElementById('newConnectionForm').style.pointerEvents = 'none';
         document.getElementById('newConnectionForm').style.opacity = '0.7';
         
         try {
-            // Step 1: Create FormData object
             const formData = new FormData(document.getElementById('newConnectionForm'));
-            
-            // ✅ Add a timestamp to prevent duplicate submissions
             const submissionTimestamp = Date.now();
             formData.append('submission_timestamp', submissionTimestamp);
             
             console.log('Submitting new connection request...');
             
-            // Step 2: Submit form via AJAX to save NewConnectionRequest
             const response = await fetch('{% url "new_connection" %}', {
                 method: 'POST',
                 body: formData,
@@ -869,7 +1280,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // ✅ FIX: Store response text before parsing
             const responseText = await response.text();
             
             let responseData;
@@ -877,41 +1287,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 responseData = JSON.parse(responseText);
             } catch (jsonError) {
                 console.error('JSON parse error:', jsonError);
-                console.error('Response text:', responseText.substring(0, 500));
                 throw new Error('Server returned invalid response. Please try again.');
             }
             
             if (response.ok && responseData.success) {
                 console.log('✅ New connection request saved successfully:', responseData.tracking_id);
                 
-                // Get the redirect URL from response
                 let redirectUrl;
                 if (responseData.redirect_url) {
                     redirectUrl = responseData.redirect_url;
                 } else {
-                    // Fallback URL
                     redirectUrl = `/payments/process/?plan_id=${planId}&new_connection=true&connection_request_id=${responseData.connection_request_id}`;
                 }
                 
-                console.log('✅ Redirecting to payment:', redirectUrl);
-                
-                // ✅ IMPORTANT: Add a small delay to ensure everything is saved
                 setTimeout(() => {
-                    // Reset button state before redirect
                     this.innerHTML = originalText;
                     this.disabled = originalDisabled;
                     this.dataset.processing = 'false';
-                    
-                    // Reset form state
                     document.getElementById('newConnectionForm').style.pointerEvents = '';
                     document.getElementById('newConnectionForm').style.opacity = '';
-                    
-                    // Redirect to payment page
                     window.location.href = redirectUrl;
-                }, 500); // 500ms delay to ensure everything is processed
+                }, 500);
                 
             } else {
-                const errorMessage = responseData.error || responseData.message || 'Failed to save connection request. Please try again.';
+                const errorMessage = responseData.error || responseData.message || 'Failed to save connection request.';
                 
                 if (responseData.errors) {
                     let errorList = 'Please correct the following errors:\n';
@@ -925,12 +1324,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.error('Server error:', responseData);
                 
-                // Reset button state
                 this.innerHTML = originalText;
                 this.disabled = originalDisabled;
                 this.dataset.processing = 'false';
-                
-                // Reset form state
                 document.getElementById('newConnectionForm').style.pointerEvents = '';
                 document.getElementById('newConnectionForm').style.opacity = '';
             }
@@ -939,42 +1335,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             alert('An error occurred while saving your request: ' + error.message);
             
-            // Reset button state
             this.innerHTML = originalText;
             this.disabled = originalDisabled;
             this.dataset.processing = 'false';
-            
-            // Reset form state
             document.getElementById('newConnectionForm').style.pointerEvents = '';
             document.getElementById('newConnectionForm').style.opacity = '';
         }
     });
-    
-    // Update plan summary when plan is selected
-    function updatePaymentSummary(planName, planPrice, planValidity, planData) {
-        // Update summary display
-        document.getElementById('summaryPlanName').textContent = planName;
-        document.getElementById('summaryPlanPrice').textContent = `₹${planPrice}`;
-        document.getElementById('summaryPlanValidity').textContent = planValidity;
-        document.getElementById('summaryPlanData').textContent = planData;
-        
-        // Calculate amounts
-        const planAmount = parseFloat(planPrice) || 0;
-        
-        // Update COD amount (plan + SIM)
-        document.getElementById('codAmountDisplay').textContent = `₹${planAmount + 49}`;
-        
-        // Update Online amount (plan only, SIM free)
-        document.getElementById('onlineAmountDisplay').textContent = `₹${planAmount}`;
-        
-        // Update total based on selected payment method
-        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
-        if (selectedPayment && selectedPayment.value === 'online') {
-            document.getElementById('totalAmount').textContent = `₹${planAmount}`;
-        } else {
-            document.getElementById('totalAmount').textContent = `₹${planAmount + 49}`;
-        }
-    }
     
     // Form validation
     function validateStep(step) {
@@ -990,9 +1357,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (!selectedPlan) {
                 alert('Please select a plan');
                 isValid = false;
+            } else if (!serviceAvailable) {
+                alert('Please verify service availability in your area by entering your pincode and clicking "Check".');
+                isValid = false;
             }
         } else if (step === 2) {
-            // Validate personal information
             const fullName = document.querySelector('[name="full_name"]').value.trim();
             const email = document.querySelector('[name="email"]').value.trim();
             const mobile = document.querySelector('[name="alternate_mobile"]').value.trim();
@@ -1012,7 +1381,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
             }
         } else if (step === 3) {
-            // Validate address information
             const address = document.querySelector('[name="address"]').value.trim();
             const pincode = document.querySelector('[name="pincode"]').value.trim();
             const city = document.querySelector('[name="city"]').value.trim();
@@ -1032,7 +1400,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
             }
         } else if (step === 4) {
-            // Validate delivery schedule
             const deliveryDate = document.querySelector('[name="preferred_delivery_date"]').value;
             const timeSlot = document.querySelector('[name="preferred_delivery_time"]').value;
             const terms = document.getElementById('terms').checked;
@@ -1057,25 +1424,22 @@ document.addEventListener('DOMContentLoaded', function() {
         return validateStep(1) && validateStep(2) && validateStep(3) && validateStep(4);
     }
     
-    // ✅ UPDATED: Form submission for COD with better prevention
+    // Form submission for COD
     document.getElementById('newConnectionForm').addEventListener('submit', function(e) {
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
         
-        // If online payment selected, don't submit form normally
         if (paymentMethod && paymentMethod.value === 'online') {
             e.preventDefault();
             e.stopPropagation();
             return false;
         }
         
-        // For COD, validate all steps before submission
         if (!validateAllSteps()) {
             e.preventDefault();
             alert('Please complete all required fields before submitting.');
             return false;
         }
         
-        // ✅ CRITICAL: Check if already submitting
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn.dataset.processing === 'true') {
             e.preventDefault();
@@ -1083,43 +1447,36 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        // Set processing flag
         submitBtn.dataset.processing = 'true';
         
-        // Show loading for COD submission
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
         submitBtn.disabled = true;
         
-        // Also disable the form
         this.style.pointerEvents = 'none';
         this.style.opacity = '0.7';
         
-        // Add timestamp to prevent duplicates
         const timestampInput = document.createElement('input');
         timestampInput.type = 'hidden';
         timestampInput.name = 'submission_timestamp';
         timestampInput.value = Date.now();
         this.appendChild(timestampInput);
         
-        // Allow normal form submission for COD
         return true;
     });
     
-    // ✅ ADD: Reset form when page loads to prevent resubmission
+    // Reset form when page loads
     if (window.history.replaceState) {
         window.history.replaceState(null, null, window.location.href);
     }
     
-    // ✅ ADD: Prevent form resubmission on page refresh
+    // Prevent form resubmission on page refresh
     window.addEventListener('pageshow', function(event) {
         if (event.persisted) {
-            // Page was restored from bfcache
             document.getElementById('newConnectionForm').reset();
             document.getElementById('newConnectionForm').style.pointerEvents = '';
             document.getElementById('newConnectionForm').style.opacity = '';
             
-            // Reset buttons
             document.querySelectorAll('button').forEach(btn => {
                 btn.disabled = false;
                 btn.dataset.processing = 'false';
@@ -1133,78 +1490,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Global function to select new connection plan
-function selectNewConnectionPlan(cardElement, planId) {
-    // Remove selected class from all cards
-    document.querySelectorAll('.plan-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    // Add selected class to clicked card
-    cardElement.classList.add('selected');
-    
-    // Get plan details from card
-    const planName = cardElement.querySelector('.card-title').textContent;
-    const planPrice = cardElement.querySelector('.text-primary').textContent.replace('₹', '');
-    const planDetails = cardElement.querySelectorAll('.plan-details p');
-    
-    // Get plan details for summary
-    let planValidity = '-';
-    let planData = '-';
-    
-    if (planDetails.length >= 1) {
-        planValidity = planDetails[0].textContent.replace('Validity: ', '');
-    }
-    if (planDetails.length >= 2) {
-        planData = planDetails[1].textContent.replace('Data: ', '');
-    }
-    
-    // Update selected plan display
-    document.getElementById('selectedPlanName').textContent = planName;
-    document.getElementById('selectedPlanPrice').textContent = `₹${planPrice}`;
-    document.getElementById('selectedPlanId').value = planId;
-    document.getElementById('selectedPlanValidity').textContent = planValidity;
-    document.getElementById('selectedPlanData').textContent = planData;
-    
-    // Update payment summary
-    updatePaymentSummary(planName, planPrice, planValidity, planData);
-    
-    // Show selected plan card
-    document.getElementById('selectedPlanCard').style.display = 'block';
-}
-
-// Update payment summary function (accessible globally)
-function updatePaymentSummary(planName, planPrice, planValidity, planData) {
-    // Update summary display
-    document.getElementById('summaryPlanName').textContent = planName;
-    document.getElementById('summaryPlanPrice').textContent = `₹${planPrice}`;
-    document.getElementById('summaryPlanValidity').textContent = planValidity;
-    document.getElementById('summaryPlanData').textContent = planData;
-    
-    // Calculate amounts
-    const planAmount = parseFloat(planPrice) || 0;
-    
-    // Update COD amount (plan + SIM)
-    document.getElementById('codAmountDisplay').textContent = `₹${planAmount + 49}`;
-    
-    // Update Online amount (plan only, SIM free)
-    document.getElementById('onlineAmountDisplay').textContent = `₹${planAmount}`;
-    
-    // Update total based on selected payment method
-    const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
-    if (selectedPayment && selectedPayment.value === 'online') {
-        document.getElementById('totalAmount').textContent = `₹${planAmount}`;
-        document.getElementById('simCharge').innerHTML = '<del>₹49</del> <span class="text-success">FREE</span>';
-    } else {
-        document.getElementById('totalAmount').textContent = `₹${planAmount + 49}`;
-        document.getElementById('simCharge').textContent = '₹49';
-    }
-}
-
-// ✅ ADD: Global variable to track form submissions
-let formSubmitted = false;
-
-// ✅ ADD: Function to prevent duplicate submissions
+// Prevent duplicate submissions
 function preventDuplicateSubmission(formId) {
     const form = document.getElementById(formId);
     if (formSubmitted) {
@@ -1214,7 +1500,6 @@ function preventDuplicateSubmission(formId) {
     return true;
 }
 
-// ✅ ADD: Reset form submission flag when leaving page
 window.addEventListener('beforeunload', function() {
     formSubmitted = false;
 });

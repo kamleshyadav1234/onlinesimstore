@@ -7,6 +7,7 @@ urlpatterns = [
     path('operators/<int:pk>/', OperatorDetailView.as_view(), name='operator_detail'),
     path('search/', SearchView.as_view(), name='search'),
     path('coverage-check/', CoverageCheckView.as_view(), name='coverage_check'),
+    path('api/check-service-area/', check_service_area, name='check_service_area'),
     
     path('new-connection/cancel/<str:tracking_id>/', CancelConnectionRequestView.as_view(), name='cancel_connection_request'),
 

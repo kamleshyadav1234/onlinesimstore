@@ -64,6 +64,27 @@ class ServiceArea(models.Model):
     # CORRECT: Use either auto_now_add OR default, not both
     created_at = models.DateTimeField(auto_now_add=True)  # Remove 'default' parameter
     updated_at = models.DateTimeField(auto_now=True)
+
+
+    @classmethod
+    def check_service_availability(cls, operator_id, pincode):
+        """
+        Check if a pincode is serviced by a specific operator
+        Returns: (is_available, service_area_object)
+        """
+        try:
+            # Get all service areas for this operator
+            service_areas = cls.objects.filter(operator_id=operator_id, availability=True)
+            
+            for area in service_areas:
+                pincode_list = area.get_pincode_list()
+                if pincode in pincode_list:
+                    return True, area
+            
+            return False, None
+        except Exception as e:
+            print(f"Error checking service availability: {e}")
+            return False, None
     
     class Meta:
         verbose_name = 'Service Area'
